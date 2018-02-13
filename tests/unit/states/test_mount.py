@@ -3,7 +3,7 @@
     :codeauthor: :email:`Jayesh Kariya <jayeshk@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 
 # Import Salt Testing Libs
@@ -62,6 +62,8 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
         mock_str = MagicMock(return_value='salt')
         mock_user = MagicMock(return_value={'uid': 510})
         mock_group = MagicMock(return_value={'gid': 100})
+        mock_read_cache = MagicMock(return_value={})
+        mock_write_cache = MagicMock(return_value=True)
         with patch.dict(mount.__grains__, {'os': 'Darwin'}):
             with patch.dict(mount.__salt__, {'mount.active': mock_mnt,
                                              'cmd.run_all': mock_ret,
@@ -167,13 +169,14 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
             with patch.dict(mount.__salt__, {'mount.active': mock_mnt,
                                              'mount.mount': mock_str,
                                              'mount.umount': mock_f,
+                                             'mount.read_mount_cache': mock_read_cache,
+                                             'mount.write_mount_cache': mock_write_cache,
                                              'mount.set_fstab': mock,
                                              'user.info': mock_user,
                                              'group.info': mock_group}):
                 with patch.dict(mount.__opts__, {'test': True}):
                     with patch.object(os.path, 'exists', mock_t):
-                        comt = 'Target was already mounted. ' + \
-                               'Entry already exists in the fstab.'
+                        comt = 'Target was already mounted. Entry already exists in the fstab.'
                         ret.update({'name': name2, 'result': True})
                         ret.update({'comment': comt, 'changes': {}})
                         self.assertDictEqual(mount.mounted(name2, device2,
@@ -295,9 +298,7 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
 
         ret = {'name': name,
                'result': True,
-               'comment': '',
+               'comment': 'Watch not supported in unmount at this time',
                'changes': {}}
 
-        comt = ('Watch not supported in unmount at this time')
-        ret.update({'comment': comt})
         self.assertDictEqual(mount.mod_watch(name, sfun='unmount'), ret)

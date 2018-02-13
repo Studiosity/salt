@@ -6,7 +6,7 @@ Getting Started With Azure ARM
 
 Azure is a cloud service by Microsoft providing virtual machines, SQL services,
 media services, and more. Azure ARM (aka, the Azure Resource Manager) is a next
-generatiom version of the Azure portal and API. This document describes how to
+generation version of the Azure portal and API. This document describes how to
 use Salt Cloud to create a virtual machine on Azure ARM, with Salt installed.
 
 More information about Azure is located at `http://www.windowsazure.com/
@@ -17,7 +17,7 @@ Dependencies
 ============
 * `Microsoft Azure SDK for Python <https://pypi.python.org/pypi/azure>`_ >= 2.0rc6
 * `Microsoft Azure Storage SDK for Python <https://pypi.python.org/pypi/azure-storage>`_ >= 0.32
-* The python-requests library, for Python < 2.7.9.
+* `AutoRest swagger generator Python client runtime (Azure-specific module) <https://pypi.python.org/pypi/msrestazure>`_ >= 0.4
 * A Microsoft Azure account
 * `Salt <https://github.com/saltstack/salt>`_
 
@@ -91,13 +91,21 @@ Set up an initial profile at ``/etc/salt/cloud.profiles``:
 
 .. code-block:: yaml
 
-    azure-ubuntu:
+    azure-ubuntu-pass:
       provider: my-azure-config
       image: Canonical|UbuntuServer|14.04.5-LTS|14.04.201612050
       size: Standard_D1_v2
       location: eastus
       ssh_username: azureuser
       ssh_password: verybadpass
+
+    azure-ubuntu-key:
+      provider: my-azure-config
+      image: Canonical|UbuntuServer|14.04.5-LTS|14.04.201612050
+      size: Standard_D1_v2
+      location: eastus
+      ssh_username: azureuser
+      ssh_publickeyfile: /path/to/ssh_public_key.pub
 
     azure-win2012:
       provider: my-azure-config
@@ -181,13 +189,23 @@ be viewed using the following command:
 
 ssh_username
 ------------
-Required for Linux. The user to use to log into the newly-created Linux VM to
-install Salt.
+Required for Linux. The admin user to add on the instance. It is also used to log
+into the newly-created VM to install Salt.
+
+ssh_keyfile
+-----------
+Required if using SSH key authentication. The path on the Salt master to the SSH private
+key used during the minion bootstrap process.
+
+ssh_publickeyfile
+-----------------
+Use either ``ssh_publickeyfile`` or ``ssh_password``. The path on the Salt master to the
+SSH public key which will be pushed to the Linux VM.
 
 ssh_password
 ------------
-Required for Linux. The password to use to log into the newly-created Linux VM
-to install Salt.
+Use either ``ssh_publickeyfile`` or ``ssh_password``. The password for the admin user on
+the newly-created Linux virtual machine.
 
 win_username
 ------------
@@ -223,10 +241,38 @@ subnet
 Optional. The subnet inside the virtual network that the VM will be spun up in.
 Default is ``default``.
 
+load_balancer
+-------------
+Optional. The load-balancer for the VM's network interface to join. If
+specified the backend_pool option need to be set.
+
+backend_pool
+------------
+Optional. Required if the load_balancer option is set. The load-balancer's
+Backend Pool the VM's network interface will join.
+
 iface_name
 ----------
 Optional. The name to apply to the VM's network interface. If not supplied, the
 value will be set to ``<VM name>-iface0``.
+
+dns_servers
+-----------
+Optional. A **list** of the DNS servers to configure for the network interface
+(will be set on the VM by the DHCP of the VNET).
+
+.. code-block:: yaml
+
+    my-azurearm-profile:
+      provider: azurearm-provider
+      network: mynetwork
+      dns_servers:
+        - 10.1.1.4
+        - 10.1.1.5
+
+availability_set
+----------------
+Optional. If set, the VM will be added to the specified availability set.
 
 cleanup_disks
 -------------

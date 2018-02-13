@@ -4,11 +4,10 @@ Generate the salt thin tarball from the installed python files
 '''
 
 # Import python libs
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import sys
-import json
 import shutil
 import tarfile
 import zipfile
@@ -69,8 +68,13 @@ except ImportError:
 
 # Import salt libs
 import salt
-import salt.utils
+import salt.utils.files
+import salt.utils.hashutils
+import salt.utils.json
+import salt.utils.path
+import salt.utils.stringutils
 import salt.exceptions
+import salt.version
 
 SALTCALL = '''
 import os
@@ -87,7 +91,7 @@ sys.path.insert(
 from salt.scripts import salt_call
 if __name__ == '__main__':
     salt_call()
-'''
+'''.encode('utf-8')
 
 
 def thin_path(cachedir):
@@ -178,16 +182,16 @@ def gen_thin(cachedir, extra_mods='', overwrite=False, so_mods='',
     thinver = os.path.join(thindir, 'version')
     pythinver = os.path.join(thindir, '.thin-gen-py-version')
     salt_call = os.path.join(thindir, 'salt-call')
-    with salt.utils.fopen(salt_call, 'w+') as fp_:
+    with salt.utils.files.fopen(salt_call, 'wb') as fp_:
         fp_.write(SALTCALL)
     if os.path.isfile(thintar):
         if not overwrite:
             if os.path.isfile(thinver):
-                with salt.utils.fopen(thinver) as fh_:
+                with salt.utils.files.fopen(thinver) as fh_:
                     overwrite = fh_.read() != salt.version.__version__
                 if overwrite is False and os.path.isfile(pythinver):
-                    with salt.utils.fopen(pythinver) as fh_:
-                        overwrite = fh_.read() != str(sys.version_info[0])
+                    with salt.utils.files.fopen(pythinver) as fh_:
+                        overwrite = fh_.read() != str(sys.version_info[0])  # future lint: disable=blacklisted-function
             else:
                 overwrite = True
 
@@ -235,14 +239,14 @@ def gen_thin(cachedir, extra_mods='', overwrite=False, so_mods='',
         # Get python 3 tops
         py_shell_cmd = (
             python3_bin + ' -c \'import sys; import json; import salt.utils.thin; '
-            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))))); exit(0);\' '
-            '\'{0}\''.format(json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
+            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))), ensure_ascii=False)); exit(0);\' '
+            '\'{0}\''.format(salt.utils.json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
         )
         cmd = subprocess.Popen(py_shell_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = cmd.communicate()
         if cmd.returncode == 0:
             try:
-                tops = json.loads(stdout)
+                tops = salt.utils.json.loads(stdout)
                 tops_py_version_mapping['3'] = tops
             except ValueError:
                 pass
@@ -251,14 +255,14 @@ def gen_thin(cachedir, extra_mods='', overwrite=False, so_mods='',
         py_shell_cmd = (
             python2_bin + ' -c \'from __future__ import print_function; '
             'import sys; import json; import salt.utils.thin; '
-            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))))); exit(0);\' '
-            '\'{0}\''.format(json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
+            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))), ensure_ascii=False)); exit(0);\' '
+            '\'{0}\''.format(salt.utils.json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
         )
         cmd = subprocess.Popen(py_shell_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = cmd.communicate()
         if cmd.returncode == 0:
             try:
-                tops = json.loads(stdout.decode('utf-8'))
+                tops = salt.utils.json.loads(stdout.decode('utf-8'))
                 tops_py_version_mapping['2'] = tops
             except ValueError:
                 pass
@@ -295,7 +299,7 @@ def gen_thin(cachedir, extra_mods='', overwrite=False, so_mods='',
                     elif compress == 'zip':
                         tfp.write(base, arcname=os.path.join('py{0}'.format(py_ver), base))
                 continue
-            for root, dirs, files in os.walk(base, followlinks=True):
+            for root, dirs, files in salt.utils.path.os_walk(base, followlinks=True):
                 for name in files:
                     if not name.endswith(('.pyc', '.pyo')):
                         if compress == 'gzip':
@@ -315,10 +319,10 @@ def gen_thin(cachedir, extra_mods='', overwrite=False, so_mods='',
         tfp.add('salt-call')
     elif compress == 'zip':
         tfp.write('salt-call')
-    with salt.utils.fopen(thinver, 'w+') as fp_:
+    with salt.utils.files.fopen(thinver, 'w+') as fp_:
         fp_.write(salt.version.__version__)
-    with salt.utils.fopen(pythinver, 'w+') as fp_:
-        fp_.write(str(sys.version_info[0]))
+    with salt.utils.files.fopen(pythinver, 'w+') as fp_:
+        fp_.write(str(sys.version_info[0]))  # future lint: disable=blacklisted-function
     os.chdir(os.path.dirname(thinver))
     if compress == 'gzip':
         tfp.add('version')
@@ -337,7 +341,7 @@ def thin_sum(cachedir, form='sha1'):
     Return the checksum of the current thin tarball
     '''
     thintar = gen_thin(cachedir)
-    return salt.utils.get_hash(thintar, form)
+    return salt.utils.hashutils.get_hash(thintar, form)
 
 
 def gen_min(cachedir, extra_mods='', overwrite=False, so_mods='',
@@ -363,16 +367,16 @@ def gen_min(cachedir, extra_mods='', overwrite=False, so_mods='',
     minver = os.path.join(mindir, 'version')
     pyminver = os.path.join(mindir, '.min-gen-py-version')
     salt_call = os.path.join(mindir, 'salt-call')
-    with salt.utils.fopen(salt_call, 'w+') as fp_:
+    with salt.utils.files.fopen(salt_call, 'wb') as fp_:
         fp_.write(SALTCALL)
     if os.path.isfile(mintar):
         if not overwrite:
             if os.path.isfile(minver):
-                with salt.utils.fopen(minver) as fh_:
+                with salt.utils.files.fopen(minver) as fh_:
                     overwrite = fh_.read() != salt.version.__version__
                 if overwrite is False and os.path.isfile(pyminver):
-                    with salt.utils.fopen(pyminver) as fh_:
-                        overwrite = fh_.read() != str(sys.version_info[0])
+                    with salt.utils.files.fopen(pyminver) as fh_:
+                        overwrite = fh_.read() != str(sys.version_info[0])  # future lint: disable=blacklisted-function
             else:
                 overwrite = True
 
@@ -420,14 +424,14 @@ def gen_min(cachedir, extra_mods='', overwrite=False, so_mods='',
         # Get python 3 tops
         py_shell_cmd = (
             python3_bin + ' -c \'import sys; import json; import salt.utils.thin; '
-            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))))); exit(0);\' '
-            '\'{0}\''.format(json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
+            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))), ensure_ascii=False)); exit(0);\' '
+            '\'{0}\''.format(salt.utils.json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
         )
         cmd = subprocess.Popen(py_shell_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = cmd.communicate()
         if cmd.returncode == 0:
             try:
-                tops = json.loads(stdout)
+                tops = salt.utils.json.loads(stdout)
                 tops_py_version_mapping['3'] = tops
             except ValueError:
                 pass
@@ -436,14 +440,14 @@ def gen_min(cachedir, extra_mods='', overwrite=False, so_mods='',
         py_shell_cmd = (
             python2_bin + ' -c \'from __future__ import print_function; '
             'import sys; import json; import salt.utils.thin; '
-            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))))); exit(0);\' '
-            '\'{0}\''.format(json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
+            'print(json.dumps(salt.utils.thin.get_tops(**(json.loads(sys.argv[1]))), ensure_ascii=False)); exit(0);\' '
+            '\'{0}\''.format(salt.utils.json.dumps({'extra_mods': extra_mods, 'so_mods': so_mods}))
         )
         cmd = subprocess.Popen(py_shell_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = cmd.communicate()
         if cmd.returncode == 0:
             try:
-                tops = json.loads(stdout.decode('utf-8'))
+                tops = salt.utils.json.loads(stdout.decode('utf-8'))
                 tops_py_version_mapping['2'] = tops
             except ValueError:
                 pass
@@ -506,8 +510,11 @@ def gen_min(cachedir, extra_mods='', overwrite=False, so_mods='',
         'salt/utils/vt.py',
         'salt/utils/templates.py',
         'salt/utils/aggregation.py',
+        'salt/utils/yaml.py',
+        'salt/utils/yamldumper.py',
         'salt/utils/yamlloader.py',
         'salt/utils/event.py',
+        'salt/utils/state.py',
         'salt/serializers',
         'salt/serializers/__init__.py',
         'salt/serializers/yamlex.py',
@@ -590,7 +597,7 @@ def gen_min(cachedir, extra_mods='', overwrite=False, so_mods='',
                 # top is a single file module
                 tfp.add(base, arcname=os.path.join('py{0}'.format(py_ver), base))
                 continue
-            for root, dirs, files in os.walk(base, followlinks=True):
+            for root, dirs, files in salt.utils.path.os_walk(base, followlinks=True):
                 for name in files:
                     if name.endswith(('.pyc', '.pyo')):
                         continue
@@ -604,10 +611,10 @@ def gen_min(cachedir, extra_mods='', overwrite=False, so_mods='',
 
     os.chdir(mindir)
     tfp.add('salt-call')
-    with salt.utils.fopen(minver, 'w+') as fp_:
+    with salt.utils.files.fopen(minver, 'w+') as fp_:
         fp_.write(salt.version.__version__)
-    with salt.utils.fopen(pyminver, 'w+') as fp_:
-        fp_.write(str(sys.version_info[0]))
+    with salt.utils.files.fopen(pyminver, 'w+') as fp_:
+        fp_.write(str(sys.version_info[0]))  # future lint: disable=blacklisted-function
     os.chdir(os.path.dirname(minver))
     tfp.add('version')
     tfp.add('.min-gen-py-version')
@@ -622,4 +629,4 @@ def min_sum(cachedir, form='sha1'):
     Return the checksum of the current thin tarball
     '''
     mintar = gen_min(cachedir)
-    return salt.utils.get_hash(mintar, form)
+    return salt.utils.hashutils.get_hash(mintar, form)

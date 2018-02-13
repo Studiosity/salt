@@ -4,7 +4,7 @@ Test the grains module
 '''
 
 # Import python libs
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import logging
 import os
 import time
@@ -51,11 +51,13 @@ class TestModulesGrains(ModuleCase):
             'cpuarch',
             'domain',
             'fqdn',
+            'fqdns',
             'gid',
             'groupname',
             'host',
             'kernel',
             'kernelrelease',
+            'kernelversion',
             'localhost',
             'mem_total',
             'num_cpus',

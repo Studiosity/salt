@@ -4,7 +4,7 @@
 '''
 
 # Import Python libs
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -37,7 +37,7 @@ class GenesisTestCase(TestCase, LoaderModuleMockMixin):
             mock = MagicMock(side_effect=Exception('foo'))
             with patch.dict(genesis.__salt__, {'file.mkdir': mock}):
                 self.assertEqual(genesis.bootstrap('platform', 'root'),
-                                 {'Error': "Exception('foo',)"})
+                                 {'Error': 'Exception({0},)'.format(repr('foo'))})
 
         with patch.object(genesis, '_bootstrap_yum', return_value='A'):
             with patch.dict(genesis.__salt__, {'mount.umount': MagicMock(),
@@ -93,7 +93,7 @@ class GenesisTestCase(TestCase, LoaderModuleMockMixin):
                                                'file.directory_exists': MagicMock(),
                                                'cmd.run': MagicMock(),
                                                'disk.blkid': MagicMock(return_value={})}):
-                with patch('salt.modules.genesis.salt.utils.which', return_value=True):
+                with patch('salt.modules.genesis.salt.utils.path.which', return_value=True):
                     with patch('salt.modules.genesis.salt.utils.validate.path.is_executable',
                                return_value=True):
                         param_set['params'].update(common_parms)
@@ -112,7 +112,7 @@ class GenesisTestCase(TestCase, LoaderModuleMockMixin):
         '''
         Test for Return which platforms are available
         '''
-        with patch('salt.utils.which', MagicMock(return_value=False)):
+        with patch('salt.utils.path.which', MagicMock(return_value=False)):
             self.assertFalse(genesis.avail_platforms()['deb'])
 
     def test_pack(self):

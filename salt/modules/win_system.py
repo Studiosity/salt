@@ -12,15 +12,22 @@ Module for managing windows systems.
 
 Support for reboot, shutdown, etc
 '''
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals, print_function
 
-# Import python libs
+# Import Python libs
+import ctypes
 import logging
 import time
-import ctypes
 from datetime import datetime
 
-# Import 3rd Party Libs
+# Import salt libs
+import salt.utils.functools
+import salt.utils.locales
+import salt.utils.platform
+from salt.exceptions import CommandExecutionError
+
+# Import 3rd-party Libs
+from salt.ext import six
 try:
     import pythoncom
     import wmi
@@ -33,12 +40,6 @@ try:
 except ImportError:
     HAS_WIN32NET_MODS = False
 
-# Import salt libs
-import salt.utils
-import salt.utils.locales
-import salt.ext.six as six
-from salt.exceptions import CommandExecutionError
-
 # Set up logging
 log = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def __virtual__():
     '''
     Only works on Windows Systems with Win32 Modules
     '''
-    if not salt.utils.is_windows():
+    if not salt.utils.platform.is_windows():
         return False, 'Module win_system: Requires Windows'
 
     if not HAS_WIN32NET_MODS:
@@ -296,7 +297,7 @@ def shutdown(message=None, timeout=5, force_close=True, reboot=False,  # pylint:
     if only_on_pending_reboot and not get_pending_reboot():
         return False
 
-    if message and not isinstance(message, str):
+    if message and not isinstance(message, six.string_types):
         message = message.decode('utf-8')
     try:
         win32api.InitiateSystemShutdown('127.0.0.1', message, timeout,
@@ -305,9 +306,9 @@ def shutdown(message=None, timeout=5, force_close=True, reboot=False,  # pylint:
     except pywintypes.error as exc:
         (number, context, message) = exc
         log.error('Failed to shutdown the system')
-        log.error('nbr: {0}'.format(number))
-        log.error('ctx: {0}'.format(context))
-        log.error('msg: {0}'.format(message))
+        log.error('nbr: %s', number)
+        log.error('ctx: %s', context)
+        log.error('msg: %s', message)
         return False
 
 
@@ -348,9 +349,9 @@ def shutdown_abort():
     except pywintypes.error as exc:
         (number, context, message) = exc
         log.error('Failed to abort system shutdown')
-        log.error('nbr: {0}'.format(number))
-        log.error('ctx: {0}'.format(context))
-        log.error('msg: {0}'.format(message))
+        log.error('nbr: %s', number)
+        log.error('ctx: %s', context)
+        log.error('msg: %s', message)
         return False
 
 
@@ -487,15 +488,15 @@ def set_computer_desc(desc=None):
     except win32net.error as exc:
         (number, context, message) = exc
         log.error('Failed to update system')
-        log.error('nbr: {0}'.format(number))
-        log.error('ctx: {0}'.format(context))
-        log.error('msg: {0}'.format(message))
+        log.error('nbr: %s', number)
+        log.error('ctx: %s', context)
+        log.error('msg: %s', message)
         return False
 
     return {'Computer Description': get_computer_desc()}
 
 
-set_computer_description = salt.utils.alias_function(set_computer_desc, 'set_computer_description')  # pylint: disable=invalid-name
+set_computer_description = salt.utils.functools.alias_function(set_computer_desc, 'set_computer_description')  # pylint: disable=invalid-name
 
 
 def get_system_info():
@@ -570,7 +571,7 @@ def get_computer_desc():
     return False if desc is None else desc
 
 
-get_computer_description = salt.utils.alias_function(get_computer_desc, 'get_computer_description')  # pylint: disable=invalid-name
+get_computer_description = salt.utils.functools.alias_function(get_computer_desc, 'get_computer_description')  # pylint: disable=invalid-name
 
 
 def get_hostname():
@@ -689,7 +690,7 @@ def join_domain(domain,
         return 'Must specify a password if you pass a username'
 
     # remove any escape characters
-    if isinstance(account_ou, str):
+    if isinstance(account_ou, six.string_types):
         account_ou = account_ou.split('\\')
         account_ou = ''.join(account_ou)
 
@@ -773,7 +774,8 @@ def unjoin_domain(username=None,
                   workgroup='WORKGROUP',
                   disable=False,
                   restart=False):
-    r'''
+    # pylint: disable=anomalous-backslash-in-string
+    '''
     Unjoin a computer from an Active Directory Domain. Requires a restart.
 
     Args:
@@ -781,7 +783,7 @@ def unjoin_domain(username=None,
         username (str):
             Username of an account which is authorized to manage computer
             accounts on the domain. Needs to be a fully qualified name like
-            ``user@domain.tld`` or ``domain.tld\user``. If the domain is not
+            ``user@domain.tld`` or ``domain.tld\\user``. If the domain is not
             specified, the passed domain will be used. If the computer account
             doesn't need to be disabled after the computer is unjoined, this can
             be ``None``.
@@ -820,6 +822,7 @@ def unjoin_domain(username=None,
                          password='unjoinpassword' disable=True \\
                          restart=True
     '''
+    # pylint: enable=anomalous-backslash-in-string
     if six.PY2:
         username = _to_unicode(username)
         password = _to_unicode(password)
@@ -865,11 +868,11 @@ def unjoin_domain(username=None,
             return ret
         else:
             log.error(win32api.FormatMessage(err[0]).rstrip())
-            log.error('Failed to join the computer to {0}'.format(workgroup))
+            log.error('Failed to join the computer to %s', workgroup)
             return False
     else:
         log.error(win32api.FormatMessage(err[0]).rstrip())
-        log.error('Failed to unjoin computer from {0}'.format(status['Domain']))
+        log.error('Failed to unjoin computer from %s', status['Domain'])
         return False
 
 
@@ -1018,9 +1021,9 @@ def set_system_date_time(years=None,
     except win32api.error as exc:
         (number, context, message) = exc
         log.error('Failed to get local time')
-        log.error('nbr: {0}'.format(number))
-        log.error('ctx: {0}'.format(context))
-        log.error('msg: {0}'.format(message))
+        log.error('nbr: %s', number)
+        log.error('ctx: %s', context)
+        log.error('msg: %s', message)
         return False
 
     # Check for passed values. If not passed, use current values

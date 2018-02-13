@@ -7,8 +7,8 @@ user present
 user present with custom homedir
 '''
 
-# Import python libs
-from __future__ import absolute_import
+# Import Python libs
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 import sys
 from random import randint
@@ -20,10 +20,10 @@ from tests.support.unit import skipIf
 from tests.support.helpers import destructiveTest, requires_system_grains, skip_if_not_root
 from tests.support.mixins import SaltReturnAssertsMixin
 
-# Import salt libs
-import salt.utils
+# Import Salt libs
+import salt.utils.platform
 
-if salt.utils.is_darwin():
+if salt.utils.platform.is_darwin():
     USER = 'macuser'
     GROUP = 'macuser'
     GID = randint(400, 500)
@@ -45,7 +45,7 @@ class UserTest(ModuleCase, SaltReturnAssertsMixin):
     user_home = '/var/lib/salt_test'
 
     def setUp(self):
-        if salt.utils.is_darwin():
+        if salt.utils.platform.is_darwin():
             #on mac we need to add user, because there is
             #no creationtime for nobody user.
             add_user = self.run_function('user.add', [USER], gid=GID)
@@ -84,7 +84,7 @@ class UserTest(ModuleCase, SaltReturnAssertsMixin):
         And then destroys that user.
         Assume that it will break any system you run it on.
         '''
-        if salt.utils.is_darwin():
+        if salt.utils.platform.is_darwin():
             HOMEDIR = '/Users/home_of_' + self.user_name
         else:
             HOMEDIR = '/home/home_of_' + self.user_name
@@ -97,15 +97,25 @@ class UserTest(ModuleCase, SaltReturnAssertsMixin):
                              home=HOMEDIR)
         self.assertSaltTrueReturn(ret)
 
-    def test_user_present_nondefault(self):
+    @requires_system_grains
+    def test_user_present_nondefault(self, grains=None):
         '''
         This is a DESTRUCTIVE TEST it creates a new user on the on the minion.
         '''
         ret = self.run_state('user.present', name=self.user_name,
                              home=self.user_home)
         self.assertSaltTrueReturn(ret)
-        if not salt.utils.is_darwin():
+        ret = self.run_function('user.info', [self.user_name])
+        self.assertReturnNonEmptySaltType(ret)
+        group_name = grp.getgrgid(ret['gid']).gr_name
+        if not salt.utils.platform.is_darwin():
             self.assertTrue(os.path.isdir(self.user_home))
+        if grains['os_family'] in ('Suse',):
+            self.assertEqual(group_name, 'users')
+        elif grains['os_family'] == 'MacOS':
+            self.assertEqual(group_name, 'staff')
+        else:
+            self.assertEqual(group_name, self.user_name)
 
     @requires_system_grains
     def test_user_present_gid_from_name_default(self, grains=None):
@@ -120,22 +130,26 @@ class UserTest(ModuleCase, SaltReturnAssertsMixin):
         # user
         gid_from_name = False if grains['os_family'] == 'MacOS' else True
 
-        ret = self.run_state('user.present', name=self.user_name,
+        ret_user_present = self.run_state('user.present', name=self.user_name,
                              gid_from_name=gid_from_name, home=self.user_home)
-        self.assertSaltTrueReturn(ret)
 
-        ret = self.run_function('user.info', [self.user_name])
-        self.assertReturnNonEmptySaltType(ret)
-        group_name = grp.getgrgid(ret['gid']).gr_name
-
-        if not salt.utils.is_darwin():
-            self.assertTrue(os.path.isdir(self.user_home))
-        if grains['os_family'] in ('Suse',):
-            self.assertEqual(group_name, 'users')
-        elif grains['os_family'] == 'MacOS':
-            self.assertEqual(group_name, 'staff')
+        if gid_from_name:
+            self.assertSaltFalseReturn(ret_user_present)
+            ret_user_present = ret_user_present[next(iter(ret_user_present))]
+            self.assertTrue('is not present' in ret_user_present['comment'])
         else:
-            self.assertEqual(group_name, self.user_name)
+            self.assertSaltTrueReturn(ret_user_present)
+            ret_user_info = self.run_function('user.info', [self.user_name])
+            self.assertReturnNonEmptySaltType(ret_user_info)
+            group_name = grp.getgrgid(ret_user_info['gid']).gr_name
+            if not salt.utils.platform.is_darwin():
+                self.assertTrue(os.path.isdir(self.user_home))
+            if grains['os_family'] in ('Suse',):
+                self.assertEqual(group_name, 'users')
+            elif grains['os_family'] == 'MacOS':
+                self.assertEqual(group_name, 'staff')
+            else:
+                self.assertEqual(group_name, self.user_name)
 
     def test_user_present_gid_from_name(self):
         '''
@@ -153,7 +167,7 @@ class UserTest(ModuleCase, SaltReturnAssertsMixin):
         self.assertReturnNonEmptySaltType(ret)
         group_name = grp.getgrgid(ret['gid']).gr_name
 
-        if not salt.utils.is_darwin():
+        if not salt.utils.platform.is_darwin():
             self.assertTrue(os.path.isdir(self.user_home))
         self.assertEqual(group_name, self.user_name)
         ret = self.run_state('user.absent', name=self.user_name)
@@ -172,20 +186,20 @@ class UserTest(ModuleCase, SaltReturnAssertsMixin):
         ret = self.run_state(
             'user.present',
             name=self.user_name,
-            fullname=u'Sålt Test',
-            roomnumber=u'①②③',
-            workphone=u'١٢٣٤',
-            homephone=u'६७८'
+            fullname='Sålt Test',
+            roomnumber='①②③',
+            workphone='١٢٣٤',
+            homephone='६७८'
         )
         self.assertSaltTrueReturn(ret)
         # Ensure updating a user also works
         ret = self.run_state(
             'user.present',
             name=self.user_name,
-            fullname=u'Sølt Test',
-            roomnumber=u'①③②',
-            workphone=u'٣٤١٢',
-            homephone=u'६८७'
+            fullname='Sølt Test',
+            roomnumber='①③②',
+            workphone='٣٤١٢',
+            homephone='६८७'
         )
         self.assertSaltTrueReturn(ret)
 
@@ -229,13 +243,13 @@ class UserTest(ModuleCase, SaltReturnAssertsMixin):
         self.assertReturnNonEmptySaltType(ret)
         self.assertEqual('', ret['fullname'])
         # MacOS does not supply the following GECOS fields
-        if not salt.utils.is_darwin():
+        if not salt.utils.platform.is_darwin():
             self.assertEqual('', ret['roomnumber'])
             self.assertEqual('', ret['workphone'])
             self.assertEqual('', ret['homephone'])
 
     def tearDown(self):
-        if salt.utils.is_darwin():
+        if salt.utils.platform.is_darwin():
             check_user = self.run_function('user.list_users')
             if USER in check_user:
                 del_user = self.run_function('user.delete', [USER], remove=True)

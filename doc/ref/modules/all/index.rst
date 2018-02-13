@@ -9,6 +9,7 @@ execution modules
     .. toctree::
 
         salt.modules.group
+        salt.modules.kernelpkg
         salt.modules.pkg
         salt.modules.user
 
@@ -37,13 +38,13 @@ execution modules
     bcache
     beacons
     bigip
-    blockdev
     bluez
     boto3_elasticache
     boto3_route53
     boto_apigateway
     boto_asg
     boto_cfn
+    boto_cloudfront
     boto_cloudtrail
     boto_cloudwatch
     boto_cloudwatch_event
@@ -82,6 +83,7 @@ execution modules
     chef
     chocolatey
     chronos
+    cimc
     cisconso
     cloud
     cmdmod
@@ -97,6 +99,7 @@ execution modules
     cytest
     daemontools
     data
+    datadog_api
     ddns
     deb_apache
     deb_postgres
@@ -191,6 +194,8 @@ execution modules
     k8s
     kapacitor
     kerberos
+    kernelpkg_linux_apt
+    kernelpkg_linux_yum
     key
     keyboard
     keystone
@@ -200,6 +205,10 @@ execution modules
     layman
     ldap3
     ldapmod
+    libcloud_compute
+    libcloud_dns
+    libcloud_loadbalancer
+    libcloud_storage
     linux_acl
     linux_ip
     linux_lvm
@@ -230,6 +239,7 @@ execution modules
     mac_user
     mac_xattr
     makeconf
+    mandrill
     marathon
     match
     mattermost
@@ -291,12 +301,15 @@ execution modules
     openstack_mng
     openvswitch
     opkg
+    opsgenie
     oracle
     osquery
+    out
     pacman
     pagerduty
     pagerduty_util
     pam
+    panos
     parallels
     parted
     pcs
@@ -318,6 +331,7 @@ execution modules
     ps
     publish
     puppet
+    purefa
     pushbullet
     pushover_notify
     pw_group
@@ -392,10 +406,10 @@ execution modules
     state
     status
     statuspage
-    stormpath
     supervisord
     suse_apache
     svn
+    swarm
     swift
     sysbench
     sysfs
@@ -405,11 +419,13 @@ execution modules
     system
     system_profiler
     systemd
+    telegram
     telemetry
     temp
     test
     testinframod
     test_virtual
+    textfsm_mod
     timezone
     tls
     tomcat
@@ -422,6 +438,7 @@ execution modules
     uptime
     useradd
     uwsgi
+    vagrant
     varnish
     vault
     vbox_guest
@@ -429,6 +446,7 @@ execution modules
     victorops
     virt
     virtualenv_mod
+    vmctl
     vsphere
     win_autoruns
     win_certutil

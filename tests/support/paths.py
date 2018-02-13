@@ -28,6 +28,8 @@ if TESTS_DIR.startswith('//'):
 if sys.platform.startswith('win'):
     TESTS_DIR = os.path.normcase(TESTS_DIR)
 CODE_DIR = os.path.dirname(TESTS_DIR)
+if sys.platform.startswith('win'):
+    CODE_DIR = CODE_DIR.replace('\\', '\\\\')
 INTEGRATION_TEST_DIR = os.path.join(TESTS_DIR, 'integration')
 
 # Let's inject CODE_DIR so salt is importable if not there already
@@ -82,9 +84,9 @@ SCRIPT_TEMPLATES = {
     ],
     'common': [
         'from salt.scripts import salt_{0}\n',
-        'from salt.utils import is_windows\n\n',
+        'import salt.utils.platform\n\n',
         'if __name__ == \'__main__\':\n',
-        '    if is_windows():\n',
+        '    if salt.utils.platform.is_windows():\n',
         '        import os.path\n',
         '        import py_compile\n',
         '        cfile = os.path.splitext(__file__)[0] + ".pyc"\n',
@@ -111,9 +113,9 @@ class ScriptPathMixin(object):
             log.info('Generating {0}'.format(script_path))
 
             # Late import
-            import salt.utils
+            import salt.utils.files
 
-            with salt.utils.fopen(script_path, 'w') as sfh:
+            with salt.utils.files.fopen(script_path, 'w') as sfh:
                 script_template = SCRIPT_TEMPLATES.get(script_name, None)
                 if script_template is None:
                     script_template = SCRIPT_TEMPLATES.get('common', None)

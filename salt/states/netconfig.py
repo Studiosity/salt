@@ -18,7 +18,7 @@ Dependencies
 .. versionadded:: 2017.7.0
 '''
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 
 import logging
 log = logging.getLogger(__name__)
@@ -61,6 +61,7 @@ def _update_config(template_name,
                    template_user='root',
                    template_group='root',
                    template_mode='755',
+                   template_attrs='--------------e----',
                    saltenv=None,
                    template_engine='jinja',
                    skip_verify=False,
@@ -84,6 +85,7 @@ def _update_config(template_name,
                                          template_user=template_user,
                                          template_group=template_group,
                                          template_mode=template_mode,
+                                         template_attrs=template_attrs,
                                          saltenv=saltenv,
                                          template_engine=template_engine,
                                          skip_verify=skip_verify,
@@ -108,6 +110,7 @@ def managed(name,
             template_user='root',
             template_group='root',
             template_mode='755',
+            template_attrs='--------------e----',
             saltenv=None,
             template_engine='jinja',
             skip_verify=False,
@@ -135,8 +138,8 @@ def managed(name,
     To replace the config, set ``replace`` to ``True``. This option is recommended to be used with caution!
 
     .. warning::
-        The spport for NAPALM native templates will be dropped beginning with Salt Fluorine.
-        Implicitly, the ``template_path`` argument will be depreacted and removed.
+        The support for NAPALM native templates will be dropped beginning with Salt Fluorine.
+        Implicitly, the ``template_path`` argument will be deprecated and removed.
 
     template_name
         Identifies path to the template source. The template can be either stored on the local machine,
@@ -183,8 +186,13 @@ def managed(name,
     template_user: root
         Group owner of file.
 
-    template_user: 755
+    template_mode: 755
         Permissions of file
+
+    template_attrs: "--------------e----"
+        Attributes of file (see `man lsattr`)
+
+        .. versionadded:: oxygen
 
     saltenv: base
         Specifies the template environment. This will influence the relative imports inside the templates.
@@ -348,6 +356,7 @@ def managed(name,
                                        template_user=template_user,
                                        template_group=template_group,
                                        template_mode=template_mode,
+                                       template_attrs=template_attrs,
                                        saltenv=saltenv,
                                        template_engine=template_engine,
                                        skip_verify=skip_verify,

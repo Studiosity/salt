@@ -27,12 +27,13 @@ in the master configuration file and uses the :ref:`access control system
           - 'web*':
             - test.*
             - network.*
-        steve:
+        steve|admin.*:
           - .*
 
-The above configuration allows the user ``thatch`` to execute functions
-in the test and network modules on the minions that match the web* target.
-User ``steve`` is given unrestricted access to minion commands.
+The above configuration allows the user ``thatch`` to execute functions in the
+test and network modules on the minions that match the web* target.  User
+``steve`` and the users whose logins start with ``admin``, are granted
+unrestricted access to minion commands.
 
 Salt respects the current PAM configuration in place, and uses the 'login'
 service to authenticate.
@@ -71,8 +72,8 @@ Matching syntax
 ---------------
 
 The structure of the ``external_auth`` dictionary can take the following
-shapes. Function matches are regular expressions; minion matches are compound
-targets.
+shapes. User and function matches are exact matches, shell glob patterns or
+regular expressions; minion matches are compound targets.
 
 By user:
 
@@ -92,6 +93,26 @@ By user, by minion:
         <user or group%>:
           <minion compound target>:
             - <regex to match function>
+
+By user, by runner/wheel:
+
+.. code-block:: yaml
+
+    external_auth:
+      <eauth backend>:
+        <user or group%>:
+          <@runner or @wheel>:
+            - <regex to match function>
+
+By user, by runner+wheel module:
+
+.. code-block:: yaml
+
+    external_auth:
+      <eauth backend>:
+        <user or group%>:
+          <@module_name>:
+            - <regex to match function without module_name>
 
 Groups
 ------
@@ -121,6 +142,14 @@ Positional arguments or keyword arguments to functions can also be whitelisted.
         my_user:
           - '*':
             - 'my_mod.*':
+                args:
+                  - 'a.*'
+                  - 'b.*'
+                kwargs:
+                  'kwa': 'kwa.*'
+                  'kwb': 'kwb'
+          - '@runner':
+            - 'runner_mod.*':
                 args:
                 - 'a.*'
                 - 'b.*'

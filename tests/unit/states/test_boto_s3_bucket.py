@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 from copy import deepcopy
 import logging
 import random
@@ -13,7 +13,7 @@ from tests.support.unit import skipIf, TestCase
 from tests.support.mock import MagicMock, NO_MOCK, NO_MOCK_REASON, patch
 
 # Import Salt libs
-import salt.ext.six as six
+from salt.ext import six
 import salt.loader
 from salt.utils.versions import LooseVersion
 import salt.states.boto_s3_bucket as boto_s3_bucket

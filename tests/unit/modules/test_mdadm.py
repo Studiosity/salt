@@ -8,7 +8,7 @@
 '''
 
 # Import Python libs
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -28,7 +28,7 @@ class MdadmTestCase(TestCase, LoaderModuleMockMixin):
     def test_create(self):
         mock = MagicMock(return_value='salt')
         with patch.dict(mdadm.__salt__, {'cmd.run': mock}), \
-                patch('salt.utils.which', lambda exe: exe):
+                patch('salt.utils.path.which', lambda exe: exe):
             ret = mdadm.create(
                     '/dev/md0', 5,
                     devices=['/dev/sdb1', '/dev/sdc1', '/dev/sdd1'],
@@ -46,18 +46,19 @@ class MdadmTestCase(TestCase, LoaderModuleMockMixin):
             # where args between -v and -l could be in any order
             self.assertEqual(len(args), 1)
             self.assertEqual(len(args[0]), 17)
-            self.assertEqual(args[0][:5], [
+            self.assertEqual(args[0][:7], [
                 'mdadm',
                 '-C', '/dev/md0',
                 '-R',
-                '-v'])
-            self.assertEqual(args[0][8:], [
+                '-v',
                  '-l', '5',
+                ])
+            self.assertEqual(args[0][10:], [
                  '-e', 'default',
                  '-n', '3',
                  '/dev/sdb1', '/dev/sdc1', '/dev/sdd1'])
-            self.assertEqual(sorted(args[0][5:8]), sorted(['--chunk', '256', '--force']))
-            self.assertIn('--chunk 256', ' '.join(args[0][5:8]))
+            self.assertEqual(sorted(args[0][7:10]), sorted(['--chunk', '256', '--force']))
+            self.assertIn('--chunk 256', ' '.join(args[0][7:10]))
             self.assertEqual(kwargs, {'python_shell': False})
 
     def test_create_test_mode(self):

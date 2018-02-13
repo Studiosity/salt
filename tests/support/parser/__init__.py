@@ -32,8 +32,8 @@ from tests.support.unit import TestLoader, TextTestRunner
 from tests.support.xmlunit import HAS_XMLRUNNER, XMLTestRunner
 
 # Import 3rd-party libs
-import salt.ext.six as six
-import salt.utils
+from salt.ext import six
+import salt.utils.platform
 try:
     from tests.support.ext import console
     WIDTH, HEIGHT = console.getTerminalSize()
@@ -385,6 +385,7 @@ class SaltTestingParser(optparse.OptionParser):
         if self.xml_output_dir is not None and self.options.xml_out:
             if not os.path.isdir(self.xml_output_dir):
                 os.makedirs(self.xml_output_dir)
+            os.environ['TESTS_XML_OUTPUT_DIR'] = self.xml_output_dir
             print(
                 ' * Generated unit test XML reports will be stored '
                 'at {0!r}'.format(self.xml_output_dir)

@@ -24,11 +24,12 @@ Dependencies
 .. versionadded: 2016.11.0
 '''
 
-
-from __future__ import absolute_import
-
+# Import Python libs
+from __future__ import absolute_import, print_function, unicode_literals
 import logging
-log = logging.getLogger(__name__)
+
+# Import 3rd-party libs
+from salt.ext import six
 
 # import NAPALM utils
 import salt.utils.napalm
@@ -51,6 +52,8 @@ except ImportError:
 # ----------------------------------------------------------------------------------------------------------------------
 
 __virtualname__ = 'netntp'
+
+log = logging.getLogger(__name__)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # global variables
@@ -105,7 +108,7 @@ def _check(peers):
         return False
 
     for peer in peers:
-        if not isinstance(peer, str):
+        if not isinstance(peer, six.string_types):
             return False
 
     if not HAS_NETADDR:  # if does not have this lib installed, will simply try to load what user specified
@@ -115,7 +118,7 @@ def _check(peers):
     ip_only_peers = []
     for peer in peers:
         try:
-            ip_only_peers.append(str(IPAddress(peer)))  # append the str value
+            ip_only_peers.append(six.text_type(IPAddress(peer)))  # append the str value
         except AddrFormatError:
             # if not a valid IP Address
             # will try to see if it is a nameserver and resolve it
@@ -130,7 +133,7 @@ def _check(peers):
                 # no a valid DNS entry either
                 return False
             for dns_ip in dns_reply:
-                ip_only_peers.append(str(dns_ip))
+                ip_only_peers.append(six.text_type(dns_ip))
 
     peers = ip_only_peers
 

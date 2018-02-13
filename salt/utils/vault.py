@@ -8,7 +8,7 @@ Utilities supporting modules for Hashicorp Vault. Configuration instructions are
 documented in the execution module docs.
 '''
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import base64
 import logging
 import os
@@ -16,6 +16,7 @@ import requests
 
 import salt.crypt
 import salt.exceptions
+import salt.utils.versions
 
 log = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -30,7 +31,7 @@ def __virtual__():  # pylint: disable=expected-2-blank-lines-found-0
             __salt__ = salt.loader.minion_mods(__opts__)
             return True
     except Exception as e:
-        log.error("Could not load __salt__: {0}".format(e))
+        log.error("Could not load __salt__: %s", e)
         return False
 
 
@@ -46,10 +47,8 @@ def _get_token_and_url_from_master():
     # should be issued for the minion, so that the correct policies are applied
     if __opts__.get('__role', 'minion') == 'minion':
         private_key = '{0}/minion.pem'.format(pki_dir)
-        log.debug(
-                  'Running on minion, signing token request with key {0}'.
-                  format(private_key)
-                 )
+        log.debug('Running on minion, signing token request with key %s',
+                  private_key)
         signature = base64.b64encode(salt.crypt.sign_message(
                                                              private_key,
                                                              minion_id
@@ -60,10 +59,8 @@ def _get_token_and_url_from_master():
                                            )
     else:
         private_key = '{0}/master.pem'.format(pki_dir)
-        log.debug(
-                  'Running on master, signing token request for {0} with key {1}'.
-                  format(minion_id, private_key)
-                 )
+        log.debug('Running on master, signing token request for %s with key %s',
+                  minion_id, private_key)
         signature = base64.b64encode(salt.crypt.sign_message(
                                                              private_key,
                                                              minion_id
@@ -81,15 +78,16 @@ def _get_token_and_url_from_master():
         raise salt.exceptions.CommandExecutionError(result)
     if not isinstance(result, dict):
         log.error('Failed to get token from master! '
-                  'Response is not a dict: {0}'.format(result))
+                  'Response is not a dict: %s', result)
         raise salt.exceptions.CommandExecutionError(result)
     if 'error' in result:
         log.error('Failed to get token from master! '
-                  'An error was returned: {0}'.format(result['error']))
+                  'An error was returned: %s', result['error'])
         raise salt.exceptions.CommandExecutionError(result)
     return {
             'url': result['url'],
-            'token': result['token']
+            'token': result['token'],
+            'verify': result['verify'],
            }
 
 
@@ -101,9 +99,24 @@ def _get_vault_connection():
     if 'vault' in __opts__ and __opts__.get('__role', 'minion') == 'master':
         log.debug('Using Vault connection details from local config')
         try:
+            if __opts__['vault']['auth']['method'] == 'approle':
+                verify = __opts__['vault'].get('verify', None)
+                if _selftoken_expired():
+                    log.debug('Vault token expired. Recreating one')
+                    # Requesting a short ttl token
+                    url = '{0}/v1/auth/approle/login'.format(__opts__['vault']['url'])
+                    payload = {'role_id': __opts__['vault']['auth']['role_id']}
+                    if 'secret_id' in __opts__['vault']['auth']:
+                        payload['secret_id'] = __opts__['vault']['auth']['secret_id']
+                    response = requests.post(url, json=payload, verify=verify)
+                    if response.status_code != 200:
+                        errmsg = 'An error occured while getting a token from approle'
+                        raise salt.exceptions.CommandExecutionError(errmsg)
+                    __opts__['vault']['auth']['token'] = response.json()['auth']['client_token']
             return {
                 'url': __opts__['vault']['url'],
-                'token': __opts__['vault']['auth']['token']
+                'token': __opts__['vault']['auth']['token'],
+                'verify': __opts__['vault'].get('verify', None)
             }
         except KeyError as err:
             errmsg = 'Minion has "vault" config section, but could not find key "{0}" within'.format(err.message)
@@ -123,6 +136,8 @@ def make_request(method, resource, profile=None, **args):
 
     connection = _get_vault_connection()
     token, vault_url = connection['token'], connection['url']
+    if 'verify' not in args:
+        args['verify'] = connection['verify']
 
     url = "{0}/{1}".format(vault_url, resource)
     headers = {'X-Vault-Token': token, 'Content-Type': 'application/json'}
@@ -136,7 +151,7 @@ def make_request_with_profile(method, resource, profile, **args):
     DEPRECATED! Make a request to Vault, with a profile including connection
     details.
     '''
-    salt.utils.warn_until(
+    salt.utils.versions.warn_until(
         'Fluorine',
         'Specifying Vault connection data within a \'profile\' has been '
         'deprecated. Please see the documentation for details on the new '
@@ -157,3 +172,23 @@ def make_request_with_profile(method, resource, profile, **args):
     response = requests.request(method, url, headers=headers, **args)
 
     return response
+
+
+def _selftoken_expired():
+    '''
+    Validate the current token exists and is still valid
+    '''
+    try:
+        verify = __opts__['vault'].get('verify', None)
+        url = '{0}/v1/auth/token/lookup-self'.format(__opts__['vault']['url'])
+        if 'token' not in __opts__['vault']['auth']:
+            return True
+        headers = {'X-Vault-Token': __opts__['vault']['auth']['token']}
+        response = requests.get(url, headers=headers, verify=verify)
+        if response.status_code != 200:
+            return True
+        return False
+    except Exception as e:
+        raise salt.exceptions.CommandExecutionError(
+            'Error while looking up self token : {0}'.format(e)
+        )

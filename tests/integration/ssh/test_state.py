@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 import shutil
 import threading
@@ -10,7 +10,6 @@ import time
 # Import Salt Testing Libs
 from tests.support.case import SSHCase
 from tests.support.paths import TMP
-from tests.support.unit import skipIf
 
 # Import Salt Libs
 from salt.ext import six
@@ -66,13 +65,12 @@ class SSHStateTest(SSHCase):
         check_file = self.run_function('file.file_exists', [SSH_SLS_FILE], wipe=False)
         self.assertFalse(check_file)
 
-    @skipIf(six.PY3, 'Skipped on Python3 for 2017.7 branch only')
     def test_state_show_top(self):
         '''
         test state.show_top with salt-ssh
         '''
         ret = self.run_function('state.show_top')
-        self.assertEqual(ret, {'base': list(set(['master_tops_test']).union(['core']))})
+        self.assertEqual(ret, {'base': ['core', 'master_tops_test']})
 
     def test_state_single(self):
         '''
