@@ -1,2 +1,0 @@
-# match everything except 'minion'
-^(?!minion$)

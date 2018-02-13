@@ -4,7 +4,7 @@ Common functions for working with deb packages
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import 3rd-party libs
 from salt.ext import six
@@ -19,10 +19,10 @@ def combine_comments(comments):
     if isinstance(comments, list):
         for idx in range(len(comments)):
             if not isinstance(comments[idx], six.string_types):
-                comments[idx] = six.text_type(comments[idx])
+                comments[idx] = str(comments[idx])
     else:
         if not isinstance(comments, six.string_types):
-            comments = [six.text_type(comments)]
+            comments = [str(comments)]
         else:
             comments = [comments]
     return ' '.join(comments).strip()

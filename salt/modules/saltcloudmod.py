@@ -2,13 +2,13 @@
 '''
 Control a salt cloud system
 '''
+from __future__ import absolute_import
+
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+import json
 
 # Import salt libs
-import salt.utils.data
-import salt.utils.json
-
+import salt.utils
 HAS_CLOUD = False
 try:
     import saltcloud  # pylint: disable=W0611
@@ -42,7 +42,7 @@ def create(name, profile):
     cmd = 'salt-cloud --out json -p {0} {1}'.format(profile, name)
     out = __salt__['cmd.run_stdout'](cmd, python_shell=False)
     try:
-        ret = salt.utils.json.loads(out, object_hook=salt.utils.data.encode_dict)
+        ret = json.loads(out, object_hook=salt.utils.decode_dict)
     except ValueError:
         ret = {}
     return ret

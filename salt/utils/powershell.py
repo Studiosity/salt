@@ -9,11 +9,9 @@ Common functions for working with powershell
     pointing to all locations of your Powershell modules.
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import os
-
-import salt.utils.path
 
 log = logging.getLogger(__name__)
 
@@ -104,7 +102,7 @@ def get_modules():
             continue
 
         # get a list of all files in the root_path
-        for root_dir, sub_dirs, file_names in salt.utils.path.os_walk(root_path):
+        for root_dir, sub_dirs, file_names in os.walk(root_path):
             for file_name in file_names:
                 base_name, file_extension = os.path.splitext(file_name)
 

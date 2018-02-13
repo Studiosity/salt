@@ -8,7 +8,7 @@ Beacon to monitor disk usage.
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 import logging
 import re
 
@@ -31,14 +31,14 @@ def __virtual__():
         return __virtualname__
 
 
-def validate(config):
+def __validate__(config):
     '''
     Validate the beacon configuration
     '''
     # Configuration for diskusage beacon should be a list of dicts
-    if not isinstance(config, list):
+    if not isinstance(config, dict):
         return False, ('Configuration for diskusage beacon '
-                       'must be a list.')
+                       'must be a dictionary.')
     return True, 'Valid beacon configuration'
 
 
@@ -86,24 +86,25 @@ def beacon(config):
     parts = psutil.disk_partitions(all=False)
     ret = []
     for mounts in config:
-        mount = next(iter(mounts))
+        mount = mounts.keys()[0]
 
-        for part in parts:
-            if re.match(mount, part.mountpoint):
-                _mount = part.mountpoint
+        try:
+            _current_usage = psutil.disk_usage(mount)
+        except OSError:
+            # Ensure a valid mount point
+            log.warning('{0} is not a valid mount point, try regex.'.format(mount))
+            for part in parts:
+                if re.match(mount, part.mountpoint):
+                    row = {}
+                    row[part.mountpoint] = mounts[mount]
+                    config.append(row)
+            continue
 
-                try:
-                    _current_usage = psutil.disk_usage(mount)
-                except OSError:
-                    log.warning('%s is not a valid mount point.', mount)
-                    continue
-
-                current_usage = _current_usage.percent
-                monitor_usage = mounts[mount]
-                log.info('current_usage %s', current_usage)
-                if '%' in monitor_usage:
-                    monitor_usage = re.sub('%', '', monitor_usage)
-                monitor_usage = float(monitor_usage)
-                if current_usage >= monitor_usage:
-                    ret.append({'diskusage': current_usage, 'mount': _mount})
+        current_usage = _current_usage.percent
+        monitor_usage = mounts[mount]
+        if '%' in monitor_usage:
+            monitor_usage = re.sub('%', '', monitor_usage)
+        monitor_usage = float(monitor_usage)
+        if current_usage >= monitor_usage:
+            ret.append({'diskusage': current_usage, 'mount': mount})
     return ret

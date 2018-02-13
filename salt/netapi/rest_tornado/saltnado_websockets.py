@@ -289,7 +289,7 @@ in which each job's information is keyed by salt's ``jid``.
 Setup
 =====
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 import tornado.websocket
 from . import event_processor
@@ -297,13 +297,13 @@ from .saltnado import _check_cors_origin
 
 import tornado.gen
 
-import salt.utils.json
+import salt.utils
 import salt.netapi
 
-_json = salt.utils.json.import_json()
+json = salt.utils.import_json()
 
 import logging
-log = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class AllEventsHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=W0223,W0232
@@ -317,12 +317,12 @@ class AllEventsHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=W
         Check the token, returns a 401 if the token is invalid.
         Else open the websocket connection
         '''
-        log.debug('In the websocket get method')
+        logger.debug('In the websocket get method')
 
         self.token = token
         # close the connection, if not authenticated
         if not self.application.auth.get_tok(token):
-            log.debug('Refusing websocket connection, bad token!')
+            logger.debug('Refusing websocket connection, bad token!')
             self.send_error(401)
             return
         super(AllEventsHandler, self).get(token)
@@ -342,11 +342,11 @@ class AllEventsHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=W
         These messages make up salt's
         "real time" event stream.
         """
-        log.debug('Got websocket message %s', message)
+        logger.debug('Got websocket message {0}'.format(message))
         if message == 'websocket client ready':
             if self.connected:
                 # TBD: Add ability to run commands in this branch
-                log.debug('Websocket already connected, returning')
+                logger.debug('Websocket already connected, returning')
                 return
 
             self.connected = True
@@ -354,10 +354,9 @@ class AllEventsHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=W
             while True:
                 try:
                     event = yield self.application.event_listener.get_event(self)
-                    self.write_message(
-                        salt.utils.json.dumps(event, _json_module=_json))
+                    self.write_message(json.dumps(event))
                 except Exception as err:
-                    log.info('Error! Ending server side websocket connection. Reason = %s', err)
+                    logger.info('Error! Ending server side websocket connection. Reason = {0}'.format(str(err)))
                     break
 
             self.close()
@@ -369,7 +368,7 @@ class AllEventsHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=W
         '''Cleanup.
 
         '''
-        log.debug('In the websocket close method')
+        logger.debug('In the websocket close method')
         self.close()
 
     def check_origin(self, origin):
@@ -395,11 +394,11 @@ class FormattedEventsHandler(AllEventsHandler):  # pylint: disable=W0223,W0232
         These messages make up salt's
         "real time" event stream.
         """
-        log.debug('Got websocket message %s', message)
+        logger.debug('Got websocket message {0}'.format(message))
         if message == 'websocket client ready':
             if self.connected:
                 # TBD: Add ability to run commands in this branch
-                log.debug('Websocket already connected, returning')
+                logger.debug('Websocket already connected, returning')
                 return
 
             self.connected = True
@@ -418,9 +417,9 @@ class FormattedEventsHandler(AllEventsHandler):  # pylint: disable=W0223,W0232
                 try:
                     event = yield self.application.event_listener.get_event(self)
                     evt_processor.process(event, self.token, self.application.opts)
-                    # self.write_message('data: {0}\n\n'.format(salt.utils.json.dumps(event, _json_module=_json)))
+                    # self.write_message(u'data: {0}\n\n'.format(json.dumps(event)))
                 except Exception as err:
-                    log.debug('Error! Ending server side websocket connection. Reason = %s', err)
+                    logger.debug('Error! Ending server side websocket connection. Reason = {0}'.format(str(err)))
                     break
 
             self.close()

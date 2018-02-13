@@ -10,15 +10,13 @@ salt-ssh calls and return the data from them.
 No access control is needed because calls cannot originate from the minions.
 '''
 # Import python libs
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 import copy
 import logging
 
 # Import salt libs
 import salt.client.ssh
 import salt.runner
-import salt.utils.args
-import salt.utils.versions
 
 log = logging.getLogger(__name__)
 
@@ -175,7 +173,7 @@ def publish(tgt,
     # remember to remove the expr_form argument from this function when
     # performing the cleanup on this deprecation.
     if expr_form is not None:
-        salt.utils.versions.warn_until(
+        salt.utils.warn_until(
             'Fluorine',
             'the target type should be passed using the \'tgt_type\' '
             'argument instead of \'expr_form\'. Support for using '
@@ -225,7 +223,7 @@ def full_data(tgt,
     # remember to remove the expr_form argument from this function when
     # performing the cleanup on this deprecation.
     if expr_form is not None:
-        salt.utils.versions.warn_until(
+        salt.utils.warn_until(
             'Fluorine',
             'the target type should be passed using the \'tgt_type\' '
             'argument instead of \'expr_form\'. Support for using '

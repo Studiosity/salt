@@ -13,12 +13,6 @@ to ``tcp`` on each Salt minion and Salt master.
 
    transport: tcp
 
-.. warning::
-
-    We currently recommend that when using Syndics that all Masters and Minions
-    use the same transport. We're investigating a report of an error when using
-    mixed transport types at very heavy loads.
-
 Wire Protocol
 =============
 This implementation over TCP focuses on flexibility over absolute efficiency.
@@ -40,7 +34,7 @@ passing on a single socket.
 TLS Support
 ===========
 
-.. versionadded:: 2016.11.1
+.. version_added:: 2016.11.1
 
 The TCP transport allows for the master/minion communication to be optionally
 wrapped in a TLS connection. Enabling this is simple, the master and minion need

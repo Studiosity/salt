@@ -9,12 +9,11 @@ I'm leaving it for now, but this should really be gutted and replaced
 with something sensible.
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 import copy
-from salt.ext import six
+import salt.ext.six as six
 import salt.states.ldap
-from salt.utils.oset import OrderedSet
 
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.unit import skipIf, TestCase
@@ -35,20 +34,20 @@ def _init_db(newdb=None):
 def _complex_db():
     return {
         'dnfoo': {
-            'attrfoo1': OrderedSet((
+            'attrfoo1': set((
                 'valfoo1.1',
                 'valfoo1.2',
             )),
-            'attrfoo2': OrderedSet((
+            'attrfoo2': set((
                 'valfoo2.1',
             )),
         },
         'dnbar': {
-            'attrbar1': OrderedSet((
+            'attrbar1': set((
                 'valbar1.1',
                 'valbar1.2',
             )),
-            'attrbar2': OrderedSet((
+            'attrbar2': set((
                 'valbar2.1',
             )),
         },
@@ -73,7 +72,7 @@ def _dummy_connect(connect_spec):
 def _dummy_search(connect_spec, base, scope):
     if base not in db:
         return {}
-    return {base: dict(((attr, list(db[base][attr]))
+    return {base: dict(((attr, sorted(db[base][attr]))
                         for attr in db[base]
                         if len(db[base][attr])))}
 
@@ -84,7 +83,7 @@ def _dummy_add(connect_spec, dn, attributes):
     db[dn] = {}
     for attr, vals in six.iteritems(attributes):
         assert len(vals)
-        db[dn][attr] = OrderedSet(vals)
+        db[dn][attr] = set(vals)
     return True
 
 
@@ -101,7 +100,7 @@ def _dummy_change(connect_spec, dn, before, after):
     assert dn in db
     e = db[dn]
     assert e == before
-    all_attrs = OrderedSet()
+    all_attrs = set()
     all_attrs.update(before)
     all_attrs.update(after)
     directives = []
@@ -132,7 +131,7 @@ def _dummy_modify(connect_spec, dn, directives):
     for op, attr, vals in directives:
         if op == 'add':
             assert len(vals)
-            existing_vals = e.setdefault(attr, OrderedSet())
+            existing_vals = e.setdefault(attr, set())
             for val in vals:
                 assert val not in existing_vals
                 existing_vals.add(val)
@@ -150,7 +149,7 @@ def _dummy_modify(connect_spec, dn, directives):
                 del e[attr]
         elif op == 'replace':
             e.pop(attr, None)
-            e[attr] = OrderedSet(vals)
+            e[attr] = set(vals)
         else:
             raise ValueError()
     return True
@@ -159,7 +158,7 @@ def _dummy_modify(connect_spec, dn, directives):
 def _dump_db(d=None):
     if d is None:
         d = db
-    return dict(((dn, dict(((attr, list(d[dn][attr]))
+    return dict(((dn, dict(((attr, sorted(d[dn][attr]))
                             for attr in d[dn])))
                  for dn in d))
 
@@ -187,8 +186,8 @@ class LDAPTestCase(TestCase, LoaderModuleMockMixin):
         for dn, attrs in six.iteritems(replace):
             for attr, vals in six.iteritems(attrs):
                 if len(vals):
-                    new.setdefault(dn, {})[attr] = list(OrderedSet(vals))
-                    expected_db.setdefault(dn, {})[attr] = OrderedSet(vals)
+                    new.setdefault(dn, {})[attr] = sorted(set(vals))
+                    expected_db.setdefault(dn, {})[attr] = set(vals)
                 elif dn in expected_db:
                     new[dn].pop(attr, None)
                     expected_db[dn].pop(attr, None)
@@ -196,10 +195,10 @@ class LDAPTestCase(TestCase, LoaderModuleMockMixin):
                 new.pop(dn, None)
                 expected_db.pop(dn, None)
         if delete_others:
-            dn_to_delete = OrderedSet()
+            dn_to_delete = set()
             for dn, attrs in six.iteritems(expected_db):
                 if dn in replace:
-                    to_delete = OrderedSet()
+                    to_delete = set()
                     for attr, vals in six.iteritems(attrs):
                         if attr not in replace[dn]:
                             to_delete.add(attr)
@@ -306,7 +305,7 @@ class LDAPTestCase(TestCase, LoaderModuleMockMixin):
     def test_managed_no_net_change(self):
         self._test_helper_nochange(
             _complex_db(),
-            {'dnfoo': {'attrfoo1': ['valfoo1.1', 'valfoo1.2']}})
+            {'dnfoo': {'attrfoo1': ['valfoo1.2', 'valfoo1.1']}})
 
     def test_managed_repeated_values(self):
         self._test_helper_success(

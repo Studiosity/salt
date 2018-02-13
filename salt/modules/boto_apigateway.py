@@ -2,12 +2,7 @@
 '''
 Connection module for Amazon APIGateway
 
-.. versionadded:: 2016.11.0
-
-:depends:
-  - boto >= 2.8.0
-  - boto3 >= 1.2.1
-  - botocore >= 1.4.49
+.. versionadded::
 
 :configuration: This module accepts explicit Lambda credentials but can also
     utilize IAM roles assigned to the instance trough Instance Profiles.
@@ -59,7 +54,7 @@ Connection module for Amazon APIGateway
         error:
           message: error message
 
-    Request methods (e.g., ``describe_apigateway``) return:
+    Request methods (e.g., `describe_apigateway`) return:
 
     .. code-block:: yaml
 
@@ -74,21 +69,23 @@ Connection module for Amazon APIGateway
         error:
           message: error message
 
+:depends: boto3
+
 '''
 # keep lint from choking on _get_conn and _cache_id
 # pylint: disable=E0602
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
+import json
 import datetime
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 import salt.utils.boto3
 import salt.utils.compat
-import salt.utils.json
-import salt.utils.versions
+from salt.utils.versions import LooseVersion as _LooseVersion
 
 log = logging.getLogger(__name__)
 
@@ -115,14 +112,26 @@ def __virtual__():
     Only load if boto libraries exist and if boto libraries are greater than
     a given version.
     '''
+    required_boto_version = '2.8.0'
+    required_boto3_version = '1.2.1'
+    required_botocore_version = '1.4.49'
     # the boto_apigateway execution module relies on the connect_to_region() method
     # which was added in boto 2.8.0
     # https://github.com/boto/boto/commit/33ac26b416fbb48a60602542b4ce15dcc7029f12
-    return salt.utils.versions.check_boto_reqs(
-        boto_ver='2.8.0',
-        boto3_ver='1.2.1',
-        botocore_ver='1.4.49'
-    )
+    if not HAS_BOTO:
+        return (False, 'The boto_apigateway module could not be loaded: '
+                'boto libraries not found')
+    elif _LooseVersion(boto.__version__) < _LooseVersion(required_boto_version):
+        return (False, 'The boto_apigateway module could not be loaded: '
+                'boto version {0} or later must be installed.'.format(required_boto_version))
+    elif _LooseVersion(boto3.__version__) < _LooseVersion(required_boto3_version):
+        return (False, 'The boto_apigateway module could not be loaded: '
+                'boto3 version {0} or later must be installed.'.format(required_boto3_version))
+    elif _LooseVersion(found_botocore_version) < _LooseVersion(required_botocore_version):
+        return (False, 'The boto_apigateway module could not be loaded: '
+                'botocore version {0} or later must be installed.'.format(required_botocore_version))
+    else:
+        return True
 
 
 def __init__(opts):
@@ -171,6 +180,7 @@ def _multi_call(function, contentkey, *args, **kwargs):
 
 def _find_apis_by_name(name, description=None,
                        region=None, key=None, keyid=None, profile=None):
+
     '''
     get and return list of matching rest api information by the given name and desc.
     If rest api name evaluates to False, return all apis w/o filtering the name.
@@ -188,6 +198,7 @@ def _find_apis_by_name(name, description=None,
 
 
 def describe_apis(name=None, description=None, region=None, key=None, keyid=None, profile=None):
+
     '''
     Returns all rest apis in the defined region.  If optional parameter name is included,
     returns all rest apis matching the name in the defined region.
@@ -214,7 +225,7 @@ def describe_apis(name=None, description=None, region=None, key=None, keyid=None
 
 def api_exists(name, description=None, region=None, key=None, keyid=None, profile=None):
     '''
-    Check to see if the given Rest API Name and optionally description exists.
+    Check to see if the given Rest API Name and optionlly description exists.
 
     CLI Example:
 
@@ -372,8 +383,8 @@ def delete_api_resources(restApiId, path,
                          region=None, key=None, keyid=None, profile=None):
     '''
     Given restApiId and an absolute resource path, delete the resources starting
-    from the absolute resource path. If resourcepath is the root resource '/',
-    the function will return False. Returns False on failure.
+    from the absoluate resource path.  If resourcepath is the root resource '/',
+    the function will return False.  Returns False on failure.
 
     CLI Example:
 
@@ -941,7 +952,7 @@ def create_api_method(restApiId, resourcePath, httpMethod, authorizationType,
 
             conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
             method = conn.put_method(restApiId=restApiId, resourceId=resource['id'], httpMethod=httpMethod,
-                                     authorizationType=str(authorizationType), apiKeyRequired=apiKeyRequired,  # future lint: disable=blacklisted-function
+                                     authorizationType=str(authorizationType), apiKeyRequired=apiKeyRequired,
                                      requestParameters=requestParameters, requestModels=requestModels)
             return {'created': True, 'method': method}
         return {'created': False, 'error': 'Failed to create method'}
@@ -1018,7 +1029,7 @@ def create_api_method_response(restApiId, resourcePath, httpMethod, statusCode, 
 
             conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
             response = conn.put_method_response(restApiId=restApiId, resourceId=resource['id'],
-                                                httpMethod=httpMethod, statusCode=str(statusCode),  # future lint: disable=blacklisted-function
+                                                httpMethod=httpMethod, statusCode=str(statusCode),
                                                 responseParameters=responseParameters, responseModels=responseModels)
             return {'created': True, 'response': response}
         return {'created': False, 'error': 'no such resource'}
@@ -1044,7 +1055,7 @@ def delete_api_method_response(restApiId, resourcePath, httpMethod, statusCode,
         if resource:
             conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
             conn.delete_method_response(restApiId=restApiId, resourceId=resource['id'],
-                                        httpMethod=httpMethod, statusCode=str(statusCode))  # future lint: disable=blacklisted-function
+                                        httpMethod=httpMethod, statusCode=str(statusCode))
             return {'deleted': True}
         return {'deleted': False, 'error': 'no such resource'}
     except ClientError as e:
@@ -1069,7 +1080,7 @@ def describe_api_method_response(restApiId, resourcePath, httpMethod, statusCode
         if resource:
             conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
             response = conn.get_method_response(restApiId=restApiId, resourceId=resource['id'],
-                                                httpMethod=httpMethod, statusCode=str(statusCode))  # future lint: disable=blacklisted-function
+                                                httpMethod=httpMethod, statusCode=str(statusCode))
             return {'response': _convert_datetime_str(response)}
         return {'error': 'no such resource'}
     except ClientError as e:
@@ -1150,7 +1161,7 @@ def update_api_model_schema(restApiId, modelName, schema, region=None, key=None,
 
     '''
     try:
-        schema_json = salt.utils.json.dumps(schema) if isinstance(schema, dict) else schema
+        schema_json = json.dumps(schema) if isinstance(schema, dict) else schema
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         response = _api_model_patch_replace(conn, restApiId, modelName, '/schema', schema_json)
         return {'updated': True, 'model': _convert_datetime_str(response)}
@@ -1191,7 +1202,7 @@ def create_api_model(restApiId, modelName, modelDescription, schema, contentType
 
     '''
     try:
-        schema_json = salt.utils.json.dumps(schema) if isinstance(schema, dict) else schema
+        schema_json = json.dumps(schema) if isinstance(schema, dict) else schema
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         model = conn.create_model(restApiId=restApiId, name=modelName, description=modelDescription,
                                   schema=schema_json, contentType=contentType)
@@ -1500,7 +1511,7 @@ def create_usage_plan(name, description=None, throttle=None, quota=None, region=
     except ClientError as e:
         return {'error': salt.utils.boto3.get_error(e)}
     except (TypeError, ValueError) as e:
-        return {'error': six.text_type(e)}
+        return {'error': '{0}'.format(e)}
 
 
 def update_usage_plan(plan_id, throttle=None, quota=None, region=None, key=None, keyid=None, profile=None):
@@ -1552,17 +1563,17 @@ def update_usage_plan(plan_id, throttle=None, quota=None, region=None, key=None,
             patchOperations.append({'op': 'remove', 'path': '/throttle'})
         else:
             if 'rateLimit' in throttle:
-                patchOperations.append({'op': 'replace', 'path': '/throttle/rateLimit', 'value': str(throttle['rateLimit'])})  # future lint: disable=blacklisted-function
+                patchOperations.append({'op': 'replace', 'path': '/throttle/rateLimit', 'value': str(throttle['rateLimit'])})
             if 'burstLimit' in throttle:
-                patchOperations.append({'op': 'replace', 'path': '/throttle/burstLimit', 'value': str(throttle['burstLimit'])})  # future lint: disable=blacklisted-function
+                patchOperations.append({'op': 'replace', 'path': '/throttle/burstLimit', 'value': str(throttle['burstLimit'])})
 
         if quota is None:
             patchOperations.append({'op': 'remove', 'path': '/quota'})
         else:
-            patchOperations.append({'op': 'replace', 'path': '/quota/period', 'value': str(quota['period'])})  # future lint: disable=blacklisted-function
-            patchOperations.append({'op': 'replace', 'path': '/quota/limit', 'value': str(quota['limit'])})  # future lint: disable=blacklisted-function
+            patchOperations.append({'op': 'replace', 'path': '/quota/period', 'value': str(quota['period'])})
+            patchOperations.append({'op': 'replace', 'path': '/quota/limit', 'value': str(quota['limit'])})
             if 'offset' in quota:
-                patchOperations.append({'op': 'replace', 'path': '/quota/offset', 'value': str(quota['offset'])})  # future lint: disable=blacklisted-function
+                patchOperations.append({'op': 'replace', 'path': '/quota/offset', 'value': str(quota['offset'])})
 
         if patchOperations:
             res = conn.update_usage_plan(usagePlanId=plan_id,
@@ -1574,7 +1585,7 @@ def update_usage_plan(plan_id, throttle=None, quota=None, region=None, key=None,
     except ClientError as e:
         return {'error': salt.utils.boto3.get_error(e)}
     except (TypeError, ValueError) as e:
-        return {'error': six.text_type(e)}
+        return {'error': '{0}'.format(e)}
 
 
 def delete_usage_plan(plan_id, region=None, key=None, keyid=None, profile=None):

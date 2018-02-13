@@ -5,7 +5,7 @@ and what hosts are down
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import os
 import operator
 import re
@@ -16,17 +16,14 @@ import logging
 import uuid
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves.urllib.request import urlopen as _urlopen  # pylint: disable=no-name-in-module,import-error
 
 # Import salt libs
 import salt.key
+import salt.utils
 import salt.utils.compat
-import salt.utils.files
 import salt.utils.minions
-import salt.utils.path
-import salt.utils.raetevent
-import salt.utils.versions
 import salt.client
 import salt.client.ssh
 import salt.wheel
@@ -70,15 +67,6 @@ def _ping(tgt, tgt_type, timeout, gather_job_timeout):
     return returned, not_returned
 
 
-def _warn_expr_form():
-    salt.utils.versions.warn_until(
-        'Fluorine',
-        'the target type should be passed using the \'tgt_type\' '
-        'argument instead of \'expr_form\'. Support for using '
-        '\'expr_form\' will be removed in Salt Fluorine.'
-    )
-
-
 def status(output=True, tgt='*', tgt_type='glob', expr_form=None, timeout=None, gather_job_timeout=None):
     '''
     .. versionchanged:: 2017.7.0
@@ -98,7 +86,12 @@ def status(output=True, tgt='*', tgt_type='glob', expr_form=None, timeout=None, 
     # remember to remove the expr_form argument from this function when
     # performing the cleanup on this deprecation.
     if expr_form is not None:
-        _warn_expr_form()
+        salt.utils.warn_until(
+            'Fluorine',
+            'the target type should be passed using the \'tgt_type\' '
+            'argument instead of \'expr_form\'. Support for using '
+            '\'expr_form\' will be removed in Salt Fluorine.'
+        )
         tgt_type = expr_form
 
     ret = {}
@@ -108,8 +101,7 @@ def status(output=True, tgt='*', tgt_type='glob', expr_form=None, timeout=None, 
     if not gather_job_timeout:
         gather_job_timeout = __opts__['gather_job_timeout']
 
-    res = _ping(tgt, tgt_type, timeout, gather_job_timeout)
-    ret['up'], ret['down'] = ([], []) if not res else res
+    ret['up'], ret['down'] = _ping(tgt, tgt_type, timeout, gather_job_timeout)
     return ret
 
 
@@ -145,7 +137,7 @@ def key_regen():
         print(client_error)
         return False
 
-    for root, _, files in salt.utils.path.os_walk(__opts__['pki_dir']):
+    for root, _, files in os.walk(__opts__['pki_dir']):
         for fn_ in files:
             path = os.path.join(root, fn_)
             try:
@@ -183,12 +175,6 @@ def down(removekeys=False, tgt='*', tgt_type='glob', expr_form=None):
         salt-run manage.down tgt="webservers" tgt_type="nodegroup"
 
     '''
-    # remember to remove the expr_form argument from this function when
-    # performing the cleanup on this deprecation.
-    if expr_form is not None:
-        _warn_expr_form()
-        tgt_type = expr_form
-
     ret = status(output=False, tgt=tgt, tgt_type=tgt_type).get('down', [])
     for minion in ret:
         if removekeys:
@@ -213,12 +199,6 @@ def up(tgt='*', tgt_type='glob', expr_form=None, timeout=None, gather_job_timeou
         salt-run manage.up tgt="webservers" tgt_type="nodegroup"
         salt-run manage.up timeout=5 gather_job_timeout=10
     '''
-    # remember to remove the expr_form argument from this function when
-    # performing the cleanup on this deprecation.
-    if expr_form is not None:
-        _warn_expr_form()
-        tgt_type = expr_form
-
     ret = status(
         output=False,
         tgt=tgt,
@@ -560,7 +540,7 @@ def get_stats(estate=None, stack='road'):
         event = salt.utils.raetevent.StatsEvent(__opts__, __opts__['sock_dir'], tag=tag, estate=estate)
         stats = event.get_event(wait=60, tag=tag)
     else:
-        # TODO: implement 0MQ analog
+        #TODO: implement 0MQ analog
         stats = 'Not implemented'
 
     return stats
@@ -613,12 +593,6 @@ def safe_accept(target, tgt_type='glob', expr_form=None):
         salt-run manage.safe_accept my_minion
         salt-run manage.safe_accept minion1,minion2 tgt_type=list
     '''
-    # remember to remove the expr_form argument from this function when
-    # performing the cleanup on this deprecation.
-    if expr_form is not None:
-        _warn_expr_form()
-        tgt_type = expr_form
-
     salt_key = salt.key.Key(__opts__)
     ssh_client = salt.client.ssh.client.SSHClient()
 
@@ -720,6 +694,7 @@ def versions():
 def bootstrap(version='develop',
               script=None,
               hosts='',
+              root_user=False,
               script_args='',
               roster='flat',
               ssh_user=None,
@@ -739,6 +714,14 @@ def bootstrap(version='develop',
     hosts
         Comma-separated hosts [example: hosts='host1.local,host2.local']. These
         hosts need to exist in the specified roster.
+
+    root_user : False
+        Prepend ``root@`` to each host. Default changed in Salt 2016.11.0 from ``True``
+        to ``False``.
+
+        .. versionchanged:: 2016.11.0
+
+        .. deprecated:: Oxygen
 
     script_args
         Any additional arguments that you want to pass to the script.
@@ -797,8 +780,19 @@ def bootstrap(version='develop',
         salt-run manage.bootstrap hosts='host1,host2' version='v0.17'
         salt-run manage.bootstrap hosts='host1,host2' version='v0.17' \
             script='https://bootstrap.saltstack.com/develop'
+        salt-run manage.bootstrap hosts='ec2-user@host1,ec2-user@host2' \
+            root_user=False
 
     '''
+    dep_warning = (
+        'Starting with Salt 2016.11.0, manage.bootstrap now uses Salt SSH to '
+        'connect, and requires a roster entry. Please ensure that a roster '
+        'entry exists for this host. Non-roster hosts will no longer be '
+        'supported starting with Salt Oxygen.'
+    )
+    if root_user is True:
+        salt.utils.warn_until('Oxygen', dep_warning)
+
     if script is None:
         script = 'https://bootstrap.saltstack.com'
 
@@ -839,7 +833,21 @@ def bootstrap(version='develop',
             client_opts['argv'] = ['file.remove', tmp_dir]
             salt.client.ssh.SSH(client_opts).run()
         except SaltSystemExit as exc:
-            log.error(six.text_type(exc))
+            if 'No hosts found with target' in str(exc):
+                log.warning('The host {0} was not found in the Salt SSH roster '
+                            'system. Attempting to log in without Salt SSH.')
+                salt.utils.warn_until('Oxygen', dep_warning)
+                ret = subprocess.call([
+                    'ssh',
+                    ('root@' if root_user else '') + host,
+                    'python -c \'import urllib; '
+                    'print urllib.urlopen('
+                    '"' + script + '"'
+                    ').read()\' | sh -s -- git ' + version
+                ])
+                return ret
+            else:
+                log.error(str(exc))
 
 
 def bootstrap_psexec(hosts='', master=None, version=None, arch='win32',
@@ -967,7 +975,7 @@ objShell.Exec("{1}{2}")'''
                  '  >>' + x + '.vbs\ncscript.exe /NoLogo ' + x + '.vbs'
 
     batch_path = tempfile.mkstemp(suffix='.bat')[1]
-    with salt.utils.files.fopen(batch_path, 'wb') as batch_file:
+    with salt.utils.fopen(batch_path, 'wb') as batch_file:
         batch_file.write(batch)
 
     for host in hosts.split(","):

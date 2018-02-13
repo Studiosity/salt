@@ -11,11 +11,11 @@ for the generation and signing of certificates for systems running libvirt:
     libvirt_keys:
       virt.keys
 '''
+from __future__ import absolute_import
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import fnmatch
+# Import python libs
 import os
+import fnmatch
 
 try:
     import libvirt  # pylint: disable=import-error
@@ -23,14 +23,9 @@ try:
 except ImportError:
     HAS_LIBVIRT = False
 
-# Import Salt libs
-import salt.utils.args
-import salt.utils.files
-import salt.utils.stringutils
+# Import salt libs
+import salt.utils
 from salt.exceptions import CommandExecutionError
-
-# Import 3rd-party libs
-from salt.ext import six
 
 __virtualname__ = 'virt'
 
@@ -47,7 +42,7 @@ def __virtual__():
     return False
 
 
-def keys(name, basepath='/etc/pki', **kwargs):
+def keys(name, basepath='/etc/pki'):
     '''
     Manage libvirt keys.
 
@@ -57,57 +52,20 @@ def keys(name, basepath='/etc/pki', **kwargs):
     basepath
         Defaults to ``/etc/pki``, this is the root location used for libvirt
         keys on the hypervisor
-
-    The following parameters are optional:
-
-        country
-            The country that the certificate should use.  Defaults to US.
-
-        .. versionadded:: Oxygen
-
-        state
-            The state that the certificate should use.  Defaults to Utah.
-
-        .. versionadded:: Oxygen
-
-        locality
-            The locality that the certificate should use.
-            Defaults to Salt Lake City.
-
-        .. versionadded:: Oxygen
-
-        organization
-            The organization that the certificate should use.
-            Defaults to Salted.
-
-        .. versionadded:: Oxygen
-
-        expiration_days
-            The number of days that the certificate should be valid for.
-            Defaults to 365 days (1 year)
-
-        .. versionadded:: Oxygen
-
     '''
+    #libvirt.serverkey.pem
+    #libvirt.servercert.pem
+    #libvirt.clientkey.pem
+    #libvirt.clientcert.pem
+    #libvirt.cacert.pem
+
     ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
-
-    # Grab all kwargs to make them available as pillar values
-    # rename them to something hopefully unique to avoid
-    # overriding anything existing
-    pillar_kwargs = {}
-    for key, value in six.iteritems(kwargs):
-        pillar_kwargs['ext_pillar_virt.{0}'.format(key)] = value
-
-    pillar = __salt__['pillar.ext']({'libvirt': '_'}, pillar_kwargs)
+    pillar = __salt__['pillar.ext']({'libvirt': '_'})
     paths = {
-        'serverkey': os.path.join(basepath, 'libvirt',
-                                  'private', 'serverkey.pem'),
-        'servercert': os.path.join(basepath, 'libvirt',
-                                   'servercert.pem'),
-        'clientkey': os.path.join(basepath, 'libvirt',
-                                  'private', 'clientkey.pem'),
-        'clientcert': os.path.join(basepath, 'libvirt',
-                                   'clientcert.pem'),
+        'serverkey': os.path.join(basepath, 'libvirt', 'private', 'serverkey.pem'),
+        'servercert': os.path.join(basepath, 'libvirt', 'servercert.pem'),
+        'clientkey': os.path.join(basepath, 'libvirt', 'private', 'clientkey.pem'),
+        'clientcert': os.path.join(basepath, 'libvirt', 'clientcert.pem'),
         'cacert': os.path.join(basepath, 'CA', 'cacert.pem')
     }
 
@@ -118,8 +76,8 @@ def keys(name, basepath='/etc/pki', **kwargs):
         if not os.path.exists(os.path.dirname(paths[key])):
             os.makedirs(os.path.dirname(paths[key]))
         if os.path.isfile(paths[key]):
-            with salt.utils.files.fopen(paths[key], 'r') as fp_:
-                if salt.utils.stringutils.to_unicode(fp_.read()) != pillar[p_key]:
+            with salt.utils.fopen(paths[key], 'r') as fp_:
+                if fp_.read() != pillar[p_key]:
                     ret['changes'][key] = 'update'
         else:
             ret['changes'][key] = 'new'
@@ -132,12 +90,8 @@ def keys(name, basepath='/etc/pki', **kwargs):
         ret['changes'] = {}
     else:
         for key in ret['changes']:
-            with salt.utils.files.fopen(paths[key], 'w+') as fp_:
-                fp_.write(
-                    salt.utils.stringutils.to_str(
-                        pillar['libvirt.{0}.pem'.format(key)]
-                    )
-                )
+            with salt.utils.fopen(paths[key], 'w+') as fp_:
+                fp_.write(pillar['libvirt.{0}.pem'.format(key)])
 
         ret['comment'] = 'Updated libvirt certs and keys'
 
@@ -165,7 +119,7 @@ def _virt_call(domain, function, section, comment, **kwargs):
                 response = response['name']
             changed_domains.append({'domain': domain, function: response})
         except libvirt.libvirtError as err:
-            ignored_domains.append({'domain': domain, 'issue': six.text_type(err)})
+            ignored_domains.append({'domain': domain, 'issue': str(err)})
     if not changed_domains:
         ret['result'] = False
         ret['comment'] = 'No changes had happened'
@@ -235,7 +189,7 @@ def running(name, **kwargs):
            'comment': '{0} is running'.format(name)
            }
 
-    kwargs = salt.utils.args.clean_kwargs(**kwargs)
+    kwargs = salt.utils.clean_kwargs(**kwargs)
     cpu = kwargs.pop('cpu', False)
     mem = kwargs.pop('mem', False)
     image = kwargs.pop('image', False)
@@ -248,7 +202,7 @@ def running(name, **kwargs):
                 ret['changes'][name] = 'Domain started'
                 ret['comment'] = 'Domain {0} started'.format(name)
         except CommandExecutionError:
-            kwargs = salt.utils.args.clean_kwargs(**kwargs)
+            kwargs = salt.utils.clean_kwargs(**kwargs)
             __salt__['virt.init'](name, cpu=cpu, mem=mem, image=image, **kwargs)
             ret['changes'][name] = 'Domain defined and started'
             ret['comment'] = 'Domain {0} defined and started'.format(name)
@@ -369,7 +323,7 @@ def reverted(name, snapshot=None, cleanup=False):
                     result = {'domain': domain, 'current': result['reverted'], 'deleted': result['deleted']}
                 except CommandExecutionError as err:
                     if len(domains) > 1:
-                        ignored_domains.append({'domain': domain, 'issue': six.text_type(err)})
+                        ignored_domains.append({'domain': domain, 'issue': str(err)})
                 if len(domains) > 1:
                     if result:
                         ret['changes']['reverted'].append(result)
@@ -385,8 +339,8 @@ def reverted(name, snapshot=None, cleanup=False):
             if not ret['changes']['reverted']:
                 ret['changes'].pop('reverted')
     except libvirt.libvirtError as err:
-        ret['comment'] = six.text_type(err)
+        ret['comment'] = str(err)
     except CommandExecutionError as err:
-        ret['comment'] = six.text_type(err)
+        ret['comment'] = str(err)
 
     return ret

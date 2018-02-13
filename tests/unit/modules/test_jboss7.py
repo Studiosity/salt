@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt testing libs
 from tests.support.mixins import LoaderModuleMockMixin

@@ -5,15 +5,12 @@ Module for editing power settings on macOS
  .. versionadded:: 2016.3.0
 '''
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
-# Import Salt libs
+# Import salt libs
+import salt.utils
 import salt.utils.mac_utils
-import salt.utils.platform
 from salt.exceptions import SaltInvocationError
-
-# Import 3rd-party libs
-from salt.ext import six
 from salt.ext.six.moves import range
 
 __virtualname__ = 'power'
@@ -23,7 +20,7 @@ def __virtual__():
     '''
     Only for macOS
     '''
-    if not salt.utils.platform.is_darwin():
+    if not salt.utils.is_darwin():
         return (False, 'The mac_power module could not be loaded: '
                        'module only works on macOS systems.')
 
@@ -41,7 +38,7 @@ def _validate_sleep(minutes):
     Returns: The value to be passed to the command
     '''
     # Must be a value between 1 and 180 or Never/Off
-    if isinstance(minutes, six.string_types):
+    if isinstance(minutes, str):
         if minutes.lower() in ['never', 'off']:
             return 'Never'
         else:

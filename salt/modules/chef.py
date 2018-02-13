@@ -4,18 +4,17 @@ Execute chef in server or solo mode
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import os
 import tempfile
 
 # Import Salt libs
-import salt.utils.path
-import salt.utils.platform
-import salt.utils.decorators.path
+import salt.utils
+import salt.utils.decorators as decorators
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ def __virtual__():
     '''
     Only load if chef is installed
     '''
-    if not salt.utils.path.which('chef-client'):
+    if not salt.utils.which('chef-client'):
         return (False, 'Cannot load chef module: chef-client not found')
     return True
 
@@ -33,7 +32,7 @@ def _default_logfile(exe_name):
     '''
     Retrieve the logfile name
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         tmp_dir = os.path.join(__opts__['cachedir'], 'tmp')
         if not os.path.isdir(tmp_dir):
             os.mkdir(tmp_dir)
@@ -44,7 +43,7 @@ def _default_logfile(exe_name):
         logfile = logfile_tmp.name
         logfile_tmp.close()
     else:
-        logfile = salt.utils.path.join(
+        logfile = salt.utils.path_join(
             '/var/log',
             '{0}.log'.format(exe_name)
         )
@@ -52,7 +51,7 @@ def _default_logfile(exe_name):
     return logfile
 
 
-@salt.utils.decorators.path.which('chef-client')
+@decorators.which('chef-client')
 def client(whyrun=False,
            localmode=False,
            logfile=None,
@@ -141,7 +140,7 @@ def client(whyrun=False,
     return _exec_cmd(*args, **kwargs)
 
 
-@salt.utils.decorators.path.which('chef-solo')
+@decorators.which('chef-solo')
 def solo(whyrun=False,
          logfile=None,
          **kwargs):

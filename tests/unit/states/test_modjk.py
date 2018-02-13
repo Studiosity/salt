@@ -3,7 +3,7 @@
     :codeauthor: :email:`Jayesh Kariya <jayeshk@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.unit import skipIf, TestCase
@@ -13,11 +13,11 @@ from tests.support.mock import (
 
 # Import Salt Libs
 import salt.states.modjk as modjk
-from salt.ext import six
+import salt.ext.six as six
 
 
 if six.PY2:
-    LIST_NOT_STR = "workers should be a list not a <type 'unicode'>"
+    LIST_NOT_STR = "workers should be a list not a <type 'str'>"
 else:
     LIST_NOT_STR = "workers should be a list not a <class 'str'>"
 

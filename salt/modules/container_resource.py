@@ -11,7 +11,7 @@ common logic to be re-used for common actions.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import functools
 import copy
 import logging
@@ -21,10 +21,9 @@ import time
 import traceback
 
 # Import salt libs
-import salt.utils.args
-import salt.utils.path
-import salt.utils.vt
+import salt.utils
 from salt.exceptions import CommandExecutionError, SaltInvocationError
+from salt.utils import vt
 
 log = logging.getLogger(__name__)
 
@@ -55,12 +54,12 @@ def _validate(wrapped):
                 'Invalid command execution driver. Valid drivers are: {0}'
                 .format(', '.join(valid_driver[container_type]))
             )
-        if exec_driver == 'lxc-attach' and not salt.utils.path.which('lxc-attach'):
+        if exec_driver == 'lxc-attach' and not salt.utils.which('lxc-attach'):
             raise SaltInvocationError(
                 'The \'lxc-attach\' execution driver has been chosen, but '
                 'lxc-attach is not available. LXC may not be installed.'
             )
-        return wrapped(*args, **salt.utils.args.clean_kwargs(**kwargs))
+        return wrapped(*args, **salt.utils.clean_kwargs(**kwargs))
     return wrapper
 
 
@@ -221,7 +220,7 @@ def run(name,
                                  ignore_retcode=ignore_retcode)
     else:
         stdout, stderr = '', ''
-        proc = salt.utils.vt.Terminal(
+        proc = vt.Terminal(
             full_cmd,
             shell=python_shell,
             log_stdin_level='quiet' if output_loglevel == 'quiet' else 'info',
@@ -252,7 +251,7 @@ def run(name,
                       'pid': 2,
                       'stdout': stdout,
                       'stderr': stderr}
-        except salt.utils.vt.TerminalException:
+        except vt.TerminalException:
             trace = traceback.format_exc()
             log.error(trace)
             ret = stdout if output is None \

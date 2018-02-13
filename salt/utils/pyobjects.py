@@ -5,13 +5,13 @@
 Pythonic object interface to creating state data, see the pyobjects renderer
 for more documentation.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import inspect
 import logging
 
 from salt.utils.odict import OrderedDict
 from salt.utils.schema import Prepareable
-from salt.ext import six
+import salt.ext.six as six
 
 REQUISITES = ('listen', 'onchanges', 'onfail', 'require', 'watch', 'use', 'listen_in', 'onchanges_in', 'onfail_in', 'require_in', 'watch_in', 'use_in')
 

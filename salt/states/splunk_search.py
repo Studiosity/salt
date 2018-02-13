@@ -13,7 +13,6 @@ This state is used to ensure presence of splunk searches.
         - name: This is the splunk search name
         - search: index=main sourcetype=
 '''
-from __future__ import absolute_import, unicode_literals, print_function
 
 
 def __virtual__():

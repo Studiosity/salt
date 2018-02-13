@@ -7,13 +7,13 @@
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.unit import TestCase
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.config import minion_config
 import salt.loader
 

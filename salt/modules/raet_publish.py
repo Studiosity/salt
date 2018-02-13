@@ -2,7 +2,7 @@
 '''
 Publish a command from a minion to a target
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import time
@@ -12,11 +12,7 @@ import logging
 import salt.payload
 import salt.transport
 import salt.utils.args
-import salt.utils.versions
 from salt.exceptions import SaltReqTimeoutError
-
-# Import 3rd party libs
-from salt.ext import six
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +91,7 @@ def _publish(
     time.sleep(float(timeout))
     load = {'cmd': 'pub_ret',
             'id': __opts__['id'],
-            'jid': six.text_type(peer_data['jid'])}
+            'jid': str(peer_data['jid'])}
     ret = channel.send(load)
     if form == 'clean':
         cret = {}
@@ -170,7 +166,7 @@ def publish(tgt,
     # remember to remove the expr_form argument from this function when
     # performing the cleanup on this deprecation.
     if expr_form is not None:
-        salt.utils.versions.warn_until(
+        salt.utils.warn_until(
             'Fluorine',
             'the target type should be passed using the \'tgt_type\' '
             'argument instead of \'expr_form\'. Support for using '
@@ -218,7 +214,7 @@ def full_data(tgt,
     # remember to remove the expr_form argument from this function when
     # performing the cleanup on this deprecation.
     if expr_form is not None:
-        salt.utils.versions.warn_until(
+        salt.utils.warn_until(
             'Fluorine',
             'the target type should be passed using the \'tgt_type\' '
             'argument instead of \'expr_form\'. Support for using '

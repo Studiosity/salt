@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.unit import TestCase, skipIf
@@ -16,7 +16,7 @@ from tests.support.mock import (
 )
 
 # Import Salt Libs
-import salt.utils.etcd_util as etcd_util
+from salt.utils import etcd_util
 try:
     from urllib3.exceptions import ReadTimeoutError, MaxRetryError
     HAS_URLLIB3 = True

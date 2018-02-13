@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 
 # Import Salt Testing libs
@@ -14,9 +14,9 @@ from tests.support.helpers import (
 )
 from tests.support.unit import skipIf
 
-# Import Salt libs
+# Import salt libs
+import salt.utils
 import salt.utils.pkg
-import salt.utils.platform
 
 
 class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
@@ -24,14 +24,14 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
     Validate the pkg module
     '''
     def setUp(self):
-        if salt.utils.platform.is_windows():
+        if salt.utils.is_windows():
             self.run_function('pkg.refresh_db')
 
         os_release = self.run_function('grains.get', ['osrelease'])
 
-        if salt.utils.platform.is_darwin() and int(os_release.split('.')[1]) >= 13:
+        if salt.utils.is_darwin() and int(os_release.split('.')[1]) >= 13:
             self.pkg = 'wget'
-        elif salt.utils.platform.is_windows():
+        elif salt.utils.is_windows():
             self.pkg = 'putty'
         else:
             self.pkg = 'htop'
@@ -258,7 +258,7 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
 
     @requires_network()
     @destructiveTest
-    @skipIf(salt.utils.platform.is_windows(), 'pkg.upgrade not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'pkg.upgrade not available on Windows')
     def test_pkg_upgrade_has_pending_upgrades(self):
         '''
         Test running a system upgrade when there are packages that need upgrading
@@ -308,26 +308,13 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
                 self.skipTest('No updates available for this machine.  Skipping pkg.upgrade test.')
             else:
                 ret = self.run_function(func)
-                self.assertNotEqual(ret, {})
 
-    @destructiveTest
-    @skipIf(salt.utils.platform.is_windows(), 'minion is windows')
-    @skipIf(salt.utils.platform.is_darwin(), 'minion is mac')
-    def test_pkg_latest_version(self):
-        '''
-        check that pkg.latest_version returns the latest version of the uninstalled package (it does not install the package, just checking the version)
-        '''
-        grains = self.run_function('grains.items')
-        cmd_info = self.run_function('pkg.info_installed', ['htop'])
-        if cmd_info != 'ERROR: package htop is not installed':
-            cmd_remove = self.run_function('pkg.remove', ['htop'])
-        if grains['os_family'] == 'RedHat':
-            cmd_htop = self.run_function('cmd.run', ['yum list htop'])
-        elif grains['os_family'] == 'Debian':
-            cmd_htop = self.run_function('cmd.run', ['apt list htop'])
-        elif grains['os_family'] == 'Arch':
-            cmd_htop = self.run_function('cmd.run', ['pacman -Si htop'])
-        elif grains['os_family'] == 'Suse':
-            cmd_htop = self.run_function('cmd.run', ['zypper info htop'])
-        pkg_latest = self.run_function('pkg.latest_version', ['htop'])
-        self.assertIn(pkg_latest, cmd_htop)
+                if 'Problem encountered' in ret:
+                    self.skipTest('A problem was encountered when running pkg.upgrade. This test is '
+                                  'meant to catch no-ops or problems with the salt function itself, '
+                                  'not problems with actual package installation. Skipping.')
+
+                # The changes dictionary should not be empty.
+                self.assertNotEqual(ret, {})
+                if 'changes' in ret:
+                    self.assertNotEqual(ret['changes'], {})

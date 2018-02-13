@@ -7,7 +7,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Libs
 import salt.modules.win_snmp as win_snmp

@@ -13,22 +13,17 @@ Module to interact with Junos devices.
 Refer to :mod:`junos <salt.proxy.junos>` for information on connecting to junos proxy.
 
 '''
+from __future__ import absolute_import
 
-# Import Python libraries
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libraries
 import logging
+import json
 import os
 
 try:
     from lxml import etree
 except ImportError:
     from salt._compat import ElementTree as etree
-
-# Import Salt libs
-import salt.utils.files
-import salt.utils.json
-import salt.utils.stringutils
-from salt.ext import six
 
 # Juniper interface libraries
 # https://github.com/Juniper/py-junos-eznc
@@ -45,6 +40,11 @@ try:
     HAS_JUNOS = True
 except ImportError:
     HAS_JUNOS = False
+
+# Import salt libraries
+from salt.utils import fopen
+from salt.utils import files
+from salt.utils import safe_rm
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ def facts_refresh():
     try:
         __salt__['saltutil.sync_grains']()
     except Exception as exception:
-        log.error('Grains could not be updated due to "%s"', exception)
+        log.error('Grains could not be updated due to "{0}"'.format(exception))
     return ret
 
 
@@ -144,7 +144,7 @@ def rpc(cmd=None, dest=None, format='xml', **kwargs):
           The rpc to be executed. (default = None)
       Optional
         * dest:
-          Destination file where the rpc output is stored. (default = None)
+          Destination file where the rpc ouput is stored. (default = None)
           Note that the file will be stored on the proxy minion. To push the
           files to the master use the salt's following execution module:
           :py:func:`cp.push <salt.modules.cp.push>`
@@ -178,13 +178,9 @@ def rpc(cmd=None, dest=None, format='xml', **kwargs):
         if kwargs['__pub_arg']:
             if isinstance(kwargs['__pub_arg'][-1], dict):
                 op.update(kwargs['__pub_arg'][-1])
-    elif '__pub_schedule' in kwargs:
-        for key, value in six.iteritems(kwargs):
-            if not key.startswith('__pub_'):
-                op[key] = value
     else:
         op.update(kwargs)
-    op['dev_timeout'] = six.text_type(op.pop('timeout', conn.timeout))
+    op['dev_timeout'] = str(op.pop('timeout', conn.timeout))
 
     if cmd in ['get-config', 'get_config']:
         filter_reply = None
@@ -235,11 +231,11 @@ def rpc(cmd=None, dest=None, format='xml', **kwargs):
         if format == 'text':
             write_response = reply.text
         elif format == 'json':
-            write_response = salt.utils.json.dumps(reply, indent=1)
+            write_response = json.dumps(reply, indent=1)
         else:
             write_response = etree.tostring(reply)
-        with salt.utils.files.fopen(dest, 'w') as fp:
-            fp.write(salt.utils.stringutils.to_str(write_response))
+        with fopen(dest, 'w') as fp:
+            fp.write(write_response)
     return ret
 
 
@@ -464,8 +460,8 @@ def rollback(id=0, **kwargs):
     if 'diffs_file' in op and op['diffs_file'] is not None:
         diff = conn.cu.diff()
         if diff is not None:
-            with salt.utils.files.fopen(op['diffs_file'], 'w') as fp:
-                fp.write(salt.utils.stringutils.to_str(diff))
+            with fopen(op['diffs_file'], 'w') as fp:
+                fp.write(diff)
         else:
             log.info(
                 'No diff between current configuration and \
@@ -577,9 +573,9 @@ def ping(dest_ip=None, **kwargs):
     else:
         op.update(kwargs)
 
-    op['count'] = six.text_type(op.pop('count', 5))
+    op['count'] = str(op.pop('count', 5))
     if 'ttl' in op:
-        op['ttl'] = six.text_type(op['ttl'])
+        op['ttl'] = str(op['ttl'])
 
     ret['out'] = True
     try:
@@ -659,8 +655,8 @@ def cli(command=None, format='text', **kwargs):
         ret['message'] = jxmlease.parse(result)
 
     if 'dest' in op and op['dest'] is not None:
-        with salt.utils.files.fopen(op['dest'], 'w') as fp:
-            fp.write(salt.utils.stringutils.to_str(result))
+        with fopen(op['dest'], 'w') as fp:
+            fp.write(result)
 
     ret['out'] = True
     return ret
@@ -837,7 +833,7 @@ def install_config(path=None, **kwargs):
     if "template_vars" in op:
         template_vars = op["template_vars"]
 
-    template_cached_path = salt.utils.files.mkstemp()
+    template_cached_path = files.mkstemp()
     __salt__['cp.get_template'](
         path,
         template_cached_path,
@@ -892,7 +888,7 @@ def install_config(path=None, **kwargs):
             return ret
 
         finally:
-            salt.utils.files.safe_rm(template_cached_path)
+            safe_rm(template_cached_path)
 
         config_diff = cu.diff()
         if config_diff is None:
@@ -933,8 +929,8 @@ def install_config(path=None, **kwargs):
 
         try:
             if write_diff and config_diff is not None:
-                with salt.utils.files.fopen(write_diff, 'w') as fp:
-                    fp.write(salt.utils.stringutils.to_str(config_diff))
+                with fopen(write_diff, 'w') as fp:
+                    fp.write(config_diff)
         except Exception as exception:
             ret['message'] = 'Could not write into diffs_file due to: "{0}"'.format(
                 exception)
@@ -1008,7 +1004,7 @@ def install_os(path=None, **kwargs):
         ret['out'] = False
         return ret
 
-    image_cached_path = salt.utils.files.mkstemp()
+    image_cached_path = files.mkstemp()
     __salt__['cp.get_file'](path, image_cached_path)
 
     if not os.path.isfile(image_cached_path):
@@ -1038,7 +1034,7 @@ def install_os(path=None, **kwargs):
         ret['out'] = False
         return ret
     finally:
-        salt.utils.files.safe_rm(image_cached_path)
+        safe_rm(image_cached_path)
 
     if 'reboot' in op and op['reboot'] is True:
         try:
@@ -1235,7 +1231,7 @@ def load(path=None, **kwargs):
     if "template_vars" in op:
         template_vars = op["template_vars"]
 
-    template_cached_path = salt.utils.files.mkstemp()
+    template_cached_path = files.mkstemp()
     __salt__['cp.get_template'](
         path,
         template_cached_path,
@@ -1282,7 +1278,7 @@ def load(path=None, **kwargs):
         ret['out'] = False
         return ret
     finally:
-        salt.utils.files.safe_rm(template_cached_path)
+        safe_rm(template_cached_path)
 
     return ret
 

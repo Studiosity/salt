@@ -4,11 +4,12 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import random
 
 # Import Salt Libs
+import salt.utils
 import salt.utils.files
 from salt.exceptions import CommandExecutionError
 
@@ -141,8 +142,8 @@ class DarwinSysctlModuleTest(ModuleCase):
         '''
         # Create new temporary file path and open needed files
         temp_path = salt.utils.files.mkstemp()
-        with salt.utils.files.fopen(CONFIG, 'r') as org_conf:
-            with salt.utils.files.fopen(temp_path, 'w') as temp_sysconf:
+        with salt.utils.fopen(CONFIG, 'r') as org_conf:
+            with salt.utils.fopen(temp_path, 'w') as temp_sysconf:
                 # write sysctl lines to temp file
                 for line in org_conf:
                     temp_sysconf.write(line)
@@ -157,8 +158,8 @@ class DarwinSysctlModuleTest(ModuleCase):
             os.remove(CONFIG)
 
         # write temp lines to sysctl file to restore
-        with salt.utils.files.fopen(self.conf, 'r') as temp_sysctl:
-            with salt.utils.files.fopen(CONFIG, 'w') as sysctl:
+        with salt.utils.fopen(self.conf, 'r') as temp_sysctl:
+            with salt.utils.fopen(CONFIG, 'w') as sysctl:
                 for line in temp_sysctl:
                     sysctl.write(line)
 
@@ -169,9 +170,9 @@ class DarwinSysctlModuleTest(ModuleCase):
         '''
         Returns True if given line is present in file
         '''
-        with salt.utils.files.fopen(conf_file, 'r') as f_in:
+        with salt.utils.fopen(conf_file, 'r') as f_in:
             for line in f_in:
-                if to_find in salt.utils.stringutils.to_unicode(line):
+                if to_find in line:
                     return True
             return False
 

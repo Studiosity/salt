@@ -4,13 +4,13 @@ Nova class
 '''
 
 # Import Python libs
-from __future__ import absolute_import, with_statement, unicode_literals, print_function
+from __future__ import absolute_import, with_statement
 import inspect
 import logging
 import time
 
 # Import third party libs
-from salt.ext import six
+import salt.ext.six as six
 HAS_NOVA = False
 # pylint: disable=import-error
 try:
@@ -36,8 +36,7 @@ except ImportError:
 # pylint: enable=import-error
 
 # Import salt libs
-import salt.utils.cloud
-import salt.utils.files
+import salt.utils
 from salt.exceptions import SaltCloudSystemExit
 from salt.utils.versions import LooseVersion as _LooseVersion
 
@@ -71,11 +70,9 @@ def check_nova():
         if novaclient_ver >= min_ver and novaclient_ver <= max_ver:
             return HAS_NOVA
         elif novaclient_ver > max_ver:
-            log.debug('Older novaclient version required. Maximum: %s',
-                      NOVACLIENT_MAXVER)
+            log.debug('Older novaclient version required. Maximum: {0}'.format(NOVACLIENT_MAXVER))
             return False
-        log.debug('Newer novaclient version required.  Minimum: %s',
-                  NOVACLIENT_MINVER)
+        log.debug('Newer novaclient version required.  Minimum: {0}'.format(NOVACLIENT_MINVER))
     return False
 
 
@@ -295,16 +292,15 @@ class SaltNova(object):
             self.client_kwargs = self.kwargstruct.__dict__
 
         # Requires novaclient version >= 2.6.1
-        self.version = six.text_type(kwargs.get('version', 2))
+        self.version = str(kwargs.get('version', 2))
 
         self.client_kwargs = sanatize_novaclient(self.client_kwargs)
         options = loader.load_from_options(**self.kwargs)
         self.session = keystoneauth1.session.Session(auth=options, verify=verify)
         conn = client.Client(version=self.version, session=self.session, **self.client_kwargs)
         self.kwargs['auth_token'] = conn.client.session.get_token()
-        identity_service_type = kwargs.get('identity_service_type', 'identity')
-        self.catalog = conn.client.session.get('/auth/catalog', endpoint_filter={'service_type': identity_service_type}).json().get('catalog', [])
-        if conn.client.get_endpoint(service_type=identity_service_type).endswith('v3'):
+        self.catalog = conn.client.session.get('/auth/catalog', endpoint_filter={'service_type': 'identity'}).json().get('catalog', [])
+        if conn.client.get_endpoint(service_type='identity').endswith('v3'):
             self._v3_setup(region_name)
         else:
             self._v2_setup(region_name)
@@ -350,7 +346,7 @@ class SaltNova(object):
         self.kwargs = sanatize_novaclient(self.kwargs)
 
         # Requires novaclient version >= 2.6.1
-        self.kwargs['version'] = six.text_type(kwargs.get('version', 2))
+        self.kwargs['version'] = str(kwargs.get('version', 2))
 
         conn = client.Client(**self.kwargs)
         try:
@@ -368,8 +364,7 @@ class SaltNova(object):
     def _v3_setup(self, region_name):
         if region_name is not None:
             self.client_kwargs['bypass_url'] = get_endpoint_url_v3(self.catalog, 'compute', region_name)
-            log.debug('Using Nova bypass_url: %s',
-                      self.client_kwargs['bypass_url'])
+            log.debug('Using Nova bypass_url: %s', self.client_kwargs['bypass_url'])
 
         self.compute_conn = client.Client(version=self.version, session=self.session, **self.client_kwargs)
 
@@ -377,8 +372,7 @@ class SaltNova(object):
         if volume_endpoints:
             if region_name is not None:
                 self.client_kwargs['bypass_url'] = get_endpoint_url_v3(self.catalog, 'volume', region_name)
-                log.debug('Using Cinder bypass_url: %s',
-                          self.client_kwargs['bypass_url'])
+                log.debug('Using Cinder bypass_url: %s', self.client_kwargs['bypass_url'])
 
             self.volume_conn = client.Client(version=self.version, session=self.session, **self.client_kwargs)
             if hasattr(self, 'extensions'):
@@ -474,16 +468,16 @@ class SaltNova(object):
                 return self.server_show_libcloud(self.uuid)
             except Exception as exc:
                 log.debug(
-                    'Server information not yet available: %s', exc
+                    'Server information not yet available: {0}'.format(exc)
                 )
                 time.sleep(1)
                 if time.time() - start > timeout:
-                    log.error('Timed out after %s seconds '
-                              'while waiting for data', timeout)
+                    log.error('Timed out after {0} seconds '
+                              'while waiting for data'.format(timeout))
                     return False
 
                 log.debug(
-                    'Retrying server_show() (try %s)', trycount
+                    'Retrying server_show() (try {0})'.format(trycount)
                 )
 
     def show_instance(self, name):
@@ -621,15 +615,15 @@ class SaltNova(object):
                 if response['status'] == 'available':
                     return response
             except Exception as exc:
-                log.debug('Volume is detaching: %s', name)
+                log.debug('Volume is detaching: {0}'.format(name))
                 time.sleep(1)
                 if time.time() - start > timeout:
-                    log.error('Timed out after %d seconds '
-                              'while waiting for data', timeout)
+                    log.error('Timed out after {0} seconds '
+                              'while waiting for data'.format(timeout))
                     return False
 
                 log.debug(
-                    'Retrying volume_show() (try %d)', trycount
+                    'Retrying volume_show() (try {0})'.format(trycount)
                 )
 
     def volume_attach(self,
@@ -659,15 +653,15 @@ class SaltNova(object):
                 if response['status'] == 'in-use':
                     return response
             except Exception as exc:
-                log.debug('Volume is attaching: %s', name)
+                log.debug('Volume is attaching: {0}'.format(name))
                 time.sleep(1)
                 if time.time() - start > timeout:
-                    log.error('Timed out after %s seconds '
-                              'while waiting for data', timeout)
+                    log.error('Timed out after {0} seconds '
+                              'while waiting for data'.format(timeout))
                     return False
 
                 log.debug(
-                    'Retrying volume_show() (try %s)', trycount
+                    'Retrying volume_show() (try {0})'.format(trycount)
                 )
 
     def suspend(self, instance_id):
@@ -774,8 +768,8 @@ class SaltNova(object):
         '''
         nt_ks = self.compute_conn
         if pubfile:
-            with salt.utils.files.fopen(pubfile, 'r') as fp_:
-                pubkey = salt.utils.stringutils.to_unicode(fp_.read())
+            with salt.utils.fopen(pubfile, 'r') as fp_:
+                pubkey = fp_.read()
         if not pubkey:
             return False
         nt_ks.keypairs.create(name, public_key=pubkey)
@@ -992,7 +986,7 @@ class SaltNova(object):
         except AttributeError:
             raise SaltCloudSystemExit('Corrupt server in server_list_detailed. Remove corrupt servers.')
         for server_name, server in six.iteritems(servers):
-            if six.text_type(server['id']) == server_id:
+            if str(server['id']) == server_id:
                 ret[server_name] = server
         return ret
 

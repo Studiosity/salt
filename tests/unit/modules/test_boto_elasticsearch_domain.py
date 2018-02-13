@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import copy
 import logging
 import random
@@ -18,7 +18,7 @@ from tests.support.mock import (
 )
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 import salt.loader
 from salt.utils.versions import LooseVersion
 import salt.modules.boto_elasticsearch_domain as boto_elasticsearch_domain

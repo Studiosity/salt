@@ -18,10 +18,10 @@ requisite to a pkg.installed state for the package which provides pecl
         - require:
           - pkg: php-pear
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
-from salt.ext import six
+from salt.ext.six import string_types
 
 
 def __virtual__():
@@ -60,8 +60,8 @@ def installed(name,
         The pecl extension state to install
     '''
     # Check to see if we have a designated version
-    if not isinstance(version, six.string_types) and version is not None:
-        version = six.text_type(version)
+    if not isinstance(version, string_types) and version is not None:
+        version = str(version)
 
     ret = {'name': name,
            'result': None,

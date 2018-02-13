@@ -3,17 +3,16 @@
 integration tests for mac_xattr
 '''
 
-# Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+# Import python libs
+from __future__ import absolute_import
 import os
 
 # Import Salt Testing libs
 from tests.support.case import ModuleCase
 from tests.support.paths import TMP
 
-# Import Salt libs
-import salt.utils.path
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 
 TEST_FILE = os.path.join(TMP, 'xattr_test_file.txt')
 NO_FILE = os.path.join(TMP, 'xattr_no_file.txt')
@@ -28,10 +27,10 @@ class MacXattrModuleTest(ModuleCase):
         '''
         Create test file for testing extended attributes
         '''
-        if not salt.utils.platform.is_darwin():
+        if not salt.utils.is_darwin():
             self.skipTest('Test only available on macOS')
 
-        if not salt.utils.path.which('xattr'):
+        if not salt.utils.which('xattr'):
             self.skipTest('Test requires xattr binary')
 
         self.run_function('file.touch', [TEST_FILE])

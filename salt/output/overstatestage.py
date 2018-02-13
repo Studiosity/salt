@@ -8,13 +8,13 @@ and should not be called directly.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt libs
-import salt.utils.color
+import salt.utils
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # [{'group2': {'match': ['fedora17-2', 'fedora17-3'],
 #              'require': ['group1'],
@@ -27,7 +27,7 @@ def output(data, **kwargs):  # pylint: disable=unused-argument
     '''
     Format the data for printing stage information from the overstate system
     '''
-    colors = salt.utils.color.get_colors(
+    colors = salt.utils.get_colors(
             __opts__.get('color'),
             __opts__.get('color_theme'))
     ostr = ''

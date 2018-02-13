@@ -155,12 +155,12 @@ pillar stated above:
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import logging
 import os
 
 # Import Salt lobs
-from salt.ext import six
+import salt.ext.six as six
 from salt.exceptions import CommandExecutionError
 
 # Get logging started
@@ -235,7 +235,7 @@ def blade_idrac(name, idrac_password=None, idrac_ipmi=None,
             idrac_dhcp = 1
         else:
             idrac_dhcp = 0
-        if six.text_type(module_network['Network']['DHCP Enabled']) == '0' and idrac_dhcp == 1:
+        if str(module_network['Network']['DHCP Enabled']) == '0' and idrac_dhcp == 1:
             ch = {'Old': module_network['Network']['DHCP Enabled'],
                   'New': idrac_dhcp}
             ret['changes']['DRAC DHCP'] = ch
@@ -396,7 +396,7 @@ def chassis(name, chassis_name=None, password=None, datacenter=None,
     inventory = __salt__[chassis_cmd]('inventory')
 
     if idrac_launch:
-        idrac_launch = six.text_type(idrac_launch)
+        idrac_launch = str(idrac_launch)
 
     current_name = __salt__[chassis_cmd]('get_chassis_name')
     if chassis_name != current_name:
@@ -723,7 +723,7 @@ def firmware_update(hosts=None, directory=''):
                 'host': {
                     'comment': 'FAILED to update firmware for {0}'.format(host),
                     'success': False,
-                    'reason': six.text_type(err),
+                    'reason': str(err),
                 }
             })
     ret['result'] = success

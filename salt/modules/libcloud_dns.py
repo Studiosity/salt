@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 '''
-Apache Libcloud DNS Management
-==============================
-
 Connection module for Apache Libcloud DNS management
 
 .. versionadded:: 2016.11.0
@@ -28,7 +25,7 @@ Connection module for Apache Libcloud DNS management
 # keep lint from choking on _get_conn and _cache_id
 #pylint: disable=E0602
 
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
@@ -40,7 +37,7 @@ from salt.utils.versions import LooseVersion as _LooseVersion
 log = logging.getLogger(__name__)
 
 # Import third party libs
-REQUIRED_LIBCLOUD_VERSION = '2.0.0'
+REQUIRED_LIBCLOUD_VERSION = '0.21.0'
 try:
     #pylint: disable=unused-import
     import libcloud
@@ -114,10 +111,10 @@ def list_zones(profile):
         salt myminion libcloud_dns.list_zones profile1
     '''
     conn = _get_driver(profile=profile)
-    return [_simple_zone(zone) for zone in conn.list_zones()]
+    return conn.list_zones()
 
 
-def list_records(zone_id, profile, type=None):
+def list_records(zone_id, profile):
     '''
     List records for the given zone_id on the given profile
 
@@ -127,9 +124,6 @@ def list_records(zone_id, profile, type=None):
     :param profile: The profile key
     :type  profile: ``str``
 
-    :param type: The record type, e.g. A, NS
-    :type  type: ``str``
-
     CLI Example:
 
     .. code-block:: bash
@@ -138,10 +132,7 @@ def list_records(zone_id, profile, type=None):
     '''
     conn = _get_driver(profile=profile)
     zone = conn.get_zone(zone_id)
-    if type is not None:
-        return [_simple_record(record) for record in conn.list_records(zone) if record.type == type]
-    else:
-        return [_simple_record(record) for record in conn.list_records(zone)]
+    return conn.list_records(zone)
 
 
 def get_zone(zone_id, profile):
@@ -161,7 +152,7 @@ def get_zone(zone_id, profile):
         salt myminion libcloud_dns.get_zone google.com profile1
     '''
     conn = _get_driver(profile=profile)
-    return _simple_zone(conn.get_zone(zone_id))
+    return conn.get_zone(zone_id)
 
 
 def get_record(zone_id, record_id, profile):
@@ -184,7 +175,7 @@ def get_record(zone_id, record_id, profile):
         salt myminion libcloud_dns.get_record google.com www profile1
     '''
     conn = _get_driver(profile=profile)
-    return _simple_record(conn.get_record(zone_id, record_id))
+    return conn.get_record(zone_id, record_id)
 
 
 def create_zone(domain, profile, type='master', ttl=None):
@@ -210,8 +201,7 @@ def create_zone(domain, profile, type='master', ttl=None):
         salt myminion libcloud_dns.create_zone google.com profile1
     '''
     conn = _get_driver(profile=profile)
-    zone = conn.create_record(domain, type=type, ttl=ttl)
-    return _simple_zone(zone)
+    return conn.create_record(domain, type=type, ttl=ttl)
 
 
 def update_zone(zone_id, domain, profile, type='master', ttl=None):
@@ -241,7 +231,7 @@ def update_zone(zone_id, domain, profile, type='master', ttl=None):
     '''
     conn = _get_driver(profile=profile)
     zone = conn.get_zone(zone_id)
-    return _simple_zone(conn.update_zone(zone=zone, domain=domain, type=type, ttl=ttl))
+    return conn.update_zone(zone=zone, domain=domain, type=type, ttl=ttl)
 
 
 def create_record(name, zone_id, type, data, profile):
@@ -275,7 +265,7 @@ def create_record(name, zone_id, type, data, profile):
     conn = _get_driver(profile=profile)
     record_type = _string_to_record_type(type)
     zone = conn.get_zone(zone_id)
-    return _simple_record(conn.create_record(name, zone, record_type, data))
+    return conn.create_record(name, zone, record_type, data)
 
 
 def delete_zone(zone_id, profile):
@@ -351,31 +341,6 @@ def get_bind_data(zone_id, profile):
     return conn.export_zone_to_bind_format(zone)
 
 
-def extra(method, profile, **libcloud_kwargs):
-    '''
-    Call an extended method on the driver
-
-    :param method: Driver's method name
-    :type  method: ``str``
-
-    :param profile: The profile key
-    :type  profile: ``str``
-
-    :param libcloud_kwargs: Extra arguments for the driver's delete_container method
-    :type  libcloud_kwargs: ``dict``
-
-    CLI Example:
-
-    .. code-block:: bash
-
-        salt myminion libcloud_dns.extra ex_get_permissions google container_name=my_container object_name=me.jpg --out=yaml
-    '''
-    _sanitize_kwargs(libcloud_kwargs)
-    conn = _get_driver(profile=profile)
-    connection_method = getattr(conn, method)
-    return connection_method(**libcloud_kwargs)
-
-
 def _string_to_record_type(string):
     '''
     Return a string representation of a DNS record type to a
@@ -389,25 +354,3 @@ def _string_to_record_type(string):
     string = string.upper()
     record_type = getattr(RecordType, string)
     return record_type
-
-
-def _simple_zone(zone):
-    return {
-        'id': zone.id,
-        'domain': zone.domain,
-        'type': zone.type,
-        'ttl': zone.ttl,
-        'extra': zone.extra
-    }
-
-
-def _simple_record(record):
-    return {
-        'id': record.id,
-        'name': record.name,
-        'type': record.type,
-        'data': record.data,
-        'zone': _simple_zone(record.zone),
-        'ttl': record.ttl,
-        'extra': record.extra
-    }

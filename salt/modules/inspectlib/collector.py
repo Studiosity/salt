@@ -28,11 +28,10 @@ from salt.modules.inspectlib import kiwiproc
 from salt.modules.inspectlib.entities import (AllowedDir, IgnoredDir, Package,
                                               PayloadFile, PackageCfgFile)
 
-import salt.utils.crypt
-import salt.utils.files
-import salt.utils.fsutils
+import salt.utils
 import salt.utils.path
-import salt.utils.stringutils
+from salt.utils import fsutils
+from salt.utils import reinit_crypto
 from salt.exceptions import CommandExecutionError
 
 try:
@@ -102,13 +101,13 @@ class Inspector(EnvLoader):
         # Get list of all available packages
         data = dict()
 
-        for pkg_name in salt.utils.stringutils.to_str(self._syscall('dpkg-query', None, None,
+        for pkg_name in salt.utils.to_str(self._syscall('dpkg-query', None, None,
                                                         '-Wf', "${binary:Package}\\n")[0]).split(os.linesep):
             pkg_name = pkg_name.strip()
             if not pkg_name:
                 continue
             data[pkg_name] = list()
-            for pkg_cfg_item in salt.utils.stringutils.to_str(self._syscall('dpkg-query', None, None, '-Wf', "${Conffiles}\\n",
+            for pkg_cfg_item in salt.utils.to_str(self._syscall('dpkg-query', None, None, '-Wf', "${Conffiles}\\n",
                                                                 pkg_name)[0]).split(os.linesep):
                 pkg_cfg_item = pkg_cfg_item.strip()
                 if not pkg_cfg_item:
@@ -133,7 +132,7 @@ class Inspector(EnvLoader):
         pkg_name = None
         pkg_configs = []
 
-        out = salt.utils.stringutils.to_str(out)
+        out = salt.utils.to_str(out)
         for line in out.split(os.linesep):
             line = line.strip()
             if not line:
@@ -163,10 +162,10 @@ class Inspector(EnvLoader):
             cfgs = list()
             cfg_data = list()
             if self.grains_core.os_data().get('os_family') == 'Debian':
-                cfg_data = salt.utils.stringutils.to_str(self._syscall("dpkg", None, None, '--verify',
+                cfg_data = salt.utils.to_str(self._syscall("dpkg", None, None, '--verify',
                                                            pkg_name)[0]).split(os.linesep)
             elif self.grains_core.os_data().get('os_family') in ['Suse', 'redhat']:
-                cfg_data = salt.utils.stringutils.to_str(self._syscall("rpm", None, None, '-V', '--nodeps', '--nodigest',
+                cfg_data = salt.utils.to_str(self._syscall("rpm", None, None, '-V', '--nodeps', '--nodigest',
                                                            '--nosignature', '--nomtime', '--nolinkto',
                                                            pkg_name)[0]).split(os.linesep)
             for line in cfg_data:
@@ -255,12 +254,12 @@ class Inspector(EnvLoader):
         links = set()
         files = set()
 
-        for pkg_name in salt.utils.stringutils.to_str(self._syscall("dpkg-query", None, None,
+        for pkg_name in salt.utils.to_str(self._syscall("dpkg-query", None, None,
                                                         '-Wf', '${binary:Package}\\n')[0]).split(os.linesep):
             pkg_name = pkg_name.strip()
             if not pkg_name:
                 continue
-            for resource in salt.utils.stringutils.to_str(self._syscall("dpkg", None, None, '-L', pkg_name)[0]).split(os.linesep):
+            for resource in salt.utils.to_str(self._syscall("dpkg", None, None, '-L', pkg_name)[0]).split(os.linesep):
                 resource = resource.strip()
                 if not resource or resource in ['/', './', '.']:
                     continue
@@ -281,7 +280,7 @@ class Inspector(EnvLoader):
         links = set()
         files = set()
 
-        for line in salt.utils.stringutils.to_str(self._syscall("rpm", None, None, '-qlav')[0]).split(os.linesep):
+        for line in salt.utils.to_str(self._syscall("rpm", None, None, '-qlav')[0]).split(os.linesep):
             line = line.strip()
             if not line:
                 continue
@@ -376,7 +375,7 @@ class Inspector(EnvLoader):
         # Add ignored filesystems
         ignored_fs = set()
         ignored_fs |= set(self.IGNORE_PATHS)
-        mounts = salt.utils.fsutils._get_mounts()
+        mounts = fsutils._get_mounts()
         for device, data in mounts.items():
             if device in self.IGNORE_MOUNTS:
                 for mpt in data:
@@ -477,7 +476,7 @@ def is_alive(pidfile):
     Check if PID is still alive.
     '''
     try:
-        with salt.utils.files.fopen(pidfile) as fp_:
+        with salt.utils.fopen(pidfile) as fp_:
             os.kill(int(fp_.read().strip()), 0)
         return True
     except Exception as ex:
@@ -505,10 +504,10 @@ if __name__ == '__main__':
     # Double-fork stuff
     try:
         if os.fork() > 0:
-            salt.utils.crypt.reinit_crypto()
+            reinit_crypto()
             sys.exit(0)
         else:
-            salt.utils.crypt.reinit_crypto()
+            reinit_crypto()
     except OSError as ex:
         sys.exit(1)
 
@@ -518,12 +517,12 @@ if __name__ == '__main__':
     try:
         pid = os.fork()
         if pid > 0:
-            salt.utils.crypt.reinit_crypto()
-            with salt.utils.files.fopen(os.path.join(pidfile, EnvLoader.PID_FILE), 'w') as fp_:
+            reinit_crypto()
+            with salt.utils.fopen(os.path.join(pidfile, EnvLoader.PID_FILE), 'w') as fp_:
                 fp_.write('{0}\n'.format(pid))
             sys.exit(0)
     except OSError as ex:
         sys.exit(1)
 
-    salt.utils.crypt.reinit_crypto()
+    reinit_crypto()
     main(dbfile, pidfile, mode)

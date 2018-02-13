@@ -5,42 +5,23 @@ Salt interface to ZFS commands
 :codeauthor: Nitin Madhok <nmadhok@clemson.edu>
 
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Python libs
-import re
-import math
 import logging
 
 # Import Salt libs
-import salt.utils.args
-import salt.utils.path
+import salt.utils
 import salt.modules.cmdmod
 import salt.utils.decorators as decorators
 from salt.utils.odict import OrderedDict
-from salt.utils.stringutils import to_num as str_to_num
-from salt.ext import six
 
-__virtualname__ = 'zfs'
 log = logging.getLogger(__name__)
-
-# Precompiled regex
-re_zfs_size = re.compile(r'^(\d+|\d+(?=\d*)\.\d+)([KkMmGgTtPpEeZz][Bb]?)$')
 
 # Function alias to set mapping.
 __func_alias__ = {
     'list_': 'list',
 }
-
-
-def __virtual__():
-    '''
-    Only load when the platform has zfs support
-    '''
-    if __grains__['zfs_support']:
-        return __virtualname__
-    else:
-        return (False, "The zfs module cannot be loaded: zfs not supported")
 
 
 @decorators.memoize
@@ -49,7 +30,7 @@ def _check_zfs():
     Looks to see if zfs is present on the system.
     '''
     # Get the path to the zfs binary.
-    return salt.utils.path.which('zfs')
+    return salt.utils.which('zfs')
 
 
 @decorators.memoize
@@ -58,7 +39,7 @@ def _check_features():
     Looks to see if zpool-features is available
     '''
     # get man location
-    man = salt.utils.path.which('man')
+    man = salt.utils.which('man')
     if not man:
         return False
 
@@ -69,45 +50,32 @@ def _check_features():
     return res['retcode'] == 0
 
 
-def _conform_value(value, convert_size=False):
+def __virtual__():
     '''
-    Ensure value always conform to what zfs expects
+    Makes sure that ZFS kernel module is loaded.
     '''
-    # NOTE: salt breaks the on/off/yes/no properties
-    if isinstance(value, bool):
-        return 'on' if value else 'off'
+    on_freebsd = __grains__['kernel'] == 'FreeBSD'
+    on_linux = __grains__['kernel'] == 'Linux'
+    on_solaris = __grains__['kernel'] == 'SunOS' and __grains__['kernelrelease'] == '5.11'
 
-    if isinstance(value, six.text_type) or isinstance(value, str):
-        # NOTE: handle whitespaces
-        if ' ' in value:
-            # NOTE: quoting the string may be better
-            #       but it is hard to know if we already quoted it before
-            #       this can be improved in the future
-            return "'{0}'".format(value.strip("'"))
+    cmd = ''
+    if on_freebsd:
+        cmd = 'kldstat -q -m zfs'
+    elif on_linux:
+        modinfo = salt.utils.which('modinfo')
+        if modinfo:
+            cmd = '{0} zfs'.format(modinfo)
+        else:
+            cmd = 'ls /sys/module/zfs'
+    elif on_solaris:
+        # not using salt.utils.which('zfs') to keep compatible with others
+        cmd = 'which zfs'
 
-        # NOTE: handle ZFS size conversion
-        match_size = re_zfs_size.match(value)
-        if convert_size and match_size:
-            v_size = float(match_size.group(1))
-            v_unit = match_size.group(2).upper()[0]
-            v_power = math.pow(1024, ['K', 'M', 'G', 'T', 'P', 'E', 'Z'].index(v_unit) + 1)
-            value = v_size * v_power
-            return int(value) if int(value) == value else value
-
-        # NOTE: convert to numeric if needed
-        return str_to_num(value)
-
-    # NOTE: passthrough
-    return value
-
-
-def _zfs_quote_escape_path(name):
-    '''
-    Quotes zfs path with single quotes and escapes single quotes in path if present
-    '''
-    if name:
-        name = '\'' + name.replace('\'', '\\\'') + '\''
-    return name
+    if cmd and salt.modules.cmdmod.retcode(
+        cmd, output_loglevel='quiet', ignore_retcode=True
+    ) == 0:
+        return 'zfs'
+    return (False, "The zfs module cannot be loaded: zfs not found")
 
 
 def exists(name, **kwargs):
@@ -132,7 +100,7 @@ def exists(name, **kwargs):
     zfs = _check_zfs()
     ltype = kwargs.get('type', None)
 
-    cmd = '{0} list {1}{2}'.format(zfs, '-t {0} '.format(ltype) if ltype else '', _zfs_quote_escape_path(name))
+    cmd = '{0} list {1}{2}'.format(zfs, '-t {0} '.format(ltype) if ltype else '', name)
     res = __salt__['cmd.run_all'](cmd, ignore_retcode=True)
 
     return res['retcode'] == 0
@@ -179,8 +147,6 @@ def create(name, **kwargs):
 
     zfs = _check_zfs()
     properties = kwargs.get('properties', None)
-    if properties and 'mountpoint' in properties:
-        properties['mountpoint'] = _zfs_quote_escape_path(properties['mountpoint'])
     create_parent = kwargs.get('create_parent', False)
     volume_size = kwargs.get('volume_size', None)
     sparse = kwargs.get('sparse', False)
@@ -195,16 +161,20 @@ def create(name, **kwargs):
     # if zpool properties specified, then
     # create "-o property=value" pairs
     if properties:
-        proplist = []
+        optlist = []
         for prop in properties:
-            proplist.append('-o {0}={1}'.format(prop, _conform_value(properties[prop])))
-        cmd = '{0} {1}'.format(cmd, ' '.join(proplist))
+            if isinstance(properties[prop], bool):  # salt breaks the on/off/yes/no properties :(
+                properties[prop] = 'on' if properties[prop] else 'off'
+
+            optlist.append('-o {0}={1}'.format(prop, properties[prop]))
+        opts = ' '.join(optlist)
+        cmd = '{0} {1}'.format(cmd, opts)
 
     if volume_size:
         cmd = '{0} -V {1}'.format(cmd, volume_size)
 
     # append name
-    cmd = '{0} {1}'.format(cmd, _zfs_quote_escape_path(name))
+    cmd = '{0} {1}'.format(cmd, name)
 
     # Create filesystem
     res = __salt__['cmd.run_all'](cmd)
@@ -259,7 +229,7 @@ def destroy(name, **kwargs):
     if recursive:
         cmd = '{0} -r'.format(cmd)
 
-    cmd = '{0} {1}'.format(cmd, _zfs_quote_escape_path(name))
+    cmd = '{0} {1}'.format(cmd, name)
     res = __salt__['cmd.run_all'](cmd)
 
     if res['retcode'] != 0:
@@ -323,8 +293,8 @@ def rename(name, new_name, **kwargs):
         force='-f ' if force else '',
         create_parent='-p ' if create_parent else '',
         recursive='-r ' if recursive else '',
-        name=_zfs_quote_escape_path(name),
-        new_name=_zfs_quote_escape_path(new_name)
+        name=name,
+        new_name=new_name
     ))
 
     if res['retcode'] != 0:
@@ -338,7 +308,7 @@ def rename(name, new_name, **kwargs):
 def list_(name=None, **kwargs):
     '''
     .. versionadded:: 2015.5.0
-    .. versionchanged:: Oxygen
+    .. versionchanged:: 2016.3.0
 
     Return a list of all datasets or a specified dataset on the system and the
     values of their used, available, referenced, and mountpoint properties.
@@ -358,9 +328,6 @@ def list_(name=None, **kwargs):
         property to sort on (default = name)
     order : string [ascending|descending]
         sort order (default = ascending)
-    parsable : boolean
-        display numbers in parsable (exact) values
-        .. versionadded:: Oxygen
 
     CLI Example:
 
@@ -378,12 +345,7 @@ def list_(name=None, **kwargs):
     sort = kwargs.get('sort', None)
     ltype = kwargs.get('type', None)
     order = kwargs.get('order', 'ascending')
-    parsable = kwargs.get('parsable', False)
     cmd = '{0} list -H'.format(zfs)
-
-    # parsable output
-    if parsable:
-        cmd = '{0} -p'.format(cmd)
 
     # filter on type
     if ltype:
@@ -411,7 +373,7 @@ def list_(name=None, **kwargs):
 
     # add name if set
     if name:
-        cmd = '{0} {1}'.format(cmd, _zfs_quote_escape_path(name))
+        cmd = '{0} {1}'.format(cmd, name)
 
     # parse output
     res = __salt__['cmd.run_all'](cmd)
@@ -421,7 +383,7 @@ def list_(name=None, **kwargs):
             ds_data = {}
 
             for prop in properties:
-                ds_data[prop] = _conform_value(ds[properties.index(prop)])
+                ds_data[prop] = ds[properties.index(prop)]
 
             ret[ds_data['name']] = ds_data
             del ret[ds_data['name']]['name']
@@ -461,7 +423,7 @@ def mount(name='-a', **kwargs):
         zfs=zfs,
         overlay='-O ' if overlay else '',
         options='-o {0} '.format(options) if options else '',
-        filesystem=_zfs_quote_escape_path(name)
+        filesystem=name
     ))
 
     ret = {}
@@ -502,7 +464,7 @@ def unmount(name, **kwargs):
     res = __salt__['cmd.run_all']('{zfs} unmount {force}{filesystem}'.format(
         zfs=zfs,
         force='-f ' if force else '',
-        filesystem=_zfs_quote_escape_path(name)
+        filesystem=name
     ))
 
     ret = {}
@@ -547,7 +509,7 @@ def inherit(prop, name, **kwargs):
         recursive='-r ' if recursive else '',
         revert='-S ' if revert else '',
         prop=prop,
-        name=_zfs_quote_escape_path(name)
+        name=name
     ))
 
     ret = {}
@@ -601,8 +563,8 @@ def diff(name_a, name_b, **kwargs):
         zfs=zfs,
         changetime='-t ' if show_changetime else '',
         indication='-F ' if show_indication else '',
-        name_a=_zfs_quote_escape_path(name_a),
-        name_b=_zfs_quote_escape_path(name_b)
+        name_a=name_a,
+        name_b=name_b
     ))
 
     if res['retcode'] != 0:
@@ -669,7 +631,7 @@ def rollback(name, **kwargs):
         force='-f ' if force else '',
         recursive='-r ' if recursive else '',
         recursive_all='-R ' if recursive_all else '',
-        snapshot=_zfs_quote_escape_path(name)
+        snapshot=name
     ))
 
     if res['retcode'] != 0:
@@ -722,17 +684,19 @@ def clone(name_a, name_b, **kwargs):
     # if zpool properties specified, then
     # create "-o property=value" pairs
     if properties:
-        proplist = []
+        optlist = []
         for prop in properties:
-            proplist.append('-o {0}={1}'.format(prop, properties[prop]))
-        properties = ' '.join(proplist)
+            if isinstance(properties[prop], bool):  # salt breaks the on/off/yes/no properties :(
+                properties[prop] = 'on' if properties[prop] else 'off'
+            optlist.append('-o {0}={1}'.format(prop, properties[prop]))
+        properties = ' '.join(optlist)
 
     res = __salt__['cmd.run_all']('{zfs} clone {create_parent}{properties}{name_a} {name_b}'.format(
         zfs=zfs,
         create_parent='-p ' if create_parent else '',
         properties='{0} '.format(properties) if properties else '',
-        name_a=_zfs_quote_escape_path(name_a),
-        name_b=_zfs_quote_escape_path(name_b)
+        name_a=name_a,
+        name_b=name_b
     ))
 
     if res['retcode'] != 0:
@@ -779,7 +743,7 @@ def promote(name):
 
     res = __salt__['cmd.run_all']('{zfs} promote {name}'.format(
         zfs=zfs,
-        name=_zfs_quote_escape_path(name)
+        name=name
     ))
 
     if res['retcode'] != 0:
@@ -834,8 +798,8 @@ def bookmark(snapshot, bookmark):
 
     res = __salt__['cmd.run_all']('{zfs} bookmark {snapshot} {bookmark}'.format(
         zfs=zfs,
-        snapshot=_zfs_quote_escape_path(snapshot),
-        bookmark=_zfs_quote_escape_path(bookmark)
+        snapshot=snapshot,
+        bookmark=bookmark
     ))
 
     if res['retcode'] != 0:
@@ -874,7 +838,7 @@ def holds(snapshot, **kwargs):
     res = __salt__['cmd.run_all']('{zfs} holds -H {recursive}{snapshot}'.format(
         zfs=zfs,
         recursive='-r ' if recursive else '',
-        snapshot=_zfs_quote_escape_path(snapshot)
+        snapshot=snapshot
     ))
 
     if res['retcode'] == 0:
@@ -952,8 +916,8 @@ def hold(tag, *snapshot, **kwargs):
             res = __salt__['cmd.run_all']('{zfs} hold {recursive}{tag} {snapshot}'.format(
                 zfs=zfs,
                 recursive='-r ' if recursive else '',
-                tag=_zfs_quote_escape_path(ctag),
-                snapshot=_zfs_quote_escape_path(csnap)
+                tag=ctag,
+                snapshot=csnap
             ))
 
             if csnap not in ret:
@@ -1029,8 +993,8 @@ def release(tag, *snapshot, **kwargs):
             res = __salt__['cmd.run_all']('{zfs} release {recursive}{tag} {snapshot}'.format(
                 zfs=zfs,
                 recursive='-r ' if recursive else '',
-                tag=_zfs_quote_escape_path(ctag),
-                snapshot=_zfs_quote_escape_path(csnap)
+                tag=ctag,
+                snapshot=csnap
             ))
 
             if csnap not in ret:
@@ -1098,10 +1062,12 @@ def snapshot(*snapshot, **kwargs):
     # if zpool properties specified, then
     # create "-o property=value" pairs
     if properties:
-        proplist = []
+        optlist = []
         for prop in properties:
-            proplist.append('-o {0}={1}'.format(prop, _conform_value((properties[prop]))))
-        properties = ' '.join(proplist)
+            if isinstance(properties[prop], bool):  # salt breaks the on/off/yes/no properties :(
+                properties[prop] = 'on' if properties[prop] else 'off'
+            optlist.append('-o {0}={1}'.format(prop, properties[prop]))
+        properties = ' '.join(optlist)
 
     for csnap in snapshot:
         if '@' not in csnap:
@@ -1111,7 +1077,7 @@ def snapshot(*snapshot, **kwargs):
             zfs=zfs,
             recursive='-r ' if recursive else '',
             properties='{0} '.format(properties) if properties else '',
-            snapshot=_zfs_quote_escape_path(csnap)
+            snapshot=csnap
         ))
 
         if res['retcode'] != 0:
@@ -1176,7 +1142,7 @@ def set(*dataset, **kwargs):
         ret['error'] = 'one or more snapshots must be specified'
 
     # clean kwargs
-    properties = salt.utils.args.clean_kwargs(**kwargs)
+    properties = salt.utils.clean_kwargs(**kwargs)
     if len(properties) < 1:
         ret['error'] = '{0}one or more properties must be specified'.format(
             '{0},\n'.format(ret['error']) if 'error' in ret else ''
@@ -1188,11 +1154,15 @@ def set(*dataset, **kwargs):
     # for better error handling we don't do one big set command
     for ds in dataset:
         for prop in properties:
+
+            if isinstance(properties[prop], bool):  # salt breaks the on/off/yes/no properties :(
+                properties[prop] = 'on' if properties[prop] else 'off'
+
             res = __salt__['cmd.run_all']('{zfs} set {prop}={value} {dataset}'.format(
                 zfs=zfs,
                 prop=prop,
-                value=_conform_value(properties[prop]),
-                dataset=_zfs_quote_escape_path(ds)
+                value=properties[prop],
+                dataset=ds
             ))
             if ds not in ret:
                 ret[ds] = {}
@@ -1210,7 +1180,6 @@ def set(*dataset, **kwargs):
 def get(*dataset, **kwargs):
     '''
     .. versionadded:: 2016.3.0
-    .. versionchanged:: Oxygen
 
     Displays properties for the given datasets.
 
@@ -1230,9 +1199,6 @@ def get(*dataset, **kwargs):
     source : string
         comma-separated list of sources to display. Must be one of the following:
         local, default, inherited, temporary, and none. The default value is all sources.
-    parsable : boolean
-        display numbers in parsable (exact) values
-        .. versionadded:: Oxygen
 
     .. note::
 
@@ -1256,12 +1222,7 @@ def get(*dataset, **kwargs):
     fields = kwargs.get('fields', 'value,source')
     ltype = kwargs.get('type', None)
     source = kwargs.get('source', None)
-    parsable = kwargs.get('parsable', False)
     cmd = '{0} get -H'.format(zfs)
-
-    # parsable output
-    if parsable:
-        cmd = '{0} -p'.format(cmd)
 
     # recursively get
     if depth:
@@ -1291,8 +1252,6 @@ def get(*dataset, **kwargs):
     cmd = '{0} {1}'.format(cmd, properties)
 
     # datasets
-    if dataset:
-        dataset = [_zfs_quote_escape_path(x) for x in dataset]
     cmd = '{0} {1}'.format(cmd, ' '.join(dataset))
 
     # parse output
@@ -1303,7 +1262,7 @@ def get(*dataset, **kwargs):
             ds_data = {}
 
             for field in fields:
-                ds_data[field] = _conform_value(ds[fields.index(field)])
+                ds_data[field] = ds[fields.index(field)]
 
             ds_name = ds_data['name']
             ds_prop = ds_data['property']

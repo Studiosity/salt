@@ -18,10 +18,10 @@ Module for manageing PagerDuty resource
 For PagerDuty API details, see https://developer.pagerduty.com/documentation/rest
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
+import json
 import requests
-import salt.utils.json
 
 
 def __virtual__():
@@ -164,7 +164,7 @@ def _query(method='GET', profile=None, url=None, path='api/v1',
         url,
         headers=headers,
         params=params,
-        data=salt.utils.json.dumps(data),
+        data=json.dumps(data),
         verify=verify_ssl
     )
 
@@ -185,7 +185,7 @@ def _query(method='GET', profile=None, url=None, path='api/v1',
                                                  url,
                                                  headers=headers,
                                                  params=params,
-                                                 data=data,  # Already serialized above, don't do it again
+                                                 data=data,  # must not use json.dumps() or offset/limit get lost
                                                  verify=verify_ssl).json()
             offset = next_page_results['offset']
             limit = next_page_results['limit']

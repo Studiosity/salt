@@ -5,11 +5,6 @@ Manage Apigateway Rest APIs
 
 .. versionadded:: 2016.11.0
 
-:depends:
-  - boto >= 2.8.0
-  - boto3 >= 1.2.1
-  - botocore >= 1.4.49
-
 Create and destroy rest apis depending on a swagger version 2 definition file.
 Be aware that this interacts with Amazon's services, and so may incur charges.
 
@@ -52,19 +47,18 @@ config:
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
-import hashlib
+from __future__ import absolute_import
 import logging
 import os
+import os.path
+import hashlib
 import re
-
+import json
+import yaml
 # Import Salt Libs
-import salt.utils.files
-import salt.utils.json
-import salt.utils.yaml
-
-# Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
+import salt.utils
+from salt.utils.yamlloader import SaltYamlSafeLoader
 
 log = logging.getLogger(__name__)
 
@@ -130,9 +124,7 @@ def present(name, api_name, swagger_file, stage_name, api_key_required,
     with the following schema.  The lambda functions should throw exceptions for any non successful responses.
     An optional pattern field can be specified in errorMessage field to aid the response mapping from Lambda
     to the proper error return status codes.
-
         .. code-block:: yaml
-
             Error:
               type: object
               properties:
@@ -440,7 +432,7 @@ def _gen_md5_filehash(fname, *args):
     and participates in the hash calculation
     '''
     _hash = hashlib.md5()
-    with salt.utils.files.fopen(fname, 'rb') as f:
+    with salt.utils.fopen(fname, 'rb') as f:
         for chunk in iter(lambda: f.read(4096), b''):
             _hash.update(chunk)
 
@@ -453,7 +445,7 @@ def _dict_to_json_pretty(d, sort_keys=True):
     '''
     helper function to generate pretty printed json output
     '''
-    return salt.utils.json.dumps(d, indent=4, separators=(',', ': '), sort_keys=sort_keys)
+    return json.dumps(d, indent=4, separators=(',', ': '), sort_keys=sort_keys)
 
 
 # Heuristic on whether or not the property name loosely matches given set of 'interesting' factors
@@ -721,8 +713,11 @@ class _Swagger(object):
                 self._md5_filehash = _gen_md5_filehash(self._swagger_file,
                                                        error_response_template,
                                                        response_template)
-                with salt.utils.files.fopen(self._swagger_file, 'rb') as sf:
-                    self._cfg = salt.utils.yaml.safe_load(sf)
+                with salt.utils.fopen(self._swagger_file, 'rb') as sf:
+                    self._cfg = yaml.load(
+                        sf,
+                        Loader=SaltYamlSafeLoader
+                    )
                 self._swagger_version = ''
             else:
                 raise IOError('Invalid swagger file path, {0}'.format(swagger_file_path))
@@ -753,7 +748,7 @@ class _Swagger(object):
                 if 'responses' not in opobj:
                     raise ValueError('missing mandatory responses field in path item object')
                 for rescode, resobj in six.iteritems(opobj.get('responses')):
-                    if not self._is_http_error_rescode(str(rescode)):  # future lint: disable=blacklisted-function
+                    if not self._is_http_error_rescode(str(rescode)):
                         continue
 
                     # only check for response code from 400-599
@@ -1603,7 +1598,7 @@ class _Swagger(object):
 
         if 'responses' in method_data:
             for response, response_data in six.iteritems(method_data['responses']):
-                httpStatus = str(response)  # future lint: disable=blacklisted-function
+                httpStatus = str(response)
                 method_response = self._parse_method_response(method_name.lower(),
                                                               _Swagger.SwaggerMethodResponse(response_data), httpStatus)
 

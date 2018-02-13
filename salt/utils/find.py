@@ -84,7 +84,7 @@ the following:
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import logging
 import os
 import re
@@ -102,13 +102,10 @@ except ImportError:
     pass
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # Import salt libs
-import salt.utils.args
-import salt.utils.hashutils
-import salt.utils.path
-import salt.utils.stringutils
+import salt.utils
 import salt.defaults.exitcodes
 from salt.utils.filebuffer import BufferedReader
 
@@ -160,7 +157,7 @@ def _parse_interval(value):
         m = minute
         s = second
     '''
-    match = _INTERVAL_REGEX.match(six.text_type(value))
+    match = _INTERVAL_REGEX.match(str(value))
     if match is None:
         raise ValueError('invalid time interval: \'{0}\''.format(value))
 
@@ -511,7 +508,7 @@ class PrintOption(Option):
                     result.append(gid)
             elif arg == 'md5':
                 if stat.S_ISREG(fstat[stat.ST_MODE]):
-                    md5digest = salt.utils.hashutils.get_hash(fullpath, 'md5')
+                    md5digest = salt.utils.get_hash(fullpath, 'md5')
                     result.append(md5digest)
                 else:
                     result.append('')
@@ -564,23 +561,23 @@ class ExecOption(Option):
     def execute(self, fullpath, fstat, test=False):
         try:
             command = self.command.replace('{}', fullpath)
-            print(salt.utils.args.shlex_split(command))
-            p = Popen(salt.utils.args.shlex_split(command),
+            print(salt.utils.shlex_split(command))
+            p = Popen(salt.utils.shlex_split(command),
                       stdout=PIPE,
                       stderr=PIPE)
             (out, err) = p.communicate()
             if err:
                 log.error(
-                    'Error running command: %s\n\n%s',
+                    'Error running command: {0}\n\n{1}'.format(
                     command,
-                    salt.utils.stringutils.to_str(err))
-            return "{0}:\n{1}\n".format(command, salt.utils.stringutils.to_str(out))
+                    salt.utils.to_str(err)))
+            return "{0}:\n{1}\n".format(command, salt.utils.to_str(out))
 
         except Exception as e:
             log.error(
-                'Exception while executing command "%s":\n\n%s',
-                command,
-                e)
+                'Exception while executing command "{0}":\n\n{1}'.format(
+                    command,
+                    e))
             return '{0}: Failed'.format(fullpath)
 
 
@@ -643,7 +640,7 @@ class Finder(object):
                 for result in self._perform_actions(path, fstat=fstat):
                     yield result
 
-        for dirpath, dirs, files in salt.utils.path.os_walk(path):
+        for dirpath, dirs, files in os.walk(path):
             relpath = os.path.relpath(dirpath, path)
             depth = path_depth(relpath) + 1
             if depth >= self.mindepth and (self.maxdepth is None or self.maxdepth >= depth):

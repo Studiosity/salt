@@ -13,9 +13,11 @@ import os
 import signal
 import shutil
 
+# Import 3rd-party libs
+import yaml
+
 # Import salt libs
-import salt.utils.files
-import salt.utils.yaml
+import salt.utils
 
 # Import salt test libs
 import tests.integration.utils
@@ -39,15 +41,17 @@ class MasterTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMix
 
         config_file_name = 'master'
         pid_path = os.path.join(config_dir, '{0}.pid'.format(config_file_name))
-        with salt.utils.files.fopen(self.get_config_file_path(config_file_name), 'r') as fhr:
-            config = salt.utils.yaml.safe_load(fhr)
+        with salt.utils.fopen(self.get_config_file_path(config_file_name), 'r') as fhr:
+            config = yaml.load(fhr.read())
             config['root_dir'] = config_dir
             config['log_file'] = 'file:///tmp/log/LOG_LOCAL3'
             config['ret_port'] = config['ret_port'] + 10
             config['publish_port'] = config['publish_port'] + 10
 
-            with salt.utils.files.fopen(os.path.join(config_dir, config_file_name), 'w') as fhw:
-                salt.utils.yaml.safe_dump(config, fhw, default_flow_style=False)
+            with salt.utils.fopen(os.path.join(config_dir, config_file_name), 'w') as fhw:
+                fhw.write(
+                    yaml.dump(config, default_flow_style=False)
+                )
 
         ret = self.run_script(
             self._call_binary_,
@@ -62,7 +66,7 @@ class MasterTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMix
 
         # Now kill it if still running
         if os.path.exists(pid_path):
-            with salt.utils.files.fopen(pid_path) as fhr:
+            with salt.utils.fopen(pid_path) as fhr:
                 try:
                     os.kill(int(fhr.read()), signal.SIGKILL)
                 except OSError:

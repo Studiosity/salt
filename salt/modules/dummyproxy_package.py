@@ -2,13 +2,11 @@
 '''
 Package support for the dummy proxy used by the test suite
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
-import salt.utils.data
-import salt.utils.platform
-from salt.ext import six
+import salt.utils
 
 
 log = logging.getLogger(__name__)
@@ -22,21 +20,12 @@ def __virtual__():
     Only work on systems that are a proxy minion
     '''
     try:
-        if salt.utils.platform.is_proxy() \
-                and __opts__['proxy']['proxytype'] == 'dummy':
+        if salt.utils.is_proxy() and __opts__['proxy']['proxytype'] == 'dummy':
             return __virtualname__
     except KeyError:
-        return (
-            False,
-            'The dummyproxy_package execution module failed to load. Check '
-            'the proxy key in pillar or /etc/salt/proxy.'
-        )
+        return (False, 'The dummyproxy_package execution module failed to load.  Check the proxy key in pillar or /etc/salt/proxy.')
 
-    return (
-        False,
-        'The dummyproxy_package execution module failed to load: only works '
-        'on a dummy proxy minion.'
-    )
+    return (False, 'The dummyproxy_package execution module failed to load: only works on a dummy proxy minion.')
 
 
 def list_pkgs(versions_as_list=False, **kwargs):
@@ -81,7 +70,7 @@ def upgrade(name=None, pkgs=None, refresh=True, skip_verify=True,
     old = __proxy__['dummy.package_list']()
     new = __proxy__['dummy.uptodate']()
     pkg_installed = __proxy__['dummy.upgrade']()
-    ret = salt.utils.data.compare_dicts(old, pkg_installed)
+    ret = salt.utils.compare_dicts(old, pkg_installed)
     return ret
 
 
@@ -97,9 +86,9 @@ def installed(name,
     p = __proxy__['dummy.package_status'](name)
     if version is None:
         if 'ret' in p:
-            return six.text_type(p['ret'])
+            return str(p['ret'])
         else:
             return True
     else:
         if p is not None:
-            return version == six.text_type(p)
+            return version == str(p)

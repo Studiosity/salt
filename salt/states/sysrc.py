@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
-'''
-State to work with sysrc
-
-'''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # define the module's virtual name
 __virtualname__ = 'sysrc'

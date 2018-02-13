@@ -30,14 +30,10 @@ Configuration of network device
 
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import logging
-
-# Import Salt libs
-from salt.ext import six
+from __future__ import absolute_import
 
 # Set up logging
+import logging
 log = logging.getLogger(__name__)
 
 
@@ -131,7 +127,7 @@ def coalesce(name, **kwargs):
 
     except AttributeError as error:
         ret['result'] = False
-        ret['comment'] = six.text_type(error)
+        ret['comment'] = str(error)
         return ret
 
     # Apply coalescing settings
@@ -140,7 +136,7 @@ def coalesce(name, **kwargs):
             __salt__['ethtool.set_coalesce'](name, **new)
         except AttributeError as error:
             ret['result'] = False
-            ret['comment'] = six.text_type(error)
+            ret['comment'] = str(error)
             return ret
 
     return ret
@@ -215,7 +211,7 @@ def ring(name, **kwargs):
 
     except AttributeError as error:
         ret['result'] = False
-        ret['comment'] = six.text_type(error)
+        ret['comment'] = str(error)
         return ret
 
     # Apply ring parameters
@@ -224,7 +220,7 @@ def ring(name, **kwargs):
             __salt__['ethtool.set_ring'](name, **new)
         except AttributeError as error:
             ret['result'] = False
-            ret['comment'] = six.text_type(error)
+            ret['comment'] = str(error)
             return ret
 
     return ret
@@ -291,7 +287,7 @@ def offload(name, **kwargs):
 
     except AttributeError as error:
         ret['result'] = False
-        ret['comment'] = six.text_type(error)
+        ret['comment'] = str(error)
         return ret
 
     # Apply offload settings
@@ -300,7 +296,7 @@ def offload(name, **kwargs):
             __salt__['ethtool.set_offload'](name, **new)
         except AttributeError as error:
             ret['result'] = False
-            ret['comment'] = six.text_type(error)
+            ret['comment'] = str(error)
             return ret
 
     return ret

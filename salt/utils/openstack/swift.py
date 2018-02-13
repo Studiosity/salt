@@ -4,7 +4,7 @@ Swift utility class
 ===================
 Author: Anthony Stanton <anthony.stanton@gmail.com>
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
@@ -14,8 +14,7 @@ from os.path import dirname, isdir
 from errno import EEXIST
 
 # Import Salt libs
-import salt.utils.files
-from salt.ext import six
+import salt.utils
 
 # Get logging started
 log = logging.getLogger(__name__)
@@ -104,8 +103,8 @@ class SaltSwift(object):
         except Exception as exc:
             log.error('There was an error::')
             if hasattr(exc, 'code') and hasattr(exc, 'msg'):
-                log.error('    Code: %s: %s', exc.code, exc.msg)
-            log.error('    Content: \n%s', getattr(exc, 'read', lambda: six.text_type(exc))())
+                log.error('    Code: {0}: {1}'.format(exc.code, exc.msg))
+            log.error('    Content: \n{0}'.format(getattr(exc, 'read', lambda: str(exc))()))
             return False
 
     def get_container(self, cont):
@@ -118,8 +117,8 @@ class SaltSwift(object):
         except Exception as exc:
             log.error('There was an error::')
             if hasattr(exc, 'code') and hasattr(exc, 'msg'):
-                log.error('    Code: %s: %s', exc.code, exc.msg)
-            log.error('    Content: \n%s', getattr(exc, 'read', lambda: six.text_type(exc))())
+                log.error('    Code: {0}: {1}'.format(exc.code, exc.msg))
+            log.error('    Content: \n{0}'.format(getattr(exc, 'read', lambda: str(exc))()))
             return False
 
     def put_container(self, cont):
@@ -132,8 +131,8 @@ class SaltSwift(object):
         except Exception as exc:
             log.error('There was an error::')
             if hasattr(exc, 'code') and hasattr(exc, 'msg'):
-                log.error('    Code: %s: %s', exc.code, exc.msg)
-            log.error('    Content: \n%s', getattr(exc, 'read', lambda: six.text_type(exc))())
+                log.error('    Code: {0}: {1}'.format(exc.code, exc.msg))
+            log.error('    Content: \n{0}'.format(getattr(exc, 'read', lambda: str(exc))()))
             return False
 
     def delete_container(self, cont):
@@ -146,8 +145,8 @@ class SaltSwift(object):
         except Exception as exc:
             log.error('There was an error::')
             if hasattr(exc, 'code') and hasattr(exc, 'msg'):
-                log.error('    Code: %s: %s', exc.code, exc.msg)
-            log.error('    Content: \n%s', getattr(exc, 'read', lambda: six.text_type(exc))())
+                log.error('    Code: {0}: {1}'.format(exc.code, exc.msg))
+            log.error('    Content: \n{0}'.format(getattr(exc, 'read', lambda: str(exc))()))
             return False
 
     def post_container(self, cont, metadata=None):
@@ -178,7 +177,7 @@ class SaltSwift(object):
                 dirpath = dirname(local_file)
                 if dirpath and not isdir(dirpath):
                     mkdirs(dirpath)
-                fp = salt.utils.files.fopen(local_file, 'wb')  # pylint: disable=resource-leakage
+                fp = salt.utils.fopen(local_file, 'wb')  # pylint: disable=resource-leakage
 
             read_length = 0
             for chunk in body:
@@ -192,8 +191,8 @@ class SaltSwift(object):
         except Exception as exc:
             log.error('There was an error::')
             if hasattr(exc, 'code') and hasattr(exc, 'msg'):
-                log.error('    Code: %s: %s', exc.code, exc.msg)
-            log.error('    Content: \n%s', getattr(exc, 'read', lambda: six.text_type(exc))())
+                log.error('    Code: {0}: {1}'.format(exc.code, exc.msg))
+            log.error('    Content: \n{0}'.format(getattr(exc, 'read', lambda: str(exc))()))
             return False
 
     def put_object(self, cont, obj, local_file):
@@ -201,14 +200,14 @@ class SaltSwift(object):
         Upload a file to Swift
         '''
         try:
-            with salt.utils.files.fopen(local_file, 'rb') as fp_:
+            with salt.utils.fopen(local_file, 'rb') as fp_:
                 self.conn.put_object(cont, obj, fp_)
             return True
         except Exception as exc:
             log.error('There was an error::')
             if hasattr(exc, 'code') and hasattr(exc, 'msg'):
-                log.error('    Code: %s: %s', exc.code, exc.msg)
-            log.error('    Content: \n%s', getattr(exc, 'read', lambda: six.text_type(exc))())
+                log.error('    Code: {0}: {1}'.format(exc.code, exc.msg))
+            log.error('    Content: \n{0}'.format(getattr(exc, 'read', lambda: str(exc))()))
             return False
 
     def delete_object(self, cont, obj):
@@ -221,8 +220,8 @@ class SaltSwift(object):
         except Exception as exc:
             log.error('There was an error::')
             if hasattr(exc, 'code') and hasattr(exc, 'msg'):
-                log.error('    Code: %s: %s', exc.code, exc.msg)
-            log.error('    Content: \n%s', getattr(exc, 'read', lambda: six.text_type(exc))())
+                log.error('    Code: {0}: {1}'.format(exc.code, exc.msg))
+            log.error('    Content: \n{0}'.format(getattr(exc, 'read', lambda: str(exc))()))
             return False
 
     def head_object(self, cont, obj):

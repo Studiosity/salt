@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import sys
 
 # Import Salt Libs
@@ -337,7 +337,7 @@ class MacPackageTestCase(TestCase, LoaderModuleMockMixin):
         '''
         expected = {
             'changes': {},
-            'comment': 'onlyif condition is false',
+            'comment': 'onlyif execution failed',
             'skip_watch': True,
             'result': True,
             'name': '/path/to/file.pkg',
@@ -355,7 +355,7 @@ class MacPackageTestCase(TestCase, LoaderModuleMockMixin):
         '''
         expected = {
             'changes': {},
-            'comment': 'unless condition is true',
+            'comment': 'unless execution succeeded',
             'skip_watch': True,
             'result': True,
             'name': '/path/to/file.pkg',

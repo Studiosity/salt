@@ -17,7 +17,7 @@ requisite to a pkg.installed state for the package which provides subversion
       svn.latest:
         - target: /tmp/swallow
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
@@ -26,9 +26,6 @@ import os
 # Import salt libs
 from salt import exceptions
 from salt.states.git import _fail, _neutral_test
-
-# Import 3rd party libs
-from salt.ext import six
 
 log = logging.getLogger(__name__)
 
@@ -101,7 +98,7 @@ def latest(name,
 
     if __opts__['test']:
         if rev:
-            new_rev = six.text_type(rev)
+            new_rev = str(rev)
         else:
             new_rev = 'HEAD'
 
@@ -136,7 +133,7 @@ def latest(name,
         pass
 
     if rev:
-        opts += ('-r', six.text_type(rev))
+        opts += ('-r', str(rev))
 
     if force:
         opts += ('--force',)

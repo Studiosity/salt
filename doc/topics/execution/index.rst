@@ -26,4 +26,3 @@ and so on.
     ../tutorials/modules
     remote_execution
     ../../ref/modules/index
-    ../../ref/executors/index

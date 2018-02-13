@@ -4,13 +4,12 @@ A simple beacon to watch journald for specific entries
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
-import salt.utils.data
+import salt.utils
 import salt.utils.locales
 import salt.ext.six
-from salt.ext.six.moves import map
 
 # Import third party libs
 try:
@@ -44,21 +43,18 @@ def _get_journal():
     return __context__['systemd.journald']
 
 
-def validate(config):
+def __validate__(config):
     '''
     Validate the beacon configuration
     '''
     # Configuration for journald beacon should be a list of dicts
-    if not isinstance(config, list):
-        return (False, 'Configuration for journald beacon must be a list.')
+    if not isinstance(config, dict):
+        return False
     else:
-        _config = {}
-        list(map(_config.update, config))
-
-        for name in _config.get('services', {}):
-            if not isinstance(_config['services'][name], dict):
-                return False, ('Services configuration for journald beacon '
-                               'must be a list of dictionaries.')
+        for item in config:
+            if not isinstance(config[item], dict):
+                return False, ('Configuration for journald beacon must '
+                               'be a dictionary of dictionaries.')
     return True, 'Valid beacon configuration'
 
 
@@ -73,33 +69,27 @@ def beacon(config):
 
         beacons:
           journald:
-            - services:
-                sshd:
-                  SYSLOG_IDENTIFIER: sshd
-                  PRIORITY: 6
+            sshd:
+              SYSLOG_IDENTIFIER: sshd
+              PRIORITY: 6
     '''
     ret = []
     journal = _get_journal()
-
-    _config = {}
-    list(map(_config.update, config))
-
     while True:
         cur = journal.get_next()
         if not cur:
             break
-
-        for name in _config.get('services', {}):
+        for name in config:
             n_flag = 0
-            for key in _config['services'][name]:
+            for key in config[name]:
                 if isinstance(key, salt.ext.six.string_types):
                     key = salt.utils.locales.sdecode(key)
                 if key in cur:
-                    if _config['services'][name][key] == cur[key]:
+                    if config[name][key] == cur[key]:
                         n_flag += 1
-            if n_flag == len(_config['services'][name]):
+            if n_flag == len(config[name]):
                 # Match!
-                sub = salt.utils.data.simple_types_filter(cur)
+                sub = salt.utils.simple_types_filter(cur)
                 sub.update({'tag': name})
                 ret.append(sub)
     return ret

@@ -2,17 +2,17 @@
 '''
 Module for gathering and managing information about MooseFS
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 
 
 def __virtual__():
     '''
     Only load if the mfs commands are installed
     '''
-    if salt.utils.path.which('mfsgetgoal'):
+    if salt.utils.which('mfsgetgoal'):
         return 'moosefs'
     return (False, 'The moosefs execution module cannot be loaded: the mfsgetgoal binary is not in the path.')
 

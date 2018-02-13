@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.case import ModuleCase
@@ -12,12 +12,11 @@ from tests.support.unit import skipIf
 from tests.support.helpers import destructiveTest, skip_if_not_root
 
 # Import Salt Libs
-import salt.utils.path
-import salt.utils.platform
+import salt.utils
 from salt.exceptions import CommandExecutionError
 
-# Import 3rd-party libs
-from salt.ext import six
+# Import third party libs
+import salt.ext.six as six
 
 # Brew doesn't support local package installation - So, let's
 # Grab some small packages available online for brew
@@ -27,8 +26,8 @@ DEL_PKG = 'acme'
 
 @destructiveTest
 @skip_if_not_root
-@skipIf(not salt.utils.platform.is_darwin(), 'Test only applies to macOS')
-@skipIf(not salt.utils.path.which('brew'), 'This test requires the brew binary')
+@skipIf(not salt.utils.is_darwin(), 'Test only applies to macOS')
+@skipIf(not salt.utils.which('brew'), 'This test requires the brew binary')
 class BrewModuleTest(ModuleCase):
     '''
     Integration tests for the brew module
@@ -90,7 +89,7 @@ class BrewModuleTest(ModuleCase):
                               the list of installed packages: {1}'
                               .format(ADD_PKG, pkg_list)))
                 #make sure the version is accurate and is listed in the pkg_list
-                self.assertIn(version, six.text_type(pkg_list[ADD_PKG]),
+                self.assertIn(version, str(pkg_list[ADD_PKG]),
                               msg=('The {0} version: {1} is \
                               not listed in the pkg_list: {2}'
                               .format(ADD_PKG, version, pkg_list[ADD_PKG])))

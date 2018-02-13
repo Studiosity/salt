@@ -11,7 +11,7 @@ This module implements the pkgbuild interface
 '''
 
 # import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import errno
 import logging
 import os
@@ -22,15 +22,9 @@ import time
 import traceback
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.path
-import salt.utils.stringutils
-import salt.utils.vt
-from salt.exceptions import SaltInvocationError, CommandExecutionError
-
-# Import 3rd-party libs
-from salt.ext import six
 from salt.ext.six.moves.urllib.parse import urlparse as _urlparse  # pylint: disable=no-name-in-module,import-error
+from salt.exceptions import SaltInvocationError, CommandExecutionError
+import salt.utils
 
 HAS_LIBS = False
 
@@ -49,13 +43,13 @@ __virtualname__ = 'pkgbuild'
 
 def __virtual__():
     '''
-    Confirm this module is on a Debian-based system, and has required utilities
+    Confirm this module is on a Debian based system, and has required utilities
     '''
     if __grains__.get('os_family', False) in ('Kali', 'Debian'):
         missing_util = False
         utils_reqd = ['gpg', 'debuild', 'pbuilder', 'reprepro']
         for named_util in utils_reqd:
-            if not salt.utils.path.which(named_util):
+            if not salt.utils.which(named_util):
                 missing_util = True
                 break
         if HAS_LIBS and not missing_util:
@@ -70,7 +64,7 @@ def _check_repo_sign_utils_support(name):
     '''
     Check for specified command name in search path
     '''
-    if salt.utils.path.which(name):
+    if salt.utils.which(name):
         return True
     else:
         raise CommandExecutionError(
@@ -258,8 +252,8 @@ def _create_pbuilders(env):
 
     env_overrides = _get_build_env(env)
     if env_overrides and not env_overrides.isspace():
-        with salt.utils.files.fopen(pbuilderrc, 'a') as fow:
-            fow.write(salt.utils.stringutils.to_str(env_overrides))
+        with salt.utils.fopen(pbuilderrc, 'a') as fow:
+            fow.write('{0}'.format(env_overrides))
 
 
 def _mk_tree():
@@ -318,7 +312,7 @@ def make_src_pkg(dest_dir, spec, sources, env=None, template=None, saltenv='base
     spec_pathfile = _get_spec(tree_base, spec, template, saltenv)
 
     # build salt equivalents from scratch
-    if isinstance(sources, six.string_types):
+    if isinstance(sources, str):
         sources = sources.split(',')
     for src in sources:
         _get_src(tree_base, src, saltenv)
@@ -581,13 +575,13 @@ def make_repo(repodir,
 
     codename, repocfg_dists = _get_repo_dists_env(env)
     repoconfdist = os.path.join(repoconf, 'distributions')
-    with salt.utils.files.fopen(repoconfdist, 'w') as fow:
-        fow.write(salt.utils.stringutils.to_str(repocfg_dists))
+    with salt.utils.fopen(repoconfdist, 'w') as fow:
+        fow.write('{0}'.format(repocfg_dists))
 
     repocfg_opts = _get_repo_options_env(env)
     repoconfopts = os.path.join(repoconf, 'options')
-    with salt.utils.files.fopen(repoconfopts, 'w') as fow:
-        fow.write(salt.utils.stringutils.to_str(repocfg_opts))
+    with salt.utils.fopen(repoconfopts, 'w') as fow:
+        fow.write('{0}'.format(repocfg_opts))
 
     local_keygrip_to_use = None
     local_key_fingerprint = None
@@ -603,8 +597,8 @@ def make_repo(repodir,
     older_gnupg = __salt__['file.file_exists'](gpg_info_file)
 
     if keyid is not None:
-        with salt.utils.files.fopen(repoconfdist, 'a') as fow:
-            fow.write(salt.utils.stringutils.to_str('SignWith: {0}\n'.format(keyid)))
+        with salt.utils.fopen(repoconfdist, 'a') as fow:
+            fow.write('SignWith: {0}\n'.format(keyid))
 
         # import_keys
         pkg_pub_key_file = '{0}/{1}'.format(gnupghome, __salt__['pillar.get']('gpg_pkg_pub_keyname', None))
@@ -637,7 +631,7 @@ def make_repo(repodir,
 
         if not older_gnupg:
             _check_repo_sign_utils_support('gpg2')
-            cmd = '{0} --with-keygrip --list-secret-keys'.format(salt.utils.path.which('gpg2'))
+            cmd = '{0} --with-keygrip --list-secret-keys'.format(salt.utils.which('gpg2'))
             local_keys2_keygrip = __salt__['cmd.run'](cmd, runas=runas)
             local_keys2 = iter(local_keys2_keygrip.splitlines())
             try:
@@ -663,21 +657,19 @@ def make_repo(repodir,
         _check_repo_sign_utils_support('debsign')
 
         if older_gnupg:
-            with salt.utils.files.fopen(gpg_info_file, 'r') as fow:
+            with salt.utils.fopen(gpg_info_file, 'r') as fow:
                 gpg_raw_info = fow.readlines()
 
             for gpg_info_line in gpg_raw_info:
-                gpg_info_line = salt.utils.stringutils.to_unicode(gpg_info_line)
                 gpg_info = gpg_info_line.split('=')
                 gpg_info_dict = {gpg_info[0]: gpg_info[1]}
                 __salt__['environ.setenv'](gpg_info_dict)
                 break
         else:
-            with salt.utils.files.fopen(gpg_tty_info_file, 'r') as fow:
+            with salt.utils.fopen(gpg_tty_info_file, 'r') as fow:
                 gpg_raw_info = fow.readlines()
 
             for gpg_tty_info_line in gpg_raw_info:
-                gpg_info_line = salt.utils.stringutils.to_unicode(gpg_info_line)
                 gpg_tty_info = gpg_tty_info_line.split('=')
                 gpg_tty_info_dict = {gpg_tty_info[0]: gpg_tty_info[1]}
                 __salt__['environ.setenv'](gpg_tty_info_dict)
@@ -729,7 +721,7 @@ def make_repo(repodir,
 
                             if times_looped > number_retries:
                                 raise SaltInvocationError(
-                                    'Attempting to sign file {0} failed, timed out after {1} seconds'
+                                    'Attemping to sign file {0} failed, timed out after {1} seconds'
                                     .format(abs_file, int(times_looped * interval))
                                 )
                             time.sleep(interval)
@@ -773,7 +765,7 @@ def make_repo(repodir,
 
                         if times_looped > number_retries:
                             raise SaltInvocationError(
-                                    'Attempting to reprepro includedsc for file {0} failed, timed out after {1} loops'.format(abs_file, times_looped)
+                                    'Attemping to reprepro includedsc for file {0} failed, timed out after {1} loops'.format(abs_file, times_looped)
                              )
                         time.sleep(interval)
 

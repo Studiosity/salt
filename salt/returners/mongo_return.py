@@ -60,7 +60,7 @@ To override individual configuration items, append --return_kwargs '{"key:": "va
     salt '*' test.ping --return mongo --return_kwargs '{"db": "another-salt"}'
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
@@ -68,7 +68,7 @@ import logging
 # import Salt libs
 import salt.utils.jid
 import salt.returners
-from salt.ext import six
+import salt.ext.six as six
 
 # Import third party libs
 try:
@@ -231,7 +231,7 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
     '''
     Do any work necessary to prepare a JID, including sending a custom id
     '''
-    return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid(__opts__)
+    return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid()
 
 
 def save_minions(jid, minions, syndic_id=None):  # pylint: disable=unused-argument

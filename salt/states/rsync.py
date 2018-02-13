@@ -27,10 +27,9 @@ State to synchronize files and directories with rsync.
 
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+import salt.utils
 import os
-
-import salt.utils.path
 
 
 def __virtual__():
@@ -39,7 +38,7 @@ def __virtual__():
 
     :return:
     '''
-    return salt.utils.path.which('rsync') and 'rsync' or False
+    return salt.utils.which('rsync') and 'rsync' or False
 
 
 def _get_summary(rsync_out):
@@ -82,8 +81,7 @@ def synchronized(name, source,
                  exclude=None,
                  excludefrom=None,
                  prepare=False,
-                 dryrun=False,
-                 additional_opts=None):
+                 dryrun=False):
     '''
     Guarantees that the source directory is always copied to the target.
 
@@ -119,11 +117,6 @@ def synchronized(name, source,
         doing test=True
 
         .. versionadded:: 2016.3.1
-
-    additional_opts
-        Pass additional options to rsync, should be included as a list.
-
-        .. versionadded:: Oxygen
     '''
 
     ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
@@ -138,13 +131,9 @@ def synchronized(name, source,
         if __opts__['test']:
             dryrun = True
 
-        result = __salt__['rsync.rsync'](source, name, delete=delete,
-                                         force=force, update=update,
-                                         passwordfile=passwordfile,
-                                         exclude=exclude,
-                                         excludefrom=excludefrom,
-                                         dryrun=dryrun,
-                                         additional_opts=additional_opts)
+        result = __salt__['rsync.rsync'](source, name, delete=delete, force=force, update=update,
+                                         passwordfile=passwordfile, exclude=exclude, excludefrom=excludefrom,
+                                         dryrun=dryrun)
 
         if __opts__['test'] or dryrun:
             ret['result'] = None

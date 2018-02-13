@@ -50,13 +50,13 @@ It should be noted that some usages of etcd require a profile to be specified,
 rather than top-level configurations. This being the case, it is better to
 always use a named configuration profile, as shown above.
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
 
 # Import salt libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.exceptions import CommandExecutionError
 
 # Import third party libs
@@ -79,8 +79,7 @@ class EtcdUtilWatchTimeout(Exception):
 
 
 class EtcdClient(object):
-    def __init__(self, opts, profile=None,
-                 host=None, port=None, username=None, password=None, ca=None, client_key=None, client_cert=None, **kwargs):
+    def __init__(self, opts, profile=None):
         opts_pillar = opts.get('pillar', {})
         opts_master = opts_pillar.get('master', {})
 
@@ -94,32 +93,32 @@ class EtcdClient(object):
         else:
             self.conf = opts_merged
 
-        host = host or self.conf.get('etcd.host', '127.0.0.1')
-        port = port or self.conf.get('etcd.port', 4001)
-        username = username or self.conf.get('etcd.username')
-        password = password or self.conf.get('etcd.password')
-        ca_cert = ca or self.conf.get('etcd.ca')
-        cli_key = client_key or self.conf.get('etcd.client_key')
-        cli_cert = client_cert or self.conf.get('etcd.client_cert')
+        host = self.conf.get('etcd.host', '127.0.0.1')
+        port = self.conf.get('etcd.port', 4001)
+        username = self.conf.get('etcd.username')
+        password = self.conf.get('etcd.password')
+        ca_cert = self.conf.get('etcd.ca')
+        cli_key = self.conf.get('etcd.client_key')
+        cli_cert = self.conf.get('etcd.client_cert')
 
         auth = {}
         if username and password:
             auth = {
-                'username': six.text_type(username),
-                'password': six.text_type(password)
+                'username': str(username),
+                'password': str(password)
             }
 
         certs = {}
         if ca_cert and not (cli_cert or cli_key):
             certs = {
-                'ca_cert': six.text_type(ca_cert),
+                'ca_cert': str(ca_cert),
                 'protocol': 'https'
             }
 
         if ca_cert and cli_cert and cli_key:
             cert = (cli_cert, cli_key)
             certs = {
-                'ca_cert': six.text_type(ca_cert),
+                'ca_cert': str(ca_cert),
                 'cert': cert,
                 'protocol': 'https'
             }
@@ -160,7 +159,7 @@ class EtcdClient(object):
             return ret
         except (etcd.EtcdConnectionFailed, MaxRetryError):
             # This gets raised when we can't contact etcd at all
-            log.error("etcd: failed to perform 'watch' operation on key %s due to connection error", key)
+            log.error("etcd: failed to perform 'watch' operation on key {0} due to connection error".format(key))
             return {}
         except ValueError:
             return {}
@@ -184,7 +183,7 @@ class EtcdClient(object):
             # anything here but return
             return None
         except etcd.EtcdConnectionFailed:
-            log.error("etcd: failed to perform 'get' operation on key %s due to connection error", key)
+            log.error("etcd: failed to perform 'get' operation on key {0} due to connection error".format(key))
             return None
         except ValueError:
             return None
@@ -198,7 +197,7 @@ class EtcdClient(object):
             else:
                 result = self.client.read(key, recursive=recursive, wait=wait, timeout=timeout)
         except (etcd.EtcdConnectionFailed, etcd.EtcdKeyNotFound) as err:
-            log.error("etcd: %s", err)
+            log.error("etcd: {0}".format(err))
             raise
         except ReadTimeoutError:
             # For some reason, we have to catch this directly.  It falls through
@@ -228,7 +227,7 @@ class EtcdClient(object):
             log.error("etcd: error. python-etcd does not fully support python 2.6, no error information available")
             raise
         except Exception as err:
-            log.error('etcd: uncaught exception %s', err)
+            log.error('etcd: uncaught exception {0}'.format(err))
             raise
         return result
 
@@ -273,13 +272,13 @@ class EtcdClient(object):
         try:
             result = self.client.write(key, value, ttl=ttl, dir=directory)
         except (etcd.EtcdNotFile, etcd.EtcdNotDir, etcd.EtcdRootReadOnly, ValueError) as err:
-            log.error('etcd: %s', err)
+            log.error('etcd: {0}'.format(err))
             return None
         except MaxRetryError as err:
-            log.error("etcd: Could not connect to etcd server: %s", err)
+            log.error("etcd: Could not connect to etcd server: {0}".format(err))
             return None
         except Exception as err:
-            log.error('etcd: uncaught exception %s', err)
+            log.error('etcd: uncaught exception {0}'.format(err))
             raise
 
         if directory:
@@ -294,7 +293,7 @@ class EtcdClient(object):
         except (etcd.EtcdKeyNotFound, ValueError):
             return {}
         except etcd.EtcdConnectionFailed:
-            log.error("etcd: failed to perform 'ls' operation on path %s due to connection error", path)
+            log.error("etcd: failed to perform 'ls' operation on path {0} due to connection error".format(path))
             return None
 
         for item in items.children:
@@ -317,13 +316,13 @@ class EtcdClient(object):
             else:
                 return False
         except (etcd.EtcdNotFile, etcd.EtcdRootReadOnly, etcd.EtcdDirNotEmpty, etcd.EtcdKeyNotFound, ValueError) as err:
-            log.error('etcd: %s', err)
+            log.error('etcd: {0}'.format(err))
             return None
         except MaxRetryError as err:
-            log.error('etcd: Could not connect to etcd server: %s', err)
+            log.error('etcd: Could not connect to etcd server: {0}'.format(err))
             return None
         except Exception as err:
-            log.error('etcd: uncaught exception %s', err)
+            log.error('etcd: uncaught exception {0}'.format(err))
             raise
 
     def tree(self, path):
@@ -338,11 +337,11 @@ class EtcdClient(object):
         except (etcd.EtcdKeyNotFound, ValueError):
             return None
         except etcd.EtcdConnectionFailed:
-            log.error("etcd: failed to perform 'tree' operation on path %s due to connection error", path)
+            log.error("etcd: failed to perform 'tree' operation on path {0} due to connection error".format(path))
             return None
 
         for item in items.children:
-            comps = six.text_type(item.key).split('/')
+            comps = str(item.key).split('/')
             if item.dir is True:
                 if item.key == path:
                     continue
@@ -352,8 +351,8 @@ class EtcdClient(object):
         return ret
 
 
-def get_conn(opts, profile=None, **kwargs):
-    client = EtcdClient(opts, profile, **kwargs)
+def get_conn(opts, profile=None):
+    client = EtcdClient(opts, profile)
     return client
 
 

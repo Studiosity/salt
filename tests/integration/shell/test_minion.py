@@ -17,6 +17,9 @@ import signal
 import shutil
 import logging
 
+# Import 3rd-party libs
+import yaml
+
 # Import Salt Testing libs
 import tests.integration.utils
 from tests.support.case import ShellCase
@@ -26,11 +29,10 @@ from tests.support.mixins import ShellCaseCommonTestsMixin
 from tests.integration.utils import testprogram
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.yaml
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -58,12 +60,14 @@ class MinionTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMix
 
         config_file_name = 'minion'
         pid_path = os.path.join(config_dir, '{0}.pid'.format(config_file_name))
-        with salt.utils.files.fopen(self.get_config_file_path(config_file_name), 'r') as fhr:
-            config = salt.utils.yaml.safe_load(fhr)
+        with salt.utils.fopen(self.get_config_file_path(config_file_name), 'r') as fhr:
+            config = yaml.load(fhr.read())
             config['log_file'] = 'file:///tmp/log/LOG_LOCAL3'
 
-            with salt.utils.files.fopen(os.path.join(config_dir, config_file_name), 'w') as fhw:
-                salt.utils.yaml.safe_dump(config, fhw, default_flow_style=False)
+            with salt.utils.fopen(os.path.join(config_dir, config_file_name), 'w') as fhw:
+                fhw.write(
+                    yaml.dump(config, default_flow_style=False)
+                )
 
         ret = self.run_script(
             self._call_binary_,
@@ -78,7 +82,7 @@ class MinionTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMix
 
         # Now kill it if still running
         if os.path.exists(pid_path):
-            with salt.utils.files.fopen(pid_path) as fhr:
+            with salt.utils.fopen(pid_path) as fhr:
                 try:
                     os.kill(int(fhr.read()), signal.SIGKILL)
                 except OSError:
@@ -200,7 +204,7 @@ class MinionTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMix
         default_dir = os.path.join(sysconf_dir, 'default')
         if not os.path.exists(default_dir):
             os.makedirs(default_dir)
-        with salt.utils.files.fopen(os.path.join(default_dir, 'salt'), 'w') as defaults:
+        with salt.utils.fopen(os.path.join(default_dir, 'salt'), 'w') as defaults:
             # Test suites is quite slow - extend the timeout
             defaults.write(
                 'TIMEOUT=60\n'

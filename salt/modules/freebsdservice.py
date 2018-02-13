@@ -8,18 +8,15 @@ The service module for FreeBSD
     *'service.start' is not available*), see :ref:`here
     <module-provider-override>`.
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
 import os
-import fnmatch
-import re
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 import salt.utils.decorators as decorators
-import salt.utils.files
 from salt.exceptions import CommandNotFoundError
 
 __func_alias__ = {
@@ -51,11 +48,11 @@ def _cmd(jail=None):
 
     Support for jail (representing jid or jail name) keyword argument in kwargs
     '''
-    service = salt.utils.path.which('service')
+    service = salt.utils.which('service')
     if not service:
         raise CommandNotFoundError('\'service\' command not found')
     if jail:
-        jexec = salt.utils.path.which('jexec')
+        jexec = salt.utils.which('jexec')
         if not jexec:
             raise CommandNotFoundError('\'jexec\' command not found')
         service = '{0} {1} {2}'.format(jexec, jail, service)
@@ -71,7 +68,7 @@ def _get_jail_path(jail):
     jail
         The jid or jail name
     '''
-    jls = salt.utils.path.which('jls')
+    jls = salt.utils.which('jls')
     if not jls:
         raise CommandNotFoundError('\'jls\' command not found')
     jails = __salt__['cmd.run_stdout']('{0} -n jid name path'.format(jls))
@@ -108,7 +105,7 @@ def _get_rcvar(name, jail=None):
     Support for jail (representing jid or jail name) keyword argument in kwargs
     '''
     if not available(name, jail):
-        log.error('Service %s not found', name)
+        log.error('Service {0} not found'.format(name))
         return False
 
     cmd = '{0} {1} rcvar'.format(_cmd(jail), name)
@@ -192,7 +189,7 @@ def _switch(name,                   # pylint: disable=C0103
 
     rcvar = _get_rcvar(name, jail)
     if not rcvar:
-        log.error('rcvar for service %s not found', name)
+        log.error('rcvar for service {0} not found'.format(name))
         return False
 
     if jail and not chroot:
@@ -210,7 +207,7 @@ def _switch(name,                   # pylint: disable=C0103
     if not config:
         rcdir = '{0}/etc/rc.conf.d'.format(chroot)
         if not os.path.exists(rcdir) or not os.path.isdir(rcdir):
-            log.error('%s not exists', rcdir)
+            log.error('{0} not exists'.format(rcdir))
             return False
         config = os.path.join(rcdir, rcvar.replace('_enable', ''))
 
@@ -223,9 +220,8 @@ def _switch(name,                   # pylint: disable=C0103
         val = 'NO'
 
     if os.path.exists(config):
-        with salt.utils.files.fopen(config, 'r') as ifile:
+        with salt.utils.fopen(config, 'r') as ifile:
             for line in ifile:
-                line = salt.utils.stringutils.to_unicode(line).rstrip('\n')
                 if not line.startswith('{0}='.format(rcvar)):
                     nlines.append(line)
                     continue
@@ -238,8 +234,7 @@ def _switch(name,                   # pylint: disable=C0103
             nlines[-1] = '{0}\n'.format(nlines[-1])
         nlines.append('{0}="{1}"\n'.format(rcvar, val))
 
-    with salt.utils.files.fopen(config, 'w') as ofile:
-        nlines = [salt.utils.stringutils.to_str(_l) for _l in nlines]
+    with salt.utils.fopen(config, 'w') as ofile:
         ofile.writelines(nlines)
 
     return True
@@ -318,7 +313,7 @@ def enabled(name, **kwargs):
     '''
     jail = kwargs.get('jail', '')
     if not available(name, jail):
-        log.error('Service %s not found', name)
+        log.error('Service {0} not found'.format(name))
         return False
 
     cmd = '{0} {1} rcvar'.format(_cmd(jail), name)
@@ -478,43 +473,24 @@ def reload_(name, jail=None):
 
 def status(name, sig=None, jail=None):
     '''
-    Return the status for a service.
-    If the name contains globbing, a dict mapping service name to True/False
-    values is returned.
+    Return the status for a service (True or False).
+
+    name
+        Name of service
 
     .. versionchanged:: 2016.3.4
 
-    .. versionchanged:: Oxygen
-        The service name can now be a glob (e.g. ``salt*``)
-
-    Args:
-        name (str): The name of the service to check
-        sig (str): Signature to use to find the service via ps
-
-    Returns:
-        bool: True if running, False otherwise
-        dict: Maps service name to True if running, False otherwise
+    jail: optional jid or jail name
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt '*' service.status <service name> [service signature]
+        salt '*' service.status <service name>
     '''
     if sig:
         return bool(__salt__['status.pid'](sig))
-
-    contains_globbing = bool(re.search(r'\*|\?|\[.+\]', name))
-    if contains_globbing:
-        services = fnmatch.filter(get_all(), name)
-    else:
-        services = [name]
-    results = {}
-    for service in services:
-        cmd = '{0} {1} onestatus'.format(_cmd(jail), service)
-        results[service] = not __salt__['cmd.retcode'](cmd,
-                                        python_shell=False,
-                                        ignore_retcode=True)
-    if contains_globbing:
-        return results
-    return results[name]
+    cmd = '{0} {1} onestatus'.format(_cmd(jail), name)
+    return not __salt__['cmd.retcode'](cmd,
+                                       python_shell=False,
+                                       ignore_retcode=True)

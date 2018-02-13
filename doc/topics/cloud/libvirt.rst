@@ -8,13 +8,9 @@ libvirt with qemu-kvm.
 
 http://www.libvirt.org/
 
-Host Dependencies
+Dependencies
 ============
 * libvirt >= 1.2.18 (older might work)
-
-Salt-Cloud Dependencies
-============
-* libvirt-python
 
 Provider Configuration
 ======================
@@ -36,8 +32,6 @@ Set up the provider cloud configuration file at ``/etc/salt/cloud.providers`` or
     local-kvm:
       driver: libvirt
       url: qemu:///system
-      # work around flag for XML validation errors while cloning
-      validate_xml: no
 
 Cloud Profiles
 ==============

@@ -4,7 +4,7 @@ The function cache system allows for data to be stored on the master so it can b
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import copy
 import logging
 import time
@@ -13,14 +13,13 @@ import traceback
 # Import salt libs
 import salt.crypt
 import salt.payload
-import salt.utils.args
-import salt.utils.event
+import salt.utils
 import salt.utils.network
-import salt.utils.versions
+import salt.utils.event
 from salt.exceptions import SaltClientError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 MINE_INTERNAL_KEYWORDS = frozenset([
     '__pub_user',
@@ -52,7 +51,8 @@ def _auth():
 
 def _mine_function_available(func):
     if func not in __salt__:
-        log.error('Function %s in mine_functions not available', func)
+        log.error('Function {0} in mine_functions not available'
+                 .format(func))
         return False
     return True
 
@@ -69,7 +69,7 @@ def _mine_send(load, opts):
 def _mine_get(load, opts):
     if opts.get('transport', '') in ('zeromq', 'tcp'):
         try:
-            load['tok'] = _auth().gen_token(b'salt')
+            load['tok'] = _auth().gen_token('salt')
         except AttributeError:
             log.error('Mine could not authenticate with master. '
                       'Mine could not be retrieved.'
@@ -166,8 +166,9 @@ def update(clear=False, mine_functions=None):
                 data[func] = __salt__[func]()
         except Exception:
             trace = traceback.format_exc()
-            log.error('Function %s in mine_functions failed to execute', func)
-            log.debug('Error: %s', trace)
+            log.error('Function {0} in mine_functions failed to execute'
+                      .format(func))
+            log.debug('Error: {0}'.format(trace))
             continue
     if __opts__['file_client'] == 'local':
         if not clear:
@@ -196,12 +197,12 @@ def send(func, *args, **kwargs):
         salt '*' mine.send network.ip_addrs eth0
         salt '*' mine.send eth0_ip_addrs mine_function=network.ip_addrs eth0
     '''
-    kwargs = salt.utils.args.clean_kwargs(**kwargs)
+    kwargs = salt.utils.clean_kwargs(**kwargs)
     mine_func = kwargs.pop('mine_function', func)
     if mine_func not in __salt__:
         return False
     data = {}
-    arg_data = salt.utils.args.arg_lookup(__salt__[mine_func])
+    arg_data = salt.utils.arg_lookup(__salt__[mine_func])
     func_data = copy.deepcopy(kwargs)
     for ind, _ in enumerate(arg_data.get('args', [])):
         try:
@@ -209,10 +210,9 @@ def send(func, *args, **kwargs):
         except IndexError:
             # Safe error, arg may be in kwargs
             pass
-    f_call = salt.utils.args.format_call(
-        __salt__[mine_func],
-        func_data,
-        expected_extra_kws=MINE_INTERNAL_KEYWORDS)
+    f_call = salt.utils.format_call(__salt__[mine_func],
+                                    func_data,
+                                    expected_extra_kws=MINE_INTERNAL_KEYWORDS)
     for arg in args:
         if arg not in f_call['args']:
             f_call['args'].append(arg)
@@ -222,8 +222,8 @@ def send(func, *args, **kwargs):
         else:
             data[func] = __salt__[mine_func](*f_call['args'])
     except Exception as exc:
-        log.error('Function %s in mine.send failed to execute: %s',
-                  mine_func, exc)
+        log.error('Function {0} in mine.send failed to execute: {1}'
+                  .format(mine_func, exc))
         return False
     if __opts__['file_client'] == 'local':
         old = __salt__['data.get']('mine_cache')
@@ -270,7 +270,7 @@ def get(tgt,
 
         salt '*' mine.get '*' network.interfaces
         salt '*' mine.get 'os:Fedora' network.interfaces grain
-        salt '*' mine.get 'G@os:Fedora and S@192.168.5.0/24' network.ipaddrs compound
+        salt '*' mine.get 'os:Fedora and S@192.168.5.0/24' network.ipaddrs compound
 
     .. seealso:: Retrieving Mine data from Pillar and Orchestrate
 
@@ -291,7 +291,7 @@ def get(tgt,
     # remember to remove the expr_form argument from this function when
     # performing the cleanup on this deprecation.
     if expr_form is not None:
-        salt.utils.versions.warn_until(
+        salt.utils.warn_until(
             'Fluorine',
             'the target type should be passed using the \'tgt_type\' '
             'argument instead of \'expr_form\'. Support for using '

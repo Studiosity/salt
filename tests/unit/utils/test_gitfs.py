@@ -5,7 +5,7 @@ any remotes.
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.unit import skipIf, TestCase
@@ -37,19 +37,18 @@ class TestGitFSProvider(TestCase):
                               MagicMock(return_value=True)):
                 with patch.object(role_class, 'verify_pygit2',
                                   MagicMock(return_value=False)):
-                    args = [OPTS, {}]
-                    kwargs = {'init_remotes': False}
+                    args = [OPTS]
                     if role_name == 'winrepo':
-                        kwargs['cache_root'] = '/tmp/winrepo-dir'
+                        args.append('/tmp/winrepo-dir')
                     with patch.dict(OPTS, {key: provider}):
                         # Try to create an instance with uppercase letters in
                         # provider name. If it fails then a
                         # FileserverConfigError will be raised, so no assert is
                         # necessary.
-                        role_class(*args, **kwargs)
-                    # Now try to instantiate an instance with all lowercase
-                    # letters. Again, no need for an assert here.
-                    role_class(*args, **kwargs)
+                        role_class(*args)
+                        # Now try to instantiate an instance with all lowercase
+                        # letters. Again, no need for an assert here.
+                        role_class(*args)
 
     def test_valid_provider(self):
         '''
@@ -74,13 +73,12 @@ class TestGitFSProvider(TestCase):
                     verify = 'verify_pygit2'
                     mock2 = _get_mock(verify, provider)
                     with patch.object(role_class, verify, mock2):
-                        args = [OPTS, {}]
-                        kwargs = {'init_remotes': False}
+                        args = [OPTS]
                         if role_name == 'winrepo':
-                            kwargs['cache_root'] = '/tmp/winrepo-dir'
+                            args.append('/tmp/winrepo-dir')
 
                         with patch.dict(OPTS, {key: provider}):
-                            role_class(*args, **kwargs)
+                            role_class(*args)
 
                         with patch.dict(OPTS, {key: 'foo'}):
                             # Set the provider name to a known invalid provider
@@ -88,5 +86,5 @@ class TestGitFSProvider(TestCase):
                             self.assertRaises(
                                 FileserverConfigError,
                                 role_class,
-                                *args,
-                                **kwargs)
+                                *args
+                                )

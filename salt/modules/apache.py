@@ -10,13 +10,13 @@ Support for Apache
 '''
 
 # Import python libs
-from __future__ import absolute_import, generators, print_function, with_statement, unicode_literals
+from __future__ import absolute_import, generators, print_function, with_statement
 import re
 import logging
 
 # Import 3rd-party libs
 # pylint: disable=import-error,no-name-in-module
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import cStringIO
 from salt.ext.six.moves.urllib.error import URLError
 from salt.ext.six.moves.urllib.request import (
@@ -29,9 +29,7 @@ from salt.ext.six.moves.urllib.request import (
 # pylint: enable=import-error,no-name-in-module
 
 # Import salt libs
-import salt.utils.data
-import salt.utils.files
-import salt.utils.path
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +39,7 @@ def __virtual__():
     Only load the module if apache is installed
     '''
     cmd = _detect_os()
-    if salt.utils.path.which(cmd):
+    if salt.utils.which(cmd):
         return 'apache'
     return (False, 'The apache execution module cannot be loaded: apache is not installed.')
 
@@ -400,7 +398,7 @@ def server_status(profile='default'):
 
 def _parse_config(conf, slot=None):
     ret = cStringIO()
-    if isinstance(conf, six.string_types):
+    if isinstance(conf, str):
         if slot:
             print('{0} {1}'.format(slot, conf), file=ret, end='')
         else:
@@ -415,7 +413,7 @@ def _parse_config(conf, slot=None):
              )
         del conf['this']
         for key, value in six.iteritems(conf):
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 print('{0} {1}'.format(key, value), file=ret)
             elif isinstance(value, list):
                 print(_parse_config(value, key), file=ret)
@@ -454,9 +452,9 @@ def config(name, config, edit=True):
         configs.append(_parse_config(entry[key], key))
 
     # Python auto-correct line endings
-    configstext = '\n'.join(salt.utils.data.decode(configs))
+    configstext = "\n".join(configs)
     if edit:
-        with salt.utils.files.fopen(name, 'w') as configfile:
+        with salt.utils.fopen(name, 'w') as configfile:
             configfile.write('# This file is managed by Salt.\n')
-            configfile.write(salt.utils.stringutils.to_str(configstext))
+            configfile.write(configstext)
     return configstext

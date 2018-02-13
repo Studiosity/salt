@@ -36,18 +36,15 @@ Every call can override the config defaults:
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
-
-# Import Salt libs
-from salt.ext import six
+from __future__ import absolute_import
 
 
 def __virtual__():
     IMPORT_ERR = None
     try:
         from pyghmi.ipmi import command
-    except Exception as exc:
-        IMPORT_ERR = six.text_type(exc)
+    except Exception as ex:
+        IMPORT_ERR = str(ex)
     return (IMPORT_ERR is None, IMPORT_ERR)
 
 

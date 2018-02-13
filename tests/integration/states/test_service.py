@@ -3,7 +3,7 @@
 Tests for the service state
 '''
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import re
 
 # Import Salt Testing libs
@@ -12,7 +12,7 @@ from tests.support.helpers import destructiveTest
 from tests.support.mixins import SaltReturnAssertsMixin
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 
 INIT_DELAY = 5
 
@@ -41,7 +41,7 @@ class ServiceTest(ModuleCase, SaltReturnAssertsMixin):
             self.stopped = ''
             self.running = '[0-9]'
 
-        if salt.utils.path.which(cmd_name) is None:
+        if salt.utils.which(cmd_name) is None:
             self.skipTest('{0} is not installed'.format(cmd_name))
 
     def check_service_status(self, exp_return):

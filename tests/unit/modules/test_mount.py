@@ -3,9 +3,8 @@
     :codeauthor: :email:`Rupesh Tare <rupesht@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
-import textwrap
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -19,10 +18,9 @@ from tests.support.mock import (
 )
 
 # Import Salt Libs
-import salt.utils.files
-import salt.utils.path
+import salt.utils
+from salt.exceptions import CommandExecutionError, CommandNotFoundError
 import salt.modules.mount as mount
-from salt.exceptions import CommandExecutionError
 
 MOCK_SHELL_FILE = 'A B C D F G\n'
 
@@ -92,7 +90,7 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
             with patch.object(os.path, 'isfile', mock):
                 file_data = '\n'.join(['#',
                                        'A B C D,E,F G H'])
-                with patch('salt.utils.files.fopen',
+                with patch('salt.utils.fopen',
                            mock_open(read_data=file_data),
                            create=True) as m:
                     m.return_value.__iter__.return_value = file_data.splitlines()
@@ -115,7 +113,7 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
             with patch.object(os.path, 'isfile', mock):
                 file_data = '\n'.join(['#',
                                        'swap        -   /tmp                tmpfs    -   yes    size=2048m'])
-                with patch('salt.utils.files.fopen',
+                with patch('salt.utils.fopen',
                            mock_open(read_data=file_data),
                            create=True) as m:
                     m.return_value.__iter__.return_value = file_data.splitlines()
@@ -133,7 +131,7 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
         mock_fstab = MagicMock(return_value={})
         with patch.dict(mount.__grains__, {'kernel': ''}):
             with patch.object(mount, 'fstab', mock_fstab):
-                with patch('salt.utils.files.fopen', mock_open()):
+                with patch('salt.utils.fopen', mock_open()):
                     self.assertTrue(mount.rm_fstab('name', 'device'))
 
     def test_set_fstab(self):
@@ -150,13 +148,13 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
         mock = MagicMock(return_value=True)
         mock_read = MagicMock(side_effect=OSError)
         with patch.object(os.path, 'isfile', mock):
-            with patch.object(salt.utils.files, 'fopen', mock_read):
+            with patch.object(salt.utils, 'fopen', mock_read):
                 self.assertRaises(CommandExecutionError,
                                   mount.set_fstab, 'A', 'B', 'C')
 
         mock = MagicMock(return_value=True)
         with patch.object(os.path, 'isfile', mock):
-            with patch('salt.utils.files.fopen',
+            with patch('salt.utils.fopen',
                        mock_open(read_data=MOCK_SHELL_FILE)):
                 self.assertEqual(mount.set_fstab('A', 'B', 'C'), 'new')
 
@@ -244,30 +242,26 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
         '''
         Returns true if the command passed is a fuse mountable application
         '''
-        with patch.object(salt.utils.path, 'which', return_value=None):
+        # Return False if fuse doesn't exist
+        with patch('salt.utils.which', return_value=None):
             self.assertFalse(mount.is_fuse_exec('cmd'))
 
-        def _ldd_side_effect(cmd, *args, **kwargs):
-            '''
-            Neither of these are full ldd output, but what is_fuse_exec is
-            looking for is 'libfuse' in the ldd output, so these examples
-            should be sufficient enough to test both the True and False cases.
-            '''
-            return {
-                'ldd cmd1': textwrap.dedent('''\
-                    linux-vdso.so.1 (0x00007ffeaf5fb000)
-                    libfuse3.so.3 => /usr/lib/libfuse3.so.3 (0x00007f91e66ac000)
-                    '''),
-                'ldd cmd2': textwrap.dedent('''\
-                    linux-vdso.so.1 (0x00007ffeaf5fb000)
-                    ''')
-            }[cmd]
-        which_mock = MagicMock(side_effect=lambda x: x)
-        ldd_mock = MagicMock(side_effect=_ldd_side_effect)
-        with patch.object(salt.utils.path, 'which', which_mock):
-            with patch.dict(mount.__salt__, {'cmd.run': _ldd_side_effect}):
-                self.assertTrue(mount.is_fuse_exec('cmd1'))
-                self.assertFalse(mount.is_fuse_exec('cmd2'))
+        # Return CommandNotFoundError if fuse exists, but ldd doesn't exist
+        with patch('salt.utils.which', side_effect=[True, False]):
+            self.assertRaises(CommandNotFoundError, mount.is_fuse_exec, 'cmd')
+
+        # Return False if fuse exists, ldd exists, but libfuse is not in the
+        # return
+        with patch('salt.utils.which', side_effect=[True, True]):
+            mock = MagicMock(return_value='not correct')
+            with patch.dict(mount.__salt__, {'cmd.run': mock}):
+                self.assertFalse(mount.is_fuse_exec('cmd'))
+
+        # Return True if fuse exists, ldd exists, and libfuse is in the return
+        with patch('salt.utils.which', side_effect=[True, True]):
+            mock = MagicMock(return_value='contains libfuse')
+            with patch.dict(mount.__salt__, {'cmd.run': mock}):
+                self.assertTrue(mount.is_fuse_exec('cmd'))
 
     def test_swaps(self):
         '''
@@ -277,7 +271,7 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
         file_data = '\n'.join(['Filename Type Size Used Priority',
                                '/dev/sda1 partition 31249404 4100 -1'])
         with patch.dict(mount.__grains__, {'os': '', 'kernel': ''}):
-            with patch('salt.utils.files.fopen',
+            with patch('salt.utils.fopen',
                        mock_open(read_data=file_data),
                        create=True) as m:
                 m.return_value.__iter__.return_value = file_data.splitlines()

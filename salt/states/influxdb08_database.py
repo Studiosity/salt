@@ -9,9 +9,6 @@ Management of Influxdb 0.8 databases
 
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-
 
 def __virtual__():
     '''
@@ -94,7 +91,7 @@ def absent(name, user=None, password=None, host=None, port=None):
            'result': True,
            'comment': ''}
 
-    # check if database exists and remove it
+    #check if database exists and remove it
     if __salt__['influxdb08.db_exists'](name, user, password, host, port):
         if __opts__['test']:
             ret['result'] = None

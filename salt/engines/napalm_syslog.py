@@ -167,7 +167,7 @@ the variable name ``openconfig_structure``. Inside the Jinja template, the user
 can process the object from ``openconfig_structure`` and define the bussiness
 logic as required.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python stdlib
 import logging
@@ -189,9 +189,9 @@ except ImportError:
     HAS_NAPALM_LOGS = False
 
 # Import salt libs
-import salt.utils.event as event
+import salt.utils
 import salt.utils.network
-import salt.utils.stringutils
+from salt.utils import event
 
 # ----------------------------------------------------------------------------------------------------------------------
 # module properties
@@ -233,7 +233,7 @@ def _get_transport_recv(name='zmq',
                         port=49017,
                         **kwargs):
     if name not in TRANSPORT_FUN_MAP:
-        log.error('Invalid transport: %s. Falling back to ZeroMQ.', name)
+        log.error('Invalid transport: {0}. Falling back to ZeroMQ.'.format(name))
         name = 'zmq'
     return TRANSPORT_FUN_MAP[name](address, port, **kwargs)
 
@@ -337,30 +337,27 @@ def start(transport='zmq',
         try:
             event_os = dict_object['os']
             if os_blacklist or os_whitelist:
-                valid_os = salt.utils.stringutils.check_whitelist_blacklist(
-                    event_os,
-                    whitelist=os_whitelist,
-                    blacklist=os_blacklist)
+                valid_os = salt.utils.check_whitelist_blacklist(event_os,
+                                                                whitelist=os_whitelist,
+                                                                blacklist=os_blacklist)
                 if not valid_os:
-                    log.info('Ignoring NOS %s as per whitelist/blacklist', event_os)
+                    log.info('Ignoring NOS {} as per whitelist/blacklist'.format(event_os))
                     continue
             event_error = dict_object['error']
             if error_blacklist or error_whitelist:
-                valid_error = salt.utils.stringutils.check_whitelist_blacklist(
-                    event_error,
-                    whitelist=error_whitelist,
-                    blacklist=error_blacklist)
+                valid_error = salt.utils.check_whitelist_blacklist(event_error,
+                                                                   whitelist=error_whitelist,
+                                                                   blacklist=error_blacklist)
                 if not valid_error:
-                    log.info('Ignoring error %s as per whitelist/blacklist', event_error)
+                    log.info('Ignoring error {} as per whitelist/blacklist'.format(event_error))
                     continue
             event_host = dict_object.get('host') or dict_object.get('ip')
             if host_blacklist or host_whitelist:
-                valid_host = salt.utils.stringutils.check_whitelist_blacklist(
-                    event_host,
-                    whitelist=host_whitelist,
-                    blacklist=host_blacklist)
+                valid_host = salt.utils.check_whitelist_blacklist(event_host,
+                                                                  whitelist=host_whitelist,
+                                                                  blacklist=host_blacklist)
                 if not valid_host:
-                    log.info('Ignoring messages from %s as per whitelist/blacklist', event_host)
+                    log.info('Ignoring messages from {} as per whitelist/blacklist'.format(event_host))
                     continue
             tag = 'napalm/syslog/{os}/{error}/{host}'.format(
                 os=event_os,
@@ -371,7 +368,7 @@ def start(transport='zmq',
             log.warning('Missing keys from the napalm-logs object:', exc_info=True)
             log.warning(dict_object)
             continue  # jump to the next object in the queue
-        log.debug('Sending event %s', tag)
+        log.debug('Sending event {0}'.format(tag))
         log.debug(raw_object)
         if master:
             event.get_master_event(__opts__,

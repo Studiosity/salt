@@ -123,12 +123,15 @@ To override individual configuration items, append --return_kwargs '{"key:": "va
     salt '*' test.ping --return odbc --return_kwargs '{"dsn": "dsn-name"}'
 
 '''
+from __future__ import absolute_import
+# Let's not allow PyLint complain about string substitution
+# pylint: disable=W1321,E1321
+
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+import json
 
 # Import Salt libs
 import salt.utils.jid
-import salt.utils.json
 import salt.returners
 
 # FIXME We'll need to handle this differently for Windows.
@@ -202,10 +205,10 @@ def returner(ret):
         sql, (
             ret['fun'],
             ret['jid'],
-            salt.utils.json.dumps(ret['return']),
+            json.dumps(ret['return']),
             ret['id'],
             ret['success'],
-            salt.utils.json.dumps(ret)
+            json.dumps(ret)
         )
     )
     _close_conn(conn)
@@ -219,7 +222,7 @@ def save_load(jid, load, minions=None):
     cur = conn.cursor()
     sql = '''INSERT INTO jids (jid, load) VALUES (?, ?)'''
 
-    cur.execute(sql, (jid, salt.utils.json.dumps(load)))
+    cur.execute(sql, (jid, json.dumps(load)))
     _close_conn(conn)
 
 
@@ -241,7 +244,7 @@ def get_load(jid):
     cur.execute(sql, (jid,))
     data = cur.fetchone()
     if data:
-        return salt.utils.json.loads(data)
+        return json.loads(data)
     _close_conn(conn)
     return {}
 
@@ -259,7 +262,7 @@ def get_jid(jid):
     ret = {}
     if data:
         for minion, full_ret in data:
-            ret[minion] = salt.utils.json.loads(full_ret)
+            ret[minion] = json.loads(full_ret)
     _close_conn(conn)
     return ret
 
@@ -283,7 +286,7 @@ def get_fun(fun):
     ret = {}
     if data:
         for minion, _, retval in data:
-            ret[minion] = salt.utils.json.loads(retval)
+            ret[minion] = json.loads(retval)
     _close_conn(conn)
     return ret
 
@@ -300,7 +303,7 @@ def get_jids():
     data = cur.fetchall()
     ret = {}
     for jid, load in data:
-        ret[jid] = salt.utils.jid.format_jid_instance(jid, salt.utils.json.loads(load))
+        ret[jid] = salt.utils.jid.format_jid_instance(jid, json.loads(load))
     _close_conn(conn)
     return ret
 
@@ -326,4 +329,4 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
     '''
     Do any work necessary to prepare a JID, including sending a custom id
     '''
-    return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid(__opts__)
+    return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid()

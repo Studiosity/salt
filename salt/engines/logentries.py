@@ -42,10 +42,11 @@ To test this engine
          salt '*' test.ping cmd.run uptime
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+
+from __future__ import absolute_import
 # Import Salt libs
 import salt.utils.event
-import salt.utils.json
+from salt.ext import six
 
 # Import third party libs
 try:
@@ -66,14 +67,33 @@ except ImportError:  # for systems without TLS support.
 import socket
 import random
 import time
+import codecs
 import uuid
 import logging
+import json
 
 log = logging.getLogger(__name__)
 
 
 def __virtual__():
-    return True if HAS_CERTIFI and HAS_SSL else False
+    if not HAS_CERTIFI:
+        return False
+    if not HAS_SSL:
+        return False
+
+    return True
+
+
+def _to_unicode(ch):
+    return codecs.unicode_escape_decode(ch)[0]
+
+
+def _is_unicode(ch):
+    return isinstance(ch, six.text_type)
+
+
+def _create_unicode(ch):
+    return six.text_type(ch, 'utf-8')
 
 
 class PlainTextSocketAppender(object):
@@ -91,8 +111,8 @@ class PlainTextSocketAppender(object):
         # Error message displayed when an incorrect Token has been detected
         self.INVALID_TOKEN = ("\n\nIt appears the LOGENTRIES_TOKEN "
                               "parameter you entered is incorrect!\n\n")
-        # Encoded unicode line separator
-        self.LINE_SEP = salt.utils.stringutils.to_str('\u2028')
+        # Unicode Line separator character   \u2028
+        self.LINE_SEP = _to_unicode(r'\u2028')
 
         self.verbose = verbose
         self._conn = None
@@ -129,12 +149,17 @@ class PlainTextSocketAppender(object):
             self._conn.close()
 
     def put(self, data):
-        # Replace newlines with Unicode line separator for multi-line events
-        multiline = data.replace('\n', self.LINE_SEP) + str('\n')  # future lint: disable=blacklisted-function
+        # Replace newlines with Unicode line separator
+        # for multi-line events
+        if not _is_unicode(data):
+            multiline = _create_unicode(data).replace('\n', self.LINE_SEP)
+        else:
+            multiline = data.replace('\n', self.LINE_SEP)
+        multiline += "\n"
         # Send data, reconnect if needed
         while True:
             try:
-                self._conn.send(multiline)
+                self._conn.send(multiline.encode('utf-8'))
             except socket.error:
                 self.reopen_connection()
                 continue
@@ -171,6 +196,14 @@ else:
     SocketAppender = TLSSocketAppender
 
 
+def _get_appender(endpoint='data.logentries.com', port=10000):
+    return SocketAppender(verbose=False, LE_API=endpoint, LE_PORT=port)
+
+
+def _emit(token, msg):
+    return '{0} {1}'.format(token, msg)
+
+
 def start(endpoint='data.logentries.com',
           port=10000,
           token=None,
@@ -197,19 +230,13 @@ def start(endpoint='data.logentries.com',
     except ValueError:
         log.warning('Not a valid logentries token')
 
-    appender = SocketAppender(verbose=False, LE_API=endpoint, LE_PORT=port)
+    appender = _get_appender(endpoint, port)
     appender.reopen_connection()
 
     while True:
         event = event_bus.get_event()
         if event:
-            # future lint: disable=blacklisted-function
-            msg = str(' ').join((
-                salt.utils.stringutils.to_str(token),
-                salt.utils.stringutils.to_str(tag),
-                salt.utils.json.dumps(event)
-            ))
-            # future lint: enable=blacklisted-function
-            appender.put(msg)
+            msg = '{0} {1}'.format(tag, json.dumps(event))
+            appender.put(_emit(token, msg))
 
     appender.close_connection()

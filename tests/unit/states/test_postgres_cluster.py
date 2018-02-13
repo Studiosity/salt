@@ -3,7 +3,7 @@
     :codeauthor: :email:`Logilab <contact@logilab.fr>`
 '''
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin

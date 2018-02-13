@@ -8,11 +8,9 @@ Manage the shadow file
     *'shadow.info' is not available*), see :ref:`here
     <module-provider-override>`.
 '''
-# Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
-# Import Salt libs
-import salt.utils.platform
+import salt.utils
 
 # Define the module's virtual name
 __virtualname__ = 'shadow'
@@ -22,7 +20,7 @@ def __virtual__():
     '''
     Only works on Windows systems
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return __virtualname__
     return (False, 'Module win_shadow: module only works on Windows systems.')
 

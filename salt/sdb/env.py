@@ -57,10 +57,10 @@ in the environment:
     ..snip
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-# Import Python libs
-import os
+# import python libs
+from os import environ
 
 __func_alias__ = {
     'set_': 'set'
@@ -79,7 +79,7 @@ def set_(key, value, profile=None):
     Set a key/value pair
     '''
     # pylint: disable=unused-argument
-    return os.environ.setdefault(key, value)
+    return environ.setdefault(key, value)
 
 
 def get(key, profile=None):
@@ -87,4 +87,4 @@ def get(key, profile=None):
     Get a value
     '''
     # pylint: disable=unused-argument
-    return os.environ.get(key)
+    return environ.get(key)

@@ -30,11 +30,10 @@ Configuring the Redis ext_pillar
           - redis: {function: key_value}
 
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-# Import Salt libs
-import salt.utils.json
+# Import python libs
+import json
 
 __virtualname__ = 'redis'
 
@@ -108,7 +107,7 @@ def key_json(minion_id,
     if not key_data:
         return {}
 
-    data = salt.utils.json.loads(key_data)
+    data = json.loads(key_data)
     # Return as requested
     if isinstance(data, dict) and not pillar_key:
         return data

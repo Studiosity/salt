@@ -15,7 +15,7 @@ from __future__ import absolute_import
 import sys
 
 # Import salt libs
-from salt.ext import six
+import salt.ext.six as six
 
 try:
     if sys.version_info >= (3,):
@@ -68,8 +68,7 @@ except ImportError as exc:
 
     class MagicMock(object):
 
-        # __name__ can't be assigned a unicode
-        __name__ = str('{0}.fakemock').format(__name__)  # future lint: disable=blacklisted-function
+        __name__ = '{0}.fakemock'.format(__name__)
 
         def __init__(self, *args, **kwargs):
             pass
@@ -120,7 +119,7 @@ def _iterate_read_data(read_data):
     # Retrieve lines from read_data via a generator so that separate calls to
     # readline, read, and readlines are properly interleaved
     if six.PY3 and isinstance(read_data, six.binary_type):
-        data_as_list = ['{0}\n'.format(l.decode(__salt_system_encoding__)) for l in read_data.split(b'\n')]
+        data_as_list = ['{0}\n'.format(l.decode(__salt_system_encoding__)) for l in read_data.split(six.b('\n'))]
     else:
         data_as_list = ['{0}\n'.format(l) for l in read_data.split('\n')]
 

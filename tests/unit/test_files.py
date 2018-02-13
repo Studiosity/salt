@@ -14,8 +14,11 @@ import tempfile
 from tests.support.unit import TestCase
 
 # Import Salt libs
-from salt.ext import six
-import salt.utils.files
+import salt.utils
+from salt.utils import files as util_files
+
+# Import 3rd-party libs
+import salt.ext.six as six
 
 
 class FilesTestCase(TestCase):
@@ -35,7 +38,7 @@ class FilesTestCase(TestCase):
             os.makedirs(current_directory)
             for name, content in six.iteritems(files):
                 path = os.path.join(temp_directory, folder, name)
-                with salt.utils.files.fopen(path, 'w+') as fh:
+                with salt.utils.fopen(path, 'w+') as fh:
                     fh.write(content)
 
     def _validate_folder_structure_and_contents(self, target_directory,
@@ -43,7 +46,7 @@ class FilesTestCase(TestCase):
         for folder, files in six.iteritems(desired_structure):
             for name, content in six.iteritems(files):
                 path = os.path.join(target_directory, folder, name)
-                with salt.utils.files.fopen(path) as fh:
+                with salt.utils.fopen(path) as fh:
                     assert fh.read().strip() == content
 
     def setUp(self):
@@ -68,7 +71,7 @@ class FilesTestCase(TestCase):
         }
         self._create_temp_structure(test_target_directory, TARGET_STRUCTURE)
         try:
-            salt.utils.files.recursive_copy(self.temp_dir, test_target_directory)
+            util_files.recursive_copy(self.temp_dir, test_target_directory)
             DESIRED_STRUCTURE = copy.copy(TARGET_STRUCTURE)
             DESIRED_STRUCTURE.update(self.STRUCTURE)
             self._validate_folder_structure_and_contents(

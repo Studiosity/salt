@@ -13,11 +13,11 @@ parameter in :mod:`salt.modules.dracr <salt.modules.dracr>` and calls it.
 
 .. versionadded:: 2015.8.2
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
-import salt.utils.platform
+import salt.utils
 
 
 log = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def __virtual__():
     '''
     Only work on proxy
     '''
-    if salt.utils.platform.is_proxy():
+    if salt.utils.is_proxy():
         return __virtualname__
     return (False, 'The chassis execution module cannot be loaded: '
             'this only works in proxy minions.')

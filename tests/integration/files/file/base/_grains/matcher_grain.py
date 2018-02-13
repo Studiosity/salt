@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+#!/usr/bin/env python
 def myfunction():
      grains = {}
      grains['match'] = 'maker'

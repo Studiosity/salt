@@ -63,11 +63,12 @@ still running from the last time the process_runner task was executed.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
 
 # Import salt libs
 import salt.loader
-from salt.ext import six
+import salt.ext.six as six
 from salt.utils.event import get_event, tagify
 from salt.exceptions import SaltInvocationError
 
@@ -170,7 +171,7 @@ def list_items(queue, backend='sqlite'):
     return ret
 
 
-def pop(queue, quantity=1, backend='sqlite', is_runner=False):
+def pop(queue, quantity=1, backend='sqlite'):
     '''
     Pop one or more or all items from a queue
 
@@ -188,11 +189,11 @@ def pop(queue, quantity=1, backend='sqlite', is_runner=False):
     cmd = '{0}.pop'.format(backend)
     if cmd not in queue_funcs:
         raise SaltInvocationError('Function "{0}" is not available'.format(cmd))
-    ret = queue_funcs[cmd](quantity=quantity, queue=queue, is_runner=is_runner)
+    ret = queue_funcs[cmd](quantity=quantity, queue=queue)
     return ret
 
 
-def process_queue(queue, quantity=1, backend='sqlite', is_runner=False):
+def process_queue(queue, quantity=1, backend='sqlite'):
     '''
     Pop items off a queue and create an event on the Salt event bus to be
     processed by a Reactor.
@@ -213,7 +214,7 @@ def process_queue(queue, quantity=1, backend='sqlite', is_runner=False):
                 opts=__opts__,
                 listen=False)
     try:
-        items = pop(queue=queue, quantity=quantity, backend=backend, is_runner=is_runner)
+        items = pop(queue=queue, quantity=quantity, backend=backend)
     except SaltInvocationError as exc:
         error_txt = '{0}'.format(exc)
         __jid_event__.fire_event({'errors': error_txt}, 'progress')
@@ -299,6 +300,6 @@ def process_runner(quantity=1, queue=None, backend=None):
 
     '''
     queue_kwargs = __get_queue_opts(queue=queue, backend=backend)
-    data = process_queue(quantity=quantity, is_runner=True, **queue_kwargs)
+    data = process_queue(quantity=quantity, **queue_kwargs)
     for job in data['items']:
         __salt__[job['fun']](*job['args'], **job['kwargs'])

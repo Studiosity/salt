@@ -4,20 +4,32 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
+import random
+import string
 
 # Import Salt Libs
 from salt.config import cloud_providers_config, cloud_config
-from salt.ext import six
 
 # Import Salt Testing LIbs
 from tests.support.case import ShellCase
 from tests.support.paths import FILES
-from tests.support.helpers import expensiveTest, generate_random_name
+from tests.support.helpers import expensiveTest
+from salt.ext.six.moves import range
+
+
+def __random_name(size=6):
+    '''
+    Generates a radom cloud instance name
+    '''
+    return 'CLOUD-TEST-' + ''.join(
+        random.choice(string.ascii_uppercase + string.digits)
+        for x in range(size)
+    )
 
 # Create the cloud instance name to be used throughout the tests
-INSTANCE_NAME = generate_random_name('CLOUD-TEST-')
+INSTANCE_NAME = __random_name()
 PROVIDER_NAME = 'vmware'
 TIMEOUT = 500
 
@@ -106,7 +118,7 @@ class VMWareTest(ShellCase):
         ret_str = '{0}:\', \'            True'.format(INSTANCE_NAME)
 
         # check if deletion was performed appropriately
-        self.assertIn(ret_str, six.text_type(delete))
+        self.assertIn(ret_str, str(delete))
 
     def test_snapshot(self):
         '''
@@ -130,13 +142,13 @@ class VMWareTest(ShellCase):
                                          timeout=TIMEOUT)
         s_ret_str = 'Snapshot created successfully'
 
-        self.assertIn(s_ret_str, six.text_type(create_snapshot))
+        self.assertIn(s_ret_str, str(create_snapshot))
 
         # delete the instance
         delete = self.run_cloud('-d {0} --assume-yes'.format(INSTANCE_NAME), timeout=TIMEOUT)
         ret_str = '{0}:\', \'            True'.format(INSTANCE_NAME)
 
-        self.assertIn(ret_str, six.text_type(delete))
+        self.assertIn(ret_str, str(delete))
 
     def tearDown(self):
         '''

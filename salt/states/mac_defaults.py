@@ -5,12 +5,12 @@ Writing/reading defaults from a macOS minion
 
 '''
 
-# Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+# Import python libs
+from __future__ import absolute_import
 import logging
 
-# Import Salt libs
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 
 log = logging.getLogger(__name__)
 __virtualname__ = 'macdefaults'
@@ -20,7 +20,7 @@ def __virtual__():
     '''
     Only work on Mac OS
     '''
-    if salt.utils.platform.is_darwin():
+    if salt.utils.is_darwin():
         return __virtualname__
     return False
 

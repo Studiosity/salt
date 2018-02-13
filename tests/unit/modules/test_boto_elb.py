@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 from copy import deepcopy
 import pkg_resources
@@ -51,7 +51,7 @@ except ImportError:
 
 # Import Salt Libs
 import salt.config
-from salt.ext import six
+import salt.ext.six as six
 import salt.loader
 import salt.modules.boto_elb as boto_elb
 import salt.utils.versions
@@ -84,9 +84,9 @@ def _has_required_moto():
         return False
     else:
         moto_version = salt.utils.versions.LooseVersion(pkg_resources.get_distribution('moto').version)
-        if moto_version < salt.utils.versions.LooseVersion(required_moto):
+        if moto_version < required_moto:
             return False
-        elif six.PY3 and moto_version < salt.utils.versions.LooseVersion(required_moto_py3):
+        elif six.PY3 and moto_version < required_moto_py3:
             return False
 
     return True

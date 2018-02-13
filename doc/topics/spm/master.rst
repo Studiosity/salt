@@ -29,7 +29,6 @@ the name of the repository, and the link to the repository:
 For HTTP/HTTPS Basic authorization you can define credentials:
 
 .. code-block:: yaml
-
     my_repo:
       url: https://spm.example.com/
       username: user

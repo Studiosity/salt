@@ -3,7 +3,7 @@
     :codeauthor: :email:`Jayesh Kariya <jayeshk@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import os
 import time
 import tempfile
@@ -20,8 +20,6 @@ from tests.support.mock import (
 )
 
 # Import Salt Libs
-import salt.config
-import salt.loader
 import salt.utils.jid
 import salt.utils.event
 import salt.states.saltmod as saltmod
@@ -33,10 +31,6 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
     Test cases for salt.states.saltmod
     '''
     def setup_loader_modules(self):
-        utils = salt.loader.utils(
-            salt.config.DEFAULT_MINION_OPTS,
-            whitelist=['state']
-        )
         return {
             saltmod: {
                 '__env__': 'base',
@@ -47,8 +41,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
                     'transport': 'tcp'
                 },
                 '__salt__': {'saltutil.cmd': MagicMock()},
-                '__orchestration_jid__': salt.utils.jid.gen_jid({}),
-                '__utils__': utils,
+                '__orchestration_jid__': salt.utils.jid.gen_jid()
             }
         }
 
@@ -74,60 +67,6 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
                     'comment': 'States ran successfully.'
                     }
 
-        test_batch_return = {
-            'minion1': {
-                'ret': {
-                    'test_|-notify_me_|-this is a name_|-show_notification': {
-                        'comment': 'Notify me',
-                        'name': 'this is a name',
-                        'start_time': '10:43:41.487565',
-                        'result': True,
-                        'duration': 0.35,
-                        '__run_num__': 0,
-                        '__sls__': 'demo',
-                        'changes': {},
-                        '__id__': 'notify_me'
-                    },
-                    'retcode': 0
-                },
-                'out': 'highstate'
-            },
-            'minion2': {
-                'ret': {
-                    'test_|-notify_me_|-this is a name_|-show_notification': {
-                        'comment': 'Notify me',
-                        'name': 'this is a name',
-                        'start_time': '10:43:41.487565',
-                        'result': True,
-                        'duration': 0.35,
-                        '__run_num__': 0,
-                        '__sls__': 'demo',
-                        'changes': {},
-                        '__id__': 'notify_me'
-                    },
-                    'retcode': 0
-                },
-                'out': 'highstate'
-            },
-            'minion3': {
-                'ret': {
-                    'test_|-notify_me_|-this is a name_|-show_notification': {
-                        'comment': 'Notify me',
-                        'name': 'this is a name',
-                        'start_time': '10:43:41.487565',
-                        'result': True,
-                        'duration': 0.35,
-                        '__run_num__': 0,
-                        '__sls__': 'demo',
-                        'changes': {},
-                        '__id__': 'notify_me'
-                    },
-                    'retcode': 0
-                },
-                'out': 'highstate'
-            }
-        }
-
         self.assertDictEqual(saltmod.state(name, tgt, allow_fail='a'), ret)
 
         comt = ('No highstate or sls specified, no execution made')
@@ -147,23 +86,8 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         with patch.dict(saltmod.__opts__, {'test': False}):
             mock = MagicMock(return_value={'silver': {'jid': '20170406104341210934', 'retcode': 0, 'ret': {'test_|-notify_me_|-this is a name_|-show_notification': {'comment': 'Notify me', 'name': 'this is a name', 'start_time': '10:43:41.487565', 'result': True, 'duration': 0.35, '__run_num__': 0, '__sls__': 'demo', 'changes': {}, '__id__': 'notify_me'}}, 'out': 'highstate'}})
             with patch.dict(saltmod.__salt__, {'saltutil.cmd': mock}):
-                self.assertDictEqual(saltmod.state(name, tgt, highstate=True), ret)
-
-        ret.update({'comment': 'States ran successfully. No changes made to minion1, minion3, minion2.'})
-        del ret['__jid__']
-        with patch.dict(saltmod.__opts__, {'test': False}):
-            with patch.dict(saltmod.__salt__, {'saltutil.cmd': MagicMock(return_value=test_batch_return)}):
-                state_run = saltmod.state(name, tgt, highstate=True)
-
-                # Test return without checking the comment contents. Comments are tested later.
-                comment = state_run.pop('comment')
-                ret.pop('comment')
-                self.assertDictEqual(state_run, ret)
-
-                # Check the comment contents in a non-order specific way (ordering fails sometimes on PY3)
-                self.assertIn('States ran successfully. No changes made to', comment)
-                for minion in ['minion1', 'minion2', 'minion3']:
-                    self.assertIn(minion, comment)
+                self.assertDictEqual(saltmod.state(name, tgt, highstate=True),
+                                     ret)
 
     # 'function' function tests: 1
 
@@ -258,7 +182,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         name = 'state'
 
-        ret = {'changes': {'return': True}, 'name': 'state', 'result': True,
+        ret = {'changes': True, 'name': 'state', 'result': True,
                'comment': 'Runner function \'state\' executed.',
                '__orchestration__': True}
         runner_mock = MagicMock(return_value={'return': True})
@@ -274,7 +198,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         name = 'state'
 
-        ret = {'changes': {'return': True}, 'name': 'state', 'result': True,
+        ret = {'changes': True, 'name': 'state', 'result': True,
                'comment': 'Wheel function \'state\' executed.',
                '__orchestration__': True}
         wheel_mock = MagicMock(return_value={'return': True})
@@ -298,7 +222,7 @@ class StatemodTests(TestCase, LoaderModuleMockMixin):
                     'extension_modules': os.path.join(self.tmp_cachedir, 'extmods'),
                 },
                 '__salt__': {'saltutil.cmd': MagicMock()},
-                '__orchestration_jid__': salt.utils.jid.gen_jid({})
+                '__orchestration_jid__': salt.utils.jid.gen_jid()
             }
         }
 

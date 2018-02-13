@@ -2,12 +2,10 @@
 '''
 Send events through Salt's event system during state runs
 '''
-
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # import salt libs
-import salt.utils.functools
+import salt.utils
 
 
 def send(name,
@@ -92,5 +90,5 @@ def wait(name, sfun=None):
     return {'name': name, 'changes': {}, 'result': True, 'comment': ''}
 
 
-mod_watch = salt.utils.functools.alias_function(send, 'mod_watch')
-fire_master = salt.utils.functools.alias_function(send, 'fire_master')
+mod_watch = salt.utils.alias_function(send, 'mod_watch')
+fire_master = salt.utils.alias_function(send, 'fire_master')

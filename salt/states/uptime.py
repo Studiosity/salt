@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-'''
-Monitor Web Server with Uptime
+'''Monitor Web Server with Uptime
 ==============================
 
 `Uptime <https://github.com/fzaninotto/uptime>`_ is an open source
@@ -33,8 +32,6 @@ Example:
          - polling: 600 # every hour
 
 '''
-# Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
 
 
 def __virtual__():

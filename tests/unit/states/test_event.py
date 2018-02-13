@@ -3,7 +3,7 @@
     :codeauthor: :email:`Rahul Handay <rahulha@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Libs
 import salt.states.event as event

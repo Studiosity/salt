@@ -3,13 +3,13 @@
 Monit service module. This module will create a monit type
 service watcher.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import re
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 
 # Function alias to make sure not to shadow built-in's
 __func_alias__ = {
@@ -19,7 +19,7 @@ __func_alias__ = {
 
 
 def __virtual__():
-    if salt.utils.path.which('monit') is not None:
+    if salt.utils.which('monit') is not None:
         # The monit binary exists, let the module load
         return True
     return (False, 'The monit execution module cannot be loaded: the monit binary is not in the path.')

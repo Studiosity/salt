@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -21,7 +21,7 @@ import salt.utils.pycrypto
 from salt.exceptions import SaltInvocationError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 def _test_hashlib():

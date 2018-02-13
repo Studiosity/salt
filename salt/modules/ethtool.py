@@ -10,9 +10,12 @@ Module for running ethtool command
 :platform:      linux
 '''
 
+from __future__ import absolute_import
+
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
 import logging
+
+# Import salt libs
 
 # Import third party libs
 try:
@@ -96,7 +99,11 @@ def show_ring(devname):
     try:
         ring = ethtool.get_ringparam(devname)
     except IOError:
-        log.error('Ring parameters not supported on %s', devname)
+        log.error(
+            'Ring parameters not supported on {0}'.format(
+                devname
+            )
+        )
         return 'Not supported'
 
     ret = {}
@@ -120,7 +127,11 @@ def show_coalesce(devname):
     try:
         coalesce = ethtool.get_coalesce(devname)
     except IOError:
-        log.error('Interrupt coalescing not supported on %s', devname)
+        log.error(
+            'Interrupt coalescing not supported on {0}'.format(
+                devname
+            )
+        )
         return 'Not supported'
 
     ret = {}
@@ -144,13 +155,21 @@ def show_driver(devname):
     try:
         module = ethtool.get_module(devname)
     except IOError:
-        log.error('Driver information not implemented on %s', devname)
+        log.error(
+            'Driver information not implemented on {0}'.format(
+                devname
+            )
+        )
         return 'Not implemented'
 
     try:
         businfo = ethtool.get_businfo(devname)
     except IOError:
-        log.error('Bus information no available on %s', devname)
+        log.error(
+            'Bus information no available on {0}'.format(
+                devname
+            )
+        )
         return 'Not available'
 
     ret = {
@@ -175,7 +194,11 @@ def set_ring(devname, **kwargs):
     try:
         ring = ethtool.get_ringparam(devname)
     except IOError:
-        log.error('Ring parameters not supported on %s', devname)
+        log.error(
+            'Ring parameters not supported on {0}'.format(
+                devname
+            )
+        )
         return 'Not supported'
 
     changed = False
@@ -192,7 +215,11 @@ def set_ring(devname, **kwargs):
             ethtool.set_ringparam(devname, ring)
         return show_ring(devname)
     except IOError:
-        log.error('Invalid ring arguments on %s: %s', devname, ring)
+        log.error(
+            'Invalid ring arguments on {0}: {1}'.format(
+                devname, ring
+            )
+        )
         return 'Invalid arguments'
 
 
@@ -214,7 +241,11 @@ def set_coalesce(devname, **kwargs):
     try:
         coalesce = ethtool.get_coalesce(devname)
     except IOError:
-        log.error('Interrupt coalescing not supported on %s', devname)
+        log.error(
+            'Interrupt coalescing not supported on {0}'.format(
+                devname
+            )
+        )
         return 'Not supported'
 
     changed = False
@@ -231,7 +262,11 @@ def set_coalesce(devname, **kwargs):
             ethtool.set_coalesce(devname, coalesce)
         return show_coalesce(devname)
     except IOError:
-        log.error('Invalid coalesce arguments on %s: %s', devname, coalesce)
+        log.error(
+            'Invalid coalesce arguments on {0}: {1}'.format(
+                devname, coalesce
+            )
+        )
         return 'Invalid arguments'
 
 

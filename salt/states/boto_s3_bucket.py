@@ -138,15 +138,13 @@ config:
 
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import copy
+# Import Python Libs
+from __future__ import absolute_import
 import logging
+from copy import deepcopy
+import json
 
 # Import Salt libs
-import salt.utils.json
-
-# Import 3rd-party libs
 from salt.ext import six
 
 log = logging.getLogger(__name__)
@@ -160,7 +158,7 @@ def __virtual__():
 
 
 def _normalize_user(user_dict):
-    ret = copy.deepcopy(user_dict)
+    ret = deepcopy(user_dict)
     # 'Type' is required as input to the AWS API, but not returned as output. So
     # we ignore it everywhere.
     if 'Type' in ret:
@@ -179,7 +177,7 @@ def _prep_acl_for_compare(ACL):
     '''
     Prepares the ACL returned from the AWS API for comparison with a given one.
     '''
-    ret = copy.deepcopy(ACL)
+    ret = deepcopy(ACL)
     ret['Owner'] = _normalize_user(ret['Owner'])
     for item in ret.get('Grants', ()):
         item['Grantee'] = _normalize_user(item.get('Grantee'))
@@ -188,13 +186,13 @@ def _prep_acl_for_compare(ACL):
 
 def _acl_to_grant(ACL, owner_canonical_id):
     if 'AccessControlPolicy' in ACL:
-        ret = copy.deepcopy(ACL['AccessControlPolicy'])
+        ret = deepcopy(ACL['AccessControlPolicy'])
         ret['Owner'] = _normalize_user(ret['Owner'])
         for item in ACL.get('Grants', ()):
             item['Grantee'] = _normalize_user(item.get('Grantee'))
         # If AccessControlPolicy is set, other options are not allowed
         return ret
-    owner_canonical_grant = copy.deepcopy(owner_canonical_id)
+    owner_canonical_grant = deepcopy(owner_canonical_id)
     owner_canonical_grant.update({'Type': 'CanonicalUser'})
     ret = {
         'Grants': [],
@@ -328,7 +326,7 @@ def _compare_replication(current, desired, region, key, keyid, profile):
     Replication accepts a non-ARN role name, but always returns an ARN
     '''
     if desired is not None and desired.get('Role'):
-        desired = copy.deepcopy(desired)
+        desired = deepcopy(desired)
         desired['Role'] = _get_role_arn(desired['Role'],
                                  region=region, key=key, keyid=keyid, profile=profile)
     return __utils__['boto3.json_objs_equal'](current, desired)
@@ -425,7 +423,7 @@ def present(name, Bucket,
         RequestPayment = {'Payer': 'BucketOwner'}
     if Policy:
         if isinstance(Policy, six.string_types):
-            Policy = salt.utils.json.loads(Policy)
+            Policy = json.loads(Policy)
         Policy = __utils__['boto3.ordered'](Policy)
 
     r = __salt__['boto_s3_bucket.exists'](Bucket=Bucket,
@@ -553,9 +551,7 @@ def present(name, Bucket,
                 # Policy description is always returned as a JSON string.
                 # Convert it to JSON now for ease of comparisons later.
                 if isinstance(temp, six.string_types):
-                    current = __utils__['boto3.ordered'](
-                        {'Policy': salt.utils.json.loads(temp)}
-                    )
+                    current = __utils__['boto3.ordered']({'Policy': json.loads(temp)})
         if not comparator(current, desired, region, key, keyid, profile):
             update = True
             if varname == 'ACL':

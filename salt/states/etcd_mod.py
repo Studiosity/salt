@@ -41,20 +41,6 @@ or clusters are available.
     as this makes all master configuration settings available in all minion's
     pillars.
 
-Etcd profile configuration can be overriden using following arguments: ``host``,
-``port``, ``username``, ``password``, ``ca``, ``client_key`` and ``client_cert``.
-
-.. code-block:: yaml
-
-    my-value:
-      etcd.set:
-        - name: /path/to/key
-        - value: value
-        - host: 127.0.0.1
-        - port: 2379
-        - username: user
-        - password: pass
-
 Available Functions
 -------------------
 
@@ -118,7 +104,8 @@ Available Functions
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+
 
 # Define the module's virtual name
 __virtualname__ = 'etcd'
@@ -145,7 +132,7 @@ def __virtual__():
     return __virtualname__ if HAS_ETCD else False
 
 
-def set_(name, value, profile=None, **kwargs):
+def set_(name, value, profile=None):
     '''
     Set a key in etcd and can be called as ``set``.
 
@@ -156,13 +143,6 @@ def set_(name, value, profile=None, **kwargs):
     profile
         Optional, defaults to ``None``. Sets the etcd profile to use which has
         been defined in the Salt Master config.
-
-        .. code-block:: yaml
-
-            my_etd_config:
-              etcd.host: 127.0.0.1
-              etcd.port: 4001
-
     '''
 
     created = False
@@ -174,11 +154,11 @@ def set_(name, value, profile=None, **kwargs):
         'changes': {}
     }
 
-    current = __salt__['etcd.get'](name, profile=profile, **kwargs)
+    current = __salt__['etcd.get'](name, profile=profile)
     if not current:
         created = True
 
-    result = __salt__['etcd.set'](name, value, profile=profile, **kwargs)
+    result = __salt__['etcd.set'](name, value, profile=profile)
 
     if result and result != current:
         if created:
@@ -192,7 +172,7 @@ def set_(name, value, profile=None, **kwargs):
     return rtn
 
 
-def wait_set(name, value, profile=None, **kwargs):
+def wait_set(name, value, profile=None):
     '''
     Set a key in etcd only if the watch statement calls it. This function is
     also aliased as ``wait_set``.
@@ -204,13 +184,6 @@ def wait_set(name, value, profile=None, **kwargs):
     profile
         The etcd profile to use that has been configured on the Salt Master,
         this is optional and defaults to ``None``.
-
-        .. code-block:: yaml
-
-            my_etd_config:
-              etcd.host: 127.0.0.1
-              etcd.port: 4001
-
     '''
 
     return {
@@ -221,49 +194,7 @@ def wait_set(name, value, profile=None, **kwargs):
     }
 
 
-def directory(name, profile=None, **kwargs):
-    '''
-    Create a directory in etcd.
-
-    name
-        The etcd directory name, for example: ``/foo/bar/baz``.
-    profile
-        Optional, defaults to ``None``. Sets the etcd profile to use which has
-        been defined in the Salt Master config.
-
-        .. code-block:: yaml
-
-            my_etd_config:
-              etcd.host: 127.0.0.1
-              etcd.port: 4001
-    '''
-
-    created = False
-
-    rtn = {
-        'name': name,
-        'comment': 'Directory exists',
-        'result': True,
-        'changes': {}
-    }
-
-    current = __salt__['etcd.get'](name, profile=profile, recurse=True, **kwargs)
-    if not current:
-        created = True
-
-    result = __salt__['etcd.set'](name, None, directory=True, profile=profile, **kwargs)
-
-    if result and result != current:
-        if created:
-            rtn['comment'] = 'New directory created'
-            rtn['changes'] = {
-                name: 'Created'
-            }
-
-    return rtn
-
-
-def rm_(name, recurse=False, profile=None, **kwargs):
+def rm_(name, recurse=False, profile=None):
     '''
     Deletes a key from etcd. This function is also aliased as ``rm``.
 
@@ -274,12 +205,6 @@ def rm_(name, recurse=False, profile=None, **kwargs):
     profile
         Optional, defaults to ``None``. Sets the etcd profile to use which has
         been defined in the Salt Master config.
-
-        .. code-block:: yaml
-
-            my_etd_config:
-              etcd.host: 127.0.0.1
-              etcd.port: 4001
     '''
 
     rtn = {
@@ -288,11 +213,11 @@ def rm_(name, recurse=False, profile=None, **kwargs):
         'changes': {}
     }
 
-    if not __salt__['etcd.get'](name, profile=profile, **kwargs):
+    if not __salt__['etcd.get'](name, profile=profile):
         rtn['comment'] = 'Key does not exist'
         return rtn
 
-    if __salt__['etcd.rm'](name, recurse=recurse, profile=profile, **kwargs):
+    if __salt__['etcd.rm'](name, recurse=recurse, profile=profile):
         rtn['comment'] = 'Key removed'
         rtn['changes'] = {
             name: 'Deleted'
@@ -303,7 +228,7 @@ def rm_(name, recurse=False, profile=None, **kwargs):
     return rtn
 
 
-def wait_rm(name, recurse=False, profile=None, **kwargs):
+def wait_rm(name, recurse=False, profile=None):
     '''
     Deletes a key from etcd only if the watch statement calls it.
     This function is also aliased as ``wait_rm``.
@@ -316,12 +241,6 @@ def wait_rm(name, recurse=False, profile=None, **kwargs):
     profile
         Optional, defaults to ``None``. Sets the etcd profile to use which has
         been defined in the Salt Master config.
-
-        .. code-block:: yaml
-
-            my_etd_config:
-              etcd.host: 127.0.0.1
-              etcd.port: 4001
     '''
 
     return {

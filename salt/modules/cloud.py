@@ -4,11 +4,11 @@ Salt-specific interface for calling Salt Cloud directly
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import logging
 import copy
-import salt.utils.data
+import salt.utils
 
 # Import salt libs
 try:
@@ -17,10 +17,11 @@ try:
 except ImportError:
     HAS_SALTCLOUD = False
 
+import salt.utils
 from salt.exceptions import SaltCloudConfigError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
@@ -174,7 +175,7 @@ def get_instance(name, provider=None):
 
     '''
     data = action(fun='show_instance', names=[name], provider=provider)
-    info = salt.utils.data.simple_types_filter(data)
+    info = salt.utils.simple_types_filter(data)
     try:
         # get the first: [alias][driver][vm_name]
         info = next(six.itervalues(next(six.itervalues(next(six.itervalues(info))))))

@@ -3,13 +3,12 @@
 Tests for the spm build utility
 '''
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import shutil
 
 # Import Salt libs
-import salt.utils.files
-import salt.utils.path
+import salt.utils
 
 # Import Salt Testing libs
 from tests.support.case import SPMCase, ModuleCase
@@ -30,14 +29,14 @@ class SPMBuildTest(SPMCase, ModuleCase):
         '''
         test spm build
         '''
-        self.run_spm('build', self.config, self.formula_dir)
+        build_spm = self.run_spm('build', self.config, self.formula_dir)
         spm_file = os.path.join(self.config['spm_build_dir'], 'apache-201506-2.spm')
         # Make sure .spm file gets created
         self.assertTrue(os.path.exists(spm_file))
         # Make sure formula path dir is created
         self.assertTrue(os.path.isdir(self.config['formula_path']))
 
-    @skipIf(salt.utils.path.which('fallocate') is None, 'fallocate not installed')
+    @skipIf(salt.utils.which('fallocate') is None, 'fallocate not installed')
     def test_spm_build_big_file(self):
         '''
         test spm build with a big file
@@ -48,12 +47,12 @@ class SPMBuildTest(SPMCase, ModuleCase):
         if space < 3000000000:
             self.skipTest('Not enough space on host to run this test')
 
-        self.run_function('cmd.run',
-                          ['fallocate -l 1G {0}'.format(os.path.join(self.formula_sls_dir,
-                                                                     'bigfile.txt'))])
-        self.run_spm('build', self.config, self.formula_dir)
+        big_file = self.run_function('cmd.run',
+                                     ['fallocate -l 1G {0}'.format(os.path.join(self.formula_sls_dir,
+                                                                              'bigfile.txt'))])
+        build_spm = self.run_spm('build', self.config, self.formula_dir)
         spm_file = os.path.join(self.config['spm_build_dir'], 'apache-201506-2.spm')
-        self.run_spm('install', self.config, spm_file)
+        install = self.run_spm('install', self.config, spm_file)
 
         get_files = self.run_spm('files', self.config, 'apache')
 
@@ -70,12 +69,12 @@ class SPMBuildTest(SPMCase, ModuleCase):
         files = ['donotbuild1', 'donotbuild2', 'donotbuild3']
 
         for git_file in files:
-            with salt.utils.files.fopen(os.path.join(git_dir, git_file), 'w') as fp:
+            with salt.utils.fopen(os.path.join(git_dir, git_file), 'w') as fp:
                 fp.write('Please do not include me in build')
 
-        self.run_spm('build', self.config, self.formula_dir)
+        build_spm = self.run_spm('build', self.config, self.formula_dir)
         spm_file = os.path.join(self.config['spm_build_dir'], 'apache-201506-2.spm')
-        self.run_spm('install', self.config, spm_file)
+        install = self.run_spm('install', self.config, spm_file)
 
         get_files = self.run_spm('files', self.config, 'apache')
 

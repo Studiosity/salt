@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
+===========================
 Manage the Windows registry
+===========================
 
 -----
 Hives
@@ -25,8 +27,10 @@ Values/Entries are name/data pairs. There can be many values in a key. The
 :depends:   - PyWin32
 '''
 # When production windows installer is using Python 3, Python 2 code can be removed
-from __future__ import absolute_import, print_function, unicode_literals
 
+# Import _future_ python libs first & before any other code
+from __future__ import absolute_import
+from __future__ import unicode_literals
 # Import python libs
 import sys
 import logging
@@ -42,9 +46,8 @@ try:
 except ImportError:
     HAS_WINDOWS_MODULES = False
 
-# Import Salt libs
-import salt.utils.platform
-import salt.utils.stringutils
+# Import salt libs
+import salt.utils
 from salt.exceptions import CommandExecutionError
 
 PY2 = sys.version_info[0] == 2
@@ -58,7 +61,7 @@ def __virtual__():
     '''
     Only works on Windows systems with the PyWin32
     '''
-    if not salt.utils.platform.is_windows():
+    if not salt.utils.is_windows():
         return (False, 'reg execution module failed to load: '
                        'The module will only run on Windows systems')
 
@@ -75,7 +78,7 @@ def _to_mbcs(vdata):
     Converts unicode to to current users character encoding. Use this for values
     returned by reg functions
     '''
-    return salt.utils.stringutils.to_unicode(vdata, 'mbcs')
+    return salt.utils.to_unicode(vdata, 'mbcs')
 
 
 def _to_unicode(vdata):
@@ -83,7 +86,7 @@ def _to_unicode(vdata):
     Converts from current users character encoding to unicode. Use this for
     parameters being pass to reg functions
     '''
-    return salt.utils.stringutils.to_unicode(vdata, 'utf-8')
+    return salt.utils.to_unicode(vdata, 'utf-8')
 
 
 class Registry(object):  # pylint: disable=R0903
@@ -92,13 +95,9 @@ class Registry(object):  # pylint: disable=R0903
     '''
     def __init__(self):
         self.hkeys = {
-            'HKEY_CURRENT_CONFIG': win32con.HKEY_CURRENT_CONFIG,
-            'HKEY_CLASSES_ROOT': win32con.HKEY_CLASSES_ROOT,
             'HKEY_CURRENT_USER':  win32con.HKEY_CURRENT_USER,
             'HKEY_LOCAL_MACHINE': win32con.HKEY_LOCAL_MACHINE,
             'HKEY_USERS': win32con.HKEY_USERS,
-            'HKCC': win32con.HKEY_CURRENT_CONFIG,
-            'HKCR': win32con.HKEY_CLASSES_ROOT,
             'HKCU': win32con.HKEY_CURRENT_USER,
             'HKLM': win32con.HKEY_LOCAL_MACHINE,
             'HKU':  win32con.HKEY_USERS,
@@ -131,11 +130,9 @@ class Registry(object):  # pylint: disable=R0903
         # delete_key_recursive uses this to check the subkey contains enough \
         # as we do not want to remove all or most of the registry
         self.subkey_slash_check = {
-            win32con.HKEY_CURRENT_USER:   0,
-            win32con.HKEY_LOCAL_MACHINE:  1,
-            win32con.HKEY_USERS:          1,
-            win32con.HKEY_CURRENT_CONFIG: 1,
-            win32con.HKEY_CLASSES_ROOT:   1
+            win32con.HKEY_CURRENT_USER:  0,
+            win32con.HKEY_LOCAL_MACHINE: 1,
+            win32con.HKEY_USERS:         1
         }
 
         self.registry_32 = {
@@ -206,8 +203,6 @@ def list_keys(hive, key=None, use_32bit_registry=False):
         - HKEY_LOCAL_MACHINE or HKLM
         - HKEY_CURRENT_USER or HKCU
         - HKEY_USER or HKU
-        - HKEY_CLASSES_ROOT or HKCR
-        - HKEY_CURRENT_CONFIG or HKCC
 
     :param str key: The key (looks like a path) to the value name. If a key is
         not passed, the keys under the hive will be returned.
@@ -245,9 +240,10 @@ def list_keys(hive, key=None, use_32bit_registry=False):
 
         handle.Close()
 
-    except pywintypes.error:  # pylint: disable=E0602
-        log.debug(r'Cannot find key: %s\%s', hive, key, exc_info=True)
-        return False, r'Cannot find key: {0}\{1}'.format(hive, key)
+    except pywintypes.error as exc:  # pylint: disable=E0602
+        log.debug(exc)
+        log.debug('Cannot find key: {0}\\{1}'.format(hive, key))
+        return False, 'Cannot find key: {0}\\{1}'.format(hive, key)
 
     return subkeys
 
@@ -261,8 +257,6 @@ def list_values(hive, key=None, use_32bit_registry=False, include_default=True):
         - HKEY_LOCAL_MACHINE or HKLM
         - HKEY_CURRENT_USER or HKCU
         - HKEY_USER or HKU
-        - HKEY_CLASSES_ROOT or HKCR
-        - HKEY_CURRENT_CONFIG or HKCC
 
     :param str key: The key (looks like a path) to the value name. If a key is
         not passed, the values under the hive will be returned.
@@ -313,7 +307,8 @@ def list_values(hive, key=None, use_32bit_registry=False, include_default=True):
                 value['vdata'] = vdata
             values.append(value)
     except pywintypes.error as exc:  # pylint: disable=E0602
-        log.debug(r'Cannot find key: %s\%s', hive, key, exc_info=True)
+        log.debug(exc)
+        log.debug(r'Cannot find key: {0}\{1}'.format(hive, key))
         return False, r'Cannot find key: {0}\{1}'.format(hive, key)
     finally:
         if handle:
@@ -330,8 +325,6 @@ def read_value(hive, key, vname=None, use_32bit_registry=False):
         - HKEY_LOCAL_MACHINE or HKLM
         - HKEY_CURRENT_USER or HKCU
         - HKEY_USER or HKU
-        - HKEY_CLASSES_ROOT or HKCR
-        - HKEY_CURRENT_CONFIG or HKCC
 
     :param str key: The key (looks like a path) to the value name.
 
@@ -429,8 +422,6 @@ def set_value(hive,
         - HKEY_LOCAL_MACHINE or HKLM
         - HKEY_CURRENT_USER or HKCU
         - HKEY_USER or HKU
-        - HKEY_CLASSES_ROOT or HKCR
-        - HKEY_CURRENT_CONFIG or HKCC
 
     :param str key: The key (looks like a path) to the value name.
 
@@ -555,8 +546,8 @@ def set_value(hive,
         win32api.RegCloseKey(handle)
         broadcast_change()
         return True
-    except (win32api.error, SystemError, ValueError, TypeError):  # pylint: disable=E0602
-        log.exception('Encountered error setting registry value')
+    except (win32api.error, SystemError, ValueError, TypeError) as exc:  # pylint: disable=E0602
+        log.error(exc, exc_info=True)
         return False
 
 
@@ -571,8 +562,6 @@ def delete_key_recursive(hive, key, use_32bit_registry=False):
         - HKEY_LOCAL_MACHINE or HKLM
         - HKEY_CURRENT_USER or HKCU
         - HKEY_USER or HKU
-        - HKEY_CLASSES_ROOT or HKCR
-        - HKEY_CURRENT_CONFIG or HKCC
 
     :param key: The key to remove (looks like a path)
 
@@ -606,10 +595,7 @@ def delete_key_recursive(hive, key, use_32bit_registry=False):
         return False
 
     if (len(key) > 1) and (key.count('\\', 1) < registry.subkey_slash_check[hkey]):
-        log.error(
-            'Hive:%s Key:%s; key is too close to root, not safe to remove',
-            hive, key
-        )
+        log.error('Hive:{0} Key:{1}; key is too close to root, not safe to remove'.format(hive, key))
         return False
 
     # Functions for traversing the registry tree
@@ -634,14 +620,14 @@ def delete_key_recursive(hive, key, use_32bit_registry=False):
         for subkeyname in _subkeys(_key):
             subkeypath = r'{0}\{1}'.format(_keypath, subkeyname)
             _ret = _traverse_registry_tree(_hkey, subkeypath, _ret, access_mask)
-            _ret.append(subkeypath)
+            _ret.append('{0}'.format(subkeypath))
         return _ret
 
     # Get a reverse list of registry keys to be deleted
     key_list = []
     key_list = _traverse_registry_tree(hkey, key_path, key_list, access_mask)
     # Add the top level key last, all subkeys must be deleted first
-    key_list.append(key_path)
+    key_list.append(r'{0}'.format(key_path))
 
     ret = {'Deleted': [],
            'Failed': []}
@@ -670,8 +656,6 @@ def delete_value(hive, key, vname=None, use_32bit_registry=False):
         - HKEY_LOCAL_MACHINE or HKLM
         - HKEY_CURRENT_USER or HKCU
         - HKEY_USER or HKU
-        - HKEY_CLASSES_ROOT or HKCR
-        - HKEY_CURRENT_CONFIG or HKCC
 
     :param str key: The key (looks like a path) to the value name.
 
@@ -707,61 +691,8 @@ def delete_value(hive, key, vname=None, use_32bit_registry=False):
         return True
     except WindowsError as exc:  # pylint: disable=E0602
         log.error(exc, exc_info=True)
-        log.error('Hive: %s', local_hive)
-        log.error('Key: %s', local_key)
-        log.error('ValueName: %s', local_vname)
-        log.error('32bit Reg: %s', use_32bit_registry)
+        log.error('Hive: {0}'.format(local_hive))
+        log.error('Key: {0}'.format(local_key))
+        log.error('ValueName: {0}'.format(local_vname))
+        log.error('32bit Reg: {0}'.format(use_32bit_registry))
         return False
-
-
-def import_file(source, use_32bit_registry=False):
-    '''
-    Import registry settings from a Windows ``REG`` file by invoking ``REG.EXE``.
-
-    .. versionadded:: Oxygen
-
-    Usage:
-
-    CLI Example:
-
-    .. code-block:: bash
-
-        salt machine1 reg.import_file salt://win/printer_config/110_Canon/postinstall_config.reg
-
-    :param str source: The full path of the ``REG`` file. This
-        can be either a local file path or a URL type supported by salt
-        (e.g. ``salt://salt_master_path``).
-
-    :param bool use_32bit_registry: If the value of this paramater is ``True``
-        then the ``REG`` file will be imported into the Windows 32 bit registry.
-        Otherwise the Windows 64 bit registry will be used.
-
-    :return: If the value of ``source`` is an invalid path or otherwise
-       causes ``cp.cache_file`` to return ``False`` then
-       the function will not return and
-       a ``ValueError`` exception will be raised.
-       If ``reg.exe`` exits with a non-0 exit code, then
-       a ``CommandExecutionError`` exception will be
-       raised. On success this function will return
-       ``True``.
-
-    :rtype: bool
-
-    '''
-    cache_path = __salt__['cp.cache_file'](source)
-    if not cache_path:
-        error_msg = "File/URL '{0}' probably invalid.".format(source)
-        raise ValueError(error_msg)
-    if use_32bit_registry:
-        word_sz_txt = "32"
-    else:
-        word_sz_txt = "64"
-    cmd = 'reg import "{0}" /reg:{1}'.format(cache_path, word_sz_txt)
-    cmd_ret_dict = __salt__['cmd.run_all'](cmd, python_shell=True)
-    retcode = cmd_ret_dict['retcode']
-    if retcode != 0:
-        raise CommandExecutionError(
-            'reg.exe import failed',
-            info=cmd_ret_dict
-        )
-    return True

@@ -10,7 +10,7 @@ The thorium system allows for advanced event tracking and reactions
 # Add dynamic recompile of thorium ruleset on given interval
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import time
 import logging
@@ -22,9 +22,6 @@ import salt.state
 import salt.loader
 import salt.payload
 from salt.exceptions import SaltRenderError
-
-# Import 3rd-party libs
-from salt.ext import six
 
 log = logging.getLogger(__name__)
 
@@ -133,7 +130,7 @@ class ThorState(salt.state.HighState):
         matches = self.matches_whitelist(matches, whitelist)
         high, errors = self.render_highstate(matches)
         if exclude:
-            if isinstance(exclude, six.string_types):
+            if isinstance(exclude, str):
                 exclude = exclude.split(',')
             if '__exclude__' in high:
                 high['__exclude__'].extend(exclude)

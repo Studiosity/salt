@@ -4,11 +4,11 @@ State to control Apache modjk
 '''
 
 # Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +41,9 @@ def _bulk_state(saltfunc, lbn, workers, profile):
         ret['result'] = None
         return ret
 
-    log.info('executing %s to modjk workers %s', saltfunc, workers)
+    log.info('executing {0} to modjk workers {1}'.format(
+        saltfunc, workers
+    ))
     try:
         cmdret = __salt__[saltfunc](workers, lbn, profile=profile)
     except KeyError:

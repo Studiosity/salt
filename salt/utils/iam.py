@@ -4,15 +4,14 @@ Connection library for Amazon IAM
 
 :depends: requests
 '''
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
 import time
 import pprint
-import salt.utils.data
 from salt.ext.six.moves import range
-from salt.ext import six
+import salt.ext.six as six
 
 try:
     import requests
@@ -43,12 +42,12 @@ def _retry_get_url(url, num_retries=10, timeout=5):
             pass
 
         log.warning(
-            'Caught exception reading from URL. Retry no. %s', i
+            'Caught exception reading from URL. Retry no. {0}'.format(i)
         )
         log.warning(pprint.pformat(exc))
         time.sleep(2 ** i)
     log.error(
-        'Failed to read from URL for %s times. Giving up.', num_retries
+        'Failed to read from URL for {0} times. Giving up.'.format(num_retries)
     )
     return ''
 
@@ -57,11 +56,8 @@ def _convert_key_to_str(key):
     '''
     Stolen completely from boto.providers
     '''
-    # IMPORTANT: on PY2, the secret key must be str and not unicode to work
-    # properly with hmac.new (see http://bugs.python.org/issue5285)
-    #
-    # pylint: disable=incompatible-py3-code
-    return salt.utils.data.encode(key) \
-        if six.PY2 and isinstance(key, unicode) \
-        else key
-    # pylint: enable=incompatible-py3-code
+    if isinstance(key, six.text_type):
+        # the secret key must be bytes and not unicode to work
+        #  properly with hmac.new (see http://bugs.python.org/issue5285)
+        return str(key)
+    return key

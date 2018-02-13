@@ -32,10 +32,7 @@ systems hardware through IPMI drivers. It uses a python module `pyghmi`.
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
-
-# Import Salt libs
-from salt.ext import six
+from __future__ import absolute_import
 
 
 IMPORT_ERR = None
@@ -43,7 +40,7 @@ try:
     from pyghmi.ipmi import command
     from pyghmi.ipmi.private import session
 except Exception as ex:
-    IMPORT_ERR = six.text_type(ex)
+    IMPORT_ERR = str(ex)
 
 __virtualname__ = 'ipmi'
 
@@ -76,6 +73,7 @@ class _IpmiCommand(object):
     o = None
 
     def __init__(self, **kwargs):
+        #cache_key = api_host + api_user + str(api_port)
         config = _get_config(**kwargs)
         self.o = command.Command(bmc=config['api_host'], userid=config['api_user'],
                                  password=config['api_pass'], port=config['api_port'],
@@ -97,6 +95,7 @@ class _IpmiSession(object):
             raise Exception(response['error'])
 
     def __init__(self, **kwargs):
+        #cache_key = api_host + api_user + str(api_port)
         config = _get_config(**kwargs)
         self.o = session.Session(bmc=config['api_host'],
                                  userid=config['api_user'],

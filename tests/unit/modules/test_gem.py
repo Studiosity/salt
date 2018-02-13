@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -66,7 +66,7 @@ class TestGemModule(TestCase, LoaderModuleMockMixin):
                         {'rvm.is_installed': MagicMock(return_value=False),
                          'rbenv.is_installed': MagicMock(return_value=True),
                          'rbenv.do': mock}),\
-                patch('salt.utils.platform.is_windows', return_value=False):
+                patch('salt.utils.is_windows', return_value=False):
             gem._gem(['install', 'rails'])
             mock.assert_called_once_with(
                 ['gem', 'install', 'rails'],

@@ -7,7 +7,7 @@ Check Host & Service status from Nagios via JSON RPC.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import Salt libs

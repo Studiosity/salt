@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import copy
 
 # Import Salt Testing libs
 from tests.support.unit import TestCase
 
 # Import Salt libs
-import salt.utils.dictupdate as dictupdate
+from salt.utils import dictupdate
 
 
 class UtilDictupdateTestCase(TestCase):

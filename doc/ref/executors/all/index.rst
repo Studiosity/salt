@@ -1,4 +1,4 @@
-.. _all-salt.executors:
+.. _all-salt_executors:
 
 =================
 executors modules

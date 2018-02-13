@@ -3,16 +3,13 @@
 the locale utils used by salt
 '''
 
-# Import Python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
+
 import sys
 
-# Import Salt libs
-import salt.utils.stringutils
+import salt.utils
+import salt.ext.six as six
 from salt.utils.decorators import memoize as real_memoize
-
-# Import 3rd-party libs
-from salt.ext import six
 
 
 @real_memoize
@@ -45,12 +42,12 @@ def sdecode(string_):
     encodings = get_encodings()
     for encoding in encodings:
         try:
-            decoded = salt.utils.stringutils.to_unicode(string_, encoding)
+            decoded = salt.utils.to_unicode(string_, encoding)
             if isinstance(decoded, six.string_types):
                 # Make sure unicode string ops work
                 u' ' + decoded  # pylint: disable=W0104
             return decoded
-        except (TypeError, UnicodeDecodeError):
+        except UnicodeDecodeError:
             continue
     return string_
 

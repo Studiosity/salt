@@ -5,7 +5,7 @@ atomic way
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import tempfile
 import sys
@@ -13,7 +13,7 @@ import errno
 import time
 import random
 import shutil
-from salt.ext import six
+import salt.ext.six as six
 
 # Import salt libs
 import salt.utils.win_dacl

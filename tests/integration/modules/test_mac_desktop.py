@@ -4,14 +4,11 @@ Integration tests for the mac_desktop execution module.
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.case import ModuleCase
 from tests.support.helpers import destructiveTest, skip_if_not_root
-
-# Import 3rd-party libs
-from salt.ext import six
 
 
 @destructiveTest
@@ -46,10 +43,9 @@ class MacDesktopTestCase(ModuleCase):
         '''
         current_vol = self.run_function('desktop.get_output_volume')
         to_set = 10
-        if current_vol == six.text_type(to_set):
+        if current_vol == str(to_set):
             to_set += 2
-        new_vol = self.run_function('desktop.set_output_volume',
-                                    [six.text_type(to_set)])
+        new_vol = self.run_function('desktop.set_output_volume', [str(to_set)])
         check_vol = self.run_function('desktop.get_output_volume')
         self.assertEqual(new_vol, check_vol)
 

@@ -1,35 +1,28 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Pass Renderer for Salt
 
-pass_ is an encrypted on-disk password store.
-
-.. _pass: https://www.passwordstore.org/
+[pass](https://www.passwordstore.org/)
 
 .. versionadded:: 2017.7.0
 
-Setup
------
+# Setup
+__Note__: `<user>` needs to be replaced with the user salt-master will be
+running as
 
-*Note*: ``<user>`` needs to be replaced with the user salt-master will be
-running as.
-
-Have private gpg loaded into ``user``'s gpg keyring
-
-.. code-block:: yaml
-
-    load_private_gpg_key:
-      cmd.run:
-        - name: gpg --import <location_of_private_gpg_key>
-        - unless: gpg --list-keys '<gpg_name>'
-
-Said private key's public key should have been used when encrypting pass entries
-that are of interest for pillar data.
-
-Fetch and keep local pass git repo up-to-date
-
-.. code-block:: yaml
-
+1. Have private gpg loaded into `user`'s gpg keyring
+   * Example salt code
+        ```
+        load_private_gpg_key:
+          cmd.run:
+            - name: gpg --import <location_of_private_gpg_key>
+            - unless: gpg --list-keys '<gpg_name>'
+        ```
+1. Said private key's public key should have been used when encrypting pass
+entries that are of interest for pillar data
+1. Fetch and keep local pass git repo up-to-date
+   * Example salt code
+        ```
         update_pass:
           git.latest:
             - force_reset: True
@@ -38,37 +31,37 @@ Fetch and keep local pass git repo up-to-date
             - identity: <location_of_ssh_private_key>
             - require:
               - cmd: load_private_gpg_key
-
-Install pass binary
-
-.. code-block:: yaml
-
+        ```
+1. Install pass binary
+   * Example salt code
+        ```
         pass:
           pkg.installed
-'''
+        ```
+"""
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import os
 from os.path import expanduser
 from subprocess import Popen, PIPE
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 from salt.exceptions import SaltRenderError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
 
 def _get_pass_exec():
-    '''
+    """
     Return the pass executable or raise an error
-    '''
-    pass_exec = salt.utils.path.which('pass')
+    """
+    pass_exec = salt.utils.which('pass')
     if pass_exec:
         return pass_exec
     else:
@@ -76,12 +69,12 @@ def _get_pass_exec():
 
 
 def _fetch_secret(pass_path):
-    '''
+    """
     Fetch secret from pass based on pass_path. If there is
     any error, return back the original pass_path value
-    '''
+    """
     cmd = "pass show {0}".format(pass_path.strip())
-    log.debug('Fetching secret: %s', cmd)
+    log.debug('Fetching secret: {0}'.format(cmd))
 
     proc = Popen(cmd.split(' '), stdout=PIPE, stderr=PIPE)
     pass_data, pass_error = proc.communicate()
@@ -95,9 +88,9 @@ def _fetch_secret(pass_path):
 
 
 def _decrypt_object(obj):
-    '''
+    """
     Recursively try to find a pass path (string) that can be handed off to pass
-    '''
+    """
     if isinstance(obj, six.string_types):
         return _fetch_secret(obj)
     elif isinstance(obj, dict):
@@ -110,9 +103,9 @@ def _decrypt_object(obj):
 
 
 def render(pass_info, saltenv='base', sls='', argline='', **kwargs):
-    '''
+    """
     Fetch secret from pass based on pass_path
-    '''
+    """
     try:
         _get_pass_exec()
     except SaltRenderError:

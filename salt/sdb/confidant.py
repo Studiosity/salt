@@ -35,11 +35,11 @@ The module can be configured via sdb in the minion config:
 Module Documentation
 ====================
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
-import copy
 import logging
+import copy
 
 # Import third party libs
 try:

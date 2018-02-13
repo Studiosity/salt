@@ -5,14 +5,14 @@
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-# Import Salt libs
-import salt.utils.decorators as decorators
-from salt.version import SaltStackVersion
-from salt.exceptions import CommandExecutionError, SaltConfigurationError
+# Import Salt Testing libs
 from tests.support.unit import skipIf, TestCase
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch
+from salt.utils import decorators
+from salt.version import SaltStackVersion
+from salt.exceptions import CommandExecutionError, SaltConfigurationError
 
 
 class DummyLogger(object):

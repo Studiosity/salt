@@ -5,19 +5,20 @@
 
     Test Salt's loader regarding globals that it should pack in
 '''
+
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import inspect
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.case import ModuleCase
 
 # Import salt libs
 import salt.loader
-import salt.utils.yaml
+import inspect
+import yaml
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 class LoaderGlobalsTest(ModuleCase):
@@ -45,7 +46,7 @@ class LoaderGlobalsTest(ModuleCase):
 
         # get the names of the globals you should have
         func_name = inspect.stack()[1][3]
-        names = next(six.itervalues(salt.utils.yaml.safe_load(getattr(self, func_name).__doc__)))
+        names = next(six.itervalues(yaml.load(getattr(self, func_name).__doc__)))
 
         # Now, test each module!
         for item in global_vars:

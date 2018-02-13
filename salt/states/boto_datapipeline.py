@@ -50,15 +50,14 @@ config:
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import copy
 import datetime
 import difflib
+import json
 
 # Import Salt lobs
-import salt.utils.data
-import salt.utils.json
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import zip
 
 
@@ -399,11 +398,11 @@ def _diff(old_pipeline_definition, new_pipeline_definition):
     old_pipeline_definition.pop('ResponseMetadata', None)
     new_pipeline_definition.pop('ResponseMetadata', None)
 
-    diff = salt.utils.data.decode(difflib.unified_diff(
-        salt.utils.json.dumps(old_pipeline_definition, indent=4).splitlines(True),
-        salt.utils.json.dumps(new_pipeline_definition, indent=4).splitlines(True),
-    ))
-    return ''.join(diff)  # future lint: disable=blacklisted-function
+    diff = difflib.unified_diff(
+        json.dumps(old_pipeline_definition, indent=4).splitlines(1),
+        json.dumps(new_pipeline_definition, indent=4).splitlines(1),
+    )
+    return ''.join(diff)
 
 
 def _standardize(structure):

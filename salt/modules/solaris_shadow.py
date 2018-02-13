@@ -8,7 +8,7 @@ Manage the password database on Solaris systems
     *'shadow.info' is not available*), see :ref:`here
     <module-provider-override>`.
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import os
@@ -24,7 +24,7 @@ except ImportError:
         pass  # We're most likely on a Windows machine.
 
 # Import salt libs
-import salt.utils.files
+import salt.utils
 from salt.exceptions import CommandExecutionError
 try:
     import salt.utils.pycrypto
@@ -117,7 +117,7 @@ def info(name):
     s_file = '/etc/shadow'
     if not os.path.isfile(s_file):
         return ret
-    with salt.utils.files.fopen(s_file, 'rb') as ifile:
+    with salt.utils.fopen(s_file, 'rb') as ifile:
         for line in ifile:
             comps = line.strip().split(':')
             if comps[0] == name:
@@ -280,7 +280,7 @@ def set_password(name, password):
     if not os.path.isfile(s_file):
         return ret
     lines = []
-    with salt.utils.files.fopen(s_file, 'rb') as ifile:
+    with salt.utils.fopen(s_file, 'rb') as ifile:
         for line in ifile:
             comps = line.strip().split(':')
             if comps[0] != name:
@@ -289,8 +289,7 @@ def set_password(name, password):
             comps[1] = password
             line = ':'.join(comps)
             lines.append('{0}\n'.format(line))
-    with salt.utils.files.fopen(s_file, 'w+') as ofile:
-        lines = [salt.utils.stringutils.to_str(_l) for _l in lines]
+    with salt.utils.fopen(s_file, 'w+') as ofile:
         ofile.writelines(lines)
     uinfo = info(name)
     return uinfo['passwd'] == password

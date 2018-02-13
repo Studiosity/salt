@@ -7,18 +7,16 @@ Execution module for Cisco NX OS Switches Proxy minions
 For documentation on setting up the nxos proxy minion look in the documentation
 for :mod:`salt.proxy.nxos <salt.proxy.nxos>`.
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-# Import Salt libs
-import salt.utils.platform
+import salt.utils
 
 __proxyenabled__ = ['nxos']
 __virtualname__ = 'nxos'
 
 
 def __virtual__():
-    if salt.utils.platform.is_proxy():
+    if salt.utils.is_proxy():
         return __virtualname__
     return (False, 'The nxos execution module failed to load: '
             'only available on proxy minions.')

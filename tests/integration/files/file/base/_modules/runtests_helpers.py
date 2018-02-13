@@ -16,16 +16,16 @@ import fnmatch
 import tempfile
 
 # Import salt libs
-import salt.utils.platform
+import salt.utils
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 SYS_TMP_DIR = os.path.realpath(
     # Avoid ${TMPDIR} and gettempdir() on MacOS as they yield a base path too long
     # for unix sockets: ``error: AF_UNIX path too long``
     # Gentoo Portage prefers ebuild tests are rooted in ${TMPDIR}
-    os.environ.get('TMPDIR', tempfile.gettempdir()) if not salt.utils.platform.is_darwin() else '/tmp'
+    os.environ.get('TMPDIR', tempfile.gettempdir()) if not salt.utils.is_darwin() else '/tmp'
 )
 # This tempdir path is defined on tests.integration.__init__
 TMP = os.path.join(SYS_TMP_DIR, 'salt-tests-tmpdir')
@@ -54,10 +54,7 @@ def get_invalid_docs():
         'cp.recv_chunked',
         'glance.warn_until',
         'ipset.long_range',
-        'libcloud_compute.get_driver',
         'libcloud_dns.get_driver',
-        'libcloud_loadbalancer.get_driver',
-        'libcloud_storage.get_driver',
         'log.critical',
         'log.debug',
         'log.error',
@@ -78,7 +75,6 @@ def get_invalid_docs():
         'state.apply',
         'status.list2cmdline',
         'swift.head',
-        'test.rand_str',
         'travisci.parse_qs',
         'vsphere.clean_kwargs',
         'vsphere.disconnect',
@@ -126,26 +122,3 @@ def modules_available(*names):
         if not fnmatch.filter(list(__salt__), name):
             not_found.append(name)
     return not_found
-
-
-def nonzero_retcode_return_true():
-    '''
-    Sets a nonzero retcode before returning. Designed to test orchestration.
-    '''
-    __context__['retcode'] = 1
-    return True
-
-
-def nonzero_retcode_return_false():
-    '''
-    Sets a nonzero retcode before returning. Designed to test orchestration.
-    '''
-    __context__['retcode'] = 1
-    return False
-
-
-def fail_function(*args, **kwargs):  # pylint: disable=unused-argument
-    '''
-    Return False no matter what is passed to it
-    '''
-    return False

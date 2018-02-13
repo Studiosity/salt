@@ -1,14 +1,14 @@
 # coding: utf-8
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import 3rd-party libs
 import tornado.testing
 import tornado.gen
 from tornado.testing import AsyncTestCase
 
-import salt.utils.async as async
+from salt.utils import async
 
 
 class HelperA(object):

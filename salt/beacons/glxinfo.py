@@ -6,12 +6,11 @@ Beacon to emit when a display is available to a linux machine
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Salt libs
-import salt.utils.path
-from salt.ext.six.moves import map
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -22,25 +21,21 @@ last_state = {}
 
 def __virtual__():
 
-    which_result = salt.utils.path.which('glxinfo')
+    which_result = salt.utils.which('glxinfo')
     if which_result is None:
         return False
     else:
         return __virtualname__
 
 
-def validate(config):
+def __validate__(config):
     '''
     Validate the beacon configuration
     '''
     # Configuration for glxinfo beacon should be a dictionary
-    if not isinstance(config, list):
-        return False, ('Configuration for glxinfo beacon must be a list.')
-
-    _config = {}
-    list(map(_config.update, config))
-
-    if 'user' not in _config:
+    if not isinstance(config, dict):
+        return False, ('Configuration for glxinfo beacon must be a dict.')
+    if 'user' not in config:
         return False, ('Configuration for glxinfo beacon must '
                        'include a user as glxinfo is not available to root.')
     return True, 'Valid beacon configuration'
@@ -50,28 +45,27 @@ def beacon(config):
     '''
     Emit the status of a connected display to the minion
 
-    Mainly this is used to detect when the display fails to connect
-    for whatever reason.
+    Mainly this is used to detect when the display fails to connect for whatever reason.
 
     .. code-block:: yaml
 
         beacons:
           glxinfo:
-            - user: frank
-            - screen_event: True
+            user: frank
+            screen_event: True
 
     '''
 
     log.trace('glxinfo beacon starting')
     ret = []
 
-    _config = {}
-    list(map(_config.update, config))
+    _validate = __validate__(config)
+    if not _validate[0]:
+        return ret
 
-    retcode = __salt__['cmd.retcode']('DISPLAY=:0 glxinfo',
-                                      runas=_config['user'], python_shell=True)
+    retcode = __salt__['cmd.retcode']('DISPLAY=:0 glxinfo', runas=config['user'], python_shell=True)
 
-    if 'screen_event' in _config and _config['screen_event']:
+    if 'screen_event' in config and config['screen_event']:
         last_value = last_state.get('screen_available', False)
         screen_available = retcode == 0
         if last_value != screen_available or 'screen_available' not in last_state:

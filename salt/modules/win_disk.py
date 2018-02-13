@@ -4,17 +4,15 @@ Module for gathering disk information on Windows
 
 :depends:   - win32api Python module
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
-# Import Python libs
+# Import python libs
 import ctypes
 import string
 
-# Import Salt libs
-import salt.utils.platform
-
-# Import 3rd-party libs
-from salt.ext import six
+# Import salt libs
+import salt.ext.six as six
+import salt.utils
 
 try:
     import win32api
@@ -35,7 +33,7 @@ def __virtual__():
     '''
     Only works on Windows systems
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return __virtualname__
     return (False, "Module win_disk: module only works on Windows systems")
 

@@ -2,7 +2,7 @@
 '''
 The networking module for RHEL/Fedora based distros
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
@@ -14,12 +14,10 @@ import jinja2
 import jinja2.exceptions
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.stringutils
+import salt.utils
 import salt.utils.templates
 import salt.utils.validate.net
-from salt.exceptions import CommandExecutionError
-from salt.ext import six
+import salt.ext.six as six
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -48,7 +46,7 @@ def __virtual__():
 _ETHTOOL_CONFIG_OPTS = [
     'autoneg', 'speed', 'duplex',
     'rx', 'tx', 'sg', 'tso', 'ufo',
-    'gso', 'gro', 'lro', 'advertise'
+    'gso', 'gro', 'lro'
 ]
 _RH_CONFIG_OPTS = [
     'domain', 'peerdns', 'peerntp', 'defroute',
@@ -94,8 +92,8 @@ def _error_msg_routes(iface, option, expected):
 
 
 def _log_default_iface(iface, opt, value):
-    log.info('Using default option -- Interface: %s Option: %s Value: %s',
-             iface, opt, value)
+    msg = 'Using default option -- Interface: {0} Option: {1} Value: {2}'
+    log.info(msg.format(iface, opt, value))
 
 
 def _error_msg_network(option, expected):
@@ -108,8 +106,8 @@ def _error_msg_network(option, expected):
 
 
 def _log_default_network(opt, value):
-    log.info('Using existing setting -- Setting: %s Value: %s',
-             opt, value)
+    msg = 'Using existing setting -- Setting: {0} Value: {1}'
+    log.info(msg.format(opt, value))
 
 
 def _parse_rh_config(path):
@@ -155,22 +153,10 @@ def _parse_ethtool_opts(opts, iface):
 
     if 'speed' in opts:
         valid = ['10', '100', '1000', '10000']
-        if six.text_type(opts['speed']) in valid:
+        if str(opts['speed']) in valid:
             config.update({'speed': opts['speed']})
         else:
             _raise_error_iface(iface, opts['speed'], valid)
-
-    if 'advertise' in opts:
-        valid = [
-            '0x001', '0x002', '0x004', '0x008', '0x010', '0x020',
-            '0x20000', '0x8000', '0x1000', '0x40000', '0x80000',
-            '0x200000', '0x400000', '0x800000', '0x1000000',
-            '0x2000000', '0x4000000'
-        ]
-        if six.text_type(opts['advertise']) in valid:
-            config.update({'advertise': opts['advertise']})
-        else:
-            _raise_error_iface(iface, 'advertise', valid)
 
     valid = _CONFIG_TRUE + _CONFIG_FALSE
     for option in ('rx', 'tx', 'sg', 'tso', 'ufo', 'gso', 'gro', 'lro'):
@@ -226,42 +212,44 @@ def _parse_settings_bond(opts, iface):
 
     if opts['mode'] in ['balance-rr', '0']:
         log.info(
-            'Device: %s Bonding Mode: load balancing (round-robin)',
-            iface
+            'Device: {0} Bonding Mode: load balancing (round-robin)'.format(
+                iface
+            )
         )
         return _parse_settings_bond_0(opts, iface, bond_def)
     elif opts['mode'] in ['active-backup', '1']:
         log.info(
-            'Device: %s Bonding Mode: fault-tolerance (active-backup)',
-            iface
+            'Device: {0} Bonding Mode: fault-tolerance (active-backup)'.format(
+                iface
+            )
         )
         return _parse_settings_bond_1(opts, iface, bond_def)
     elif opts['mode'] in ['balance-xor', '2']:
         log.info(
-            'Device: %s Bonding Mode: load balancing (xor)',
-            iface
+            'Device: {0} Bonding Mode: load balancing (xor)'.format(iface)
         )
         return _parse_settings_bond_2(opts, iface, bond_def)
     elif opts['mode'] in ['broadcast', '3']:
         log.info(
-            'Device: %s Bonding Mode: fault-tolerance (broadcast)',
-            iface
+            'Device: {0} Bonding Mode: fault-tolerance (broadcast)'.format(
+                iface
+            )
         )
         return _parse_settings_bond_3(opts, iface, bond_def)
     elif opts['mode'] in ['802.3ad', '4']:
         log.info(
-            'Device: %s Bonding Mode: IEEE 802.3ad Dynamic link '
-            'aggregation', iface
+            'Device: {0} Bonding Mode: IEEE 802.3ad Dynamic link '
+            'aggregation'.format(iface)
         )
         return _parse_settings_bond_4(opts, iface, bond_def)
     elif opts['mode'] in ['balance-tlb', '5']:
         log.info(
-            'Device: %s Bonding Mode: transmit load balancing', iface
+            'Device: {0} Bonding Mode: transmit load balancing'.format(iface)
         )
         return _parse_settings_bond_5(opts, iface, bond_def)
     elif opts['mode'] in ['balance-alb', '6']:
         log.info(
-            'Device: %s Bonding Mode: adaptive load balancing', iface
+            'Device: {0} Bonding Mode: adaptive load balancing'.format(iface)
         )
         return _parse_settings_bond_6(opts, iface, bond_def)
     else:
@@ -280,11 +268,7 @@ def _parse_settings_bond_0(opts, iface, bond_def):
     function will log what the Interface, Setting and what it was
     expecting.
     '''
-
-    # balance-rr shares miimon settings with balance-xor
-    bond = _parse_settings_bond_1(opts, iface, bond_def)
-
-    bond.update({'mode': '0'})
+    bond = {'mode': '0'}
 
     # ARP targets in n.n.n.n form
     valid = ['list of ips (up to 16)']
@@ -301,7 +285,7 @@ def _parse_settings_bond_0(opts, iface, bond_def):
                 _raise_error_iface(iface, 'arp_ip_target', valid)
         else:
             _raise_error_iface(iface, 'arp_ip_target', valid)
-    elif 'miimon' not in opts:
+    else:
         _raise_error_iface(iface, 'arp_ip_target', valid)
 
     if 'arp_interval' in opts:
@@ -641,18 +625,12 @@ def _parse_settings_eth(opts, iface_type, enabled, iface):
                 result[opt] = opts[opt]
 
     if iface_type not in ['bond', 'vlan', 'bridge', 'ipip']:
-        auto_addr = False
         if 'addr' in opts:
             if salt.utils.validate.net.mac(opts['addr']):
                 result['addr'] = opts['addr']
-            elif opts['addr'] == 'auto':
-                auto_addr = True
-            elif opts['addr'] != 'none':
-                _raise_error_iface(iface, opts['addr'], ['AA:BB:CC:DD:EE:FF', 'auto', 'none'])
+            else:
+                _raise_error_iface(iface, opts['addr'], ['AA:BB:CC:DD:EE:FF'])
         else:
-            auto_addr = True
-
-        if auto_addr:
             # If interface type is slave for bond, not setting hwaddr
             if iface_type != 'slave':
                 ifaces = __salt__['network.interfaces']()
@@ -672,24 +650,14 @@ def _parse_settings_eth(opts, iface_type, enabled, iface):
                     bypassfirewall = False
                 else:
                     _raise_error_iface(iface, opts[opt], valid)
-
-        bridgectls = [
-            'net.bridge.bridge-nf-call-ip6tables',
-            'net.bridge.bridge-nf-call-iptables',
-            'net.bridge.bridge-nf-call-arptables',
-            ]
-
         if bypassfirewall:
-            sysctl_value = 0
+            __salt__['sysctl.persist']('net.bridge.bridge-nf-call-ip6tables', '0')
+            __salt__['sysctl.persist']('net.bridge.bridge-nf-call-iptables', '0')
+            __salt__['sysctl.persist']('net.bridge.bridge-nf-call-arptables', '0')
         else:
-            sysctl_value = 1
-
-        for sysctl in bridgectls:
-            try:
-                __salt__['sysctl.persist'](sysctl, sysctl_value)
-            except CommandExecutionError:
-                log.warning('Failed to set sysctl: %s', sysctl)
-
+            __salt__['sysctl.persist']('net.bridge.bridge-nf-call-ip6tables', '1')
+            __salt__['sysctl.persist']('net.bridge.bridge-nf-call-iptables', '1')
+            __salt__['sysctl.persist']('net.bridge.bridge-nf-call-arptables', '1')
     else:
         if 'bridge' in opts:
             result['bridge'] = opts['bridge']
@@ -757,7 +725,7 @@ def _parse_settings_eth(opts, iface_type, enabled, iface):
     if 'onboot' in opts:
         log.warning(
             'The \'onboot\' option is controlled by the \'enabled\' option. '
-            'Interface: %s Enabled: %s', iface, enabled
+            'Interface: {0} Enabled: {1}'.format(iface, enabled)
         )
 
     if enabled:
@@ -854,7 +822,7 @@ def _parse_network_settings(opts, current):
         try:
             opts['networking'] = current['networking']
             # If networking option is quoted, use its quote type
-            quote_type = salt.utils.stringutils.is_quoted(opts['networking'])
+            quote_type = salt.utils.is_quoted(opts['networking'])
             _log_default_network('networking', current['networking'])
         except ValueError:
             _raise_error_network('networking', valid)
@@ -864,7 +832,7 @@ def _parse_network_settings(opts, current):
     true_val = '{0}yes{0}'.format(quote_type)
     false_val = '{0}no{0}'.format(quote_type)
 
-    networking = salt.utils.stringutils.dequote(opts['networking'])
+    networking = salt.utils.dequote(opts['networking'])
     if networking in valid:
         if networking in _CONFIG_TRUE:
             result['networking'] = true_val
@@ -882,12 +850,12 @@ def _parse_network_settings(opts, current):
 
     if opts['hostname']:
         result['hostname'] = '{1}{0}{1}'.format(
-            salt.utils.stringutils.dequote(opts['hostname']), quote_type)
+            salt.utils.dequote(opts['hostname']), quote_type)
     else:
         _raise_error_network('hostname', ['server1.example.com'])
 
     if 'nozeroconf' in opts:
-        nozeroconf = salt.utils.stringutils.dequote(opts['nozeroconf'])
+        nozeroconf = salt.utils.dequote(opts['nozeroconf'])
         if nozeroconf in valid:
             if nozeroconf in _CONFIG_TRUE:
                 result['nozeroconf'] = true_val
@@ -899,7 +867,7 @@ def _parse_network_settings(opts, current):
     for opt in opts:
         if opt not in ['networking', 'hostname', 'nozeroconf']:
             result[opt] = '{1}{0}{1}'.format(
-                salt.utils.stringutils.dequote(opts[opt]), quote_type)
+                salt.utils.dequote(opts[opt]), quote_type)
     return result
 
 
@@ -935,8 +903,12 @@ def _read_file(path):
     Reads and returns the contents of a file
     '''
     try:
-        with salt.utils.files.fopen(path, 'rb') as rfh:
-            lines = salt.utils.stringutils.to_unicode(rfh.read()).splitlines()
+        with salt.utils.fopen(path, 'rb') as rfh:
+            contents = rfh.read()
+            if six.PY3:
+                contents = contents.encode(__salt_system_encoding__)
+            # without newlines character. http://stackoverflow.com/questions/12330522/reading-a-file-without-newlines
+            lines = contents.splitlines()
             try:
                 lines.remove('')
             except ValueError:
@@ -956,16 +928,16 @@ def _write_file_iface(iface, data, folder, pattern):
         msg = msg.format(filename, folder)
         log.error(msg)
         raise AttributeError(msg)
-    with salt.utils.files.fopen(filename, 'w') as fp_:
-        fp_.write(salt.utils.stringutils.to_str(data))
+    with salt.utils.fopen(filename, 'w') as fp_:
+        fp_.write(data)
 
 
 def _write_file_network(data, filename):
     '''
     Writes a file to disk
     '''
-    with salt.utils.files.fopen(filename, 'w') as fp_:
-        fp_.write(salt.utils.stringutils.to_str(data))
+    with salt.utils.fopen(filename, 'w') as fp_:
+        fp_.write(data)
 
 
 def _read_temp(data):
@@ -1028,10 +1000,7 @@ def build_interface(iface, iface_type, enabled, **settings):
         salt '*' ip.build_interface eth0 eth <settings>
     '''
     if __grains__['os'] == 'Fedora':
-        if __grains__['osmajorrelease'] >= 18:
-            rh_major = '7'
-        else:
-            rh_major = '6'
+        rh_major = '6'
     else:
         rh_major = __grains__['osrelease'][:1]
 
@@ -1059,8 +1028,9 @@ def build_interface(iface, iface_type, enabled, **settings):
             template = JINJA.get_template('rh{0}_eth.jinja'.format(rh_major))
         except jinja2.exceptions.TemplateNotFound:
             log.error(
-                'Could not load template rh%s_eth.jinja',
-                rh_major
+                'Could not load template rh{0}_eth.jinja'.format(
+                    rh_major
+                )
             )
             return ''
         ifcfg = template.render(opts)
@@ -1093,6 +1063,7 @@ def build_routes(iface, **settings):
         pass
     log.debug('Template name: ' + template)
 
+    iface = iface.lower()
     opts = _parse_routes(iface, settings)
     log.debug("Opts: \n {0}".format(opts))
     try:
@@ -1110,8 +1081,8 @@ def build_routes(iface, **settings):
             opts6.append(route)
         else:
             opts4.append(route)
-    log.debug("IPv4 routes:\n%s", opts4)
-    log.debug("IPv6 routes:\n%s", opts6)
+    log.debug("IPv4 routes:\n{0}".format(opts4))
+    log.debug("IPv6 routes:\n{0}".format(opts6))
 
     routecfg = template.render(routes=opts4, iface=iface)
     routecfg6 = template.render(routes=opts6, iface=iface)

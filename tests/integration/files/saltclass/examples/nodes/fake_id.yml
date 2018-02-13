@@ -1,6 +1,0 @@
-environment: base
-
-classes:
-{% for class in ['default', 'roles.app'] %}
-  - {{ class }}
-{% endfor %}

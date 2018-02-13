@@ -29,31 +29,17 @@ file and set the ``api_key`` to it:
     venafi:
       api_key: abcdef01-2345-6789-abcd-ef0123456789
 '''
-from __future__ import absolute_import, print_function, unicode_literals
-import logging
+from __future__ import absolute_import
 import os
+import logging
 import tempfile
-
-try:
-    from M2Crypto import RSA
-    HAS_M2 = True
-except ImportError:
-    HAS_M2 = False
-    try:
-        from Cryptodome.PublicKey import RSA
-    except ImportError:
-        from Crypto.PublicKey import RSA
-
-# Import Salt libs
-import salt.cache
+from Crypto.PublicKey import RSA
+import json
 import salt.syspaths as syspaths
-import salt.utils.files
-import salt.utils.json
-import salt.utils.stringutils
+import salt.cache
+import salt.utils
+import salt.ext.six as six
 from salt.exceptions import CommandExecutionError
-
-# Import 3rd-party libs
-from salt.ext import six
 
 __virtualname__ = 'venafi'
 log = logging.getLogger(__name__)
@@ -147,12 +133,8 @@ def gen_key(minion_id, dns_name=None, zone='default', password=None):
         key_len = 2048
 
     if keygen_type == "RSA":
-        if HAS_M2:
-            gen = RSA.gen_key(key_len, 65537)
-            private_key = gen.as_pem(cipher='des_ede3_cbc', callback=lambda x: six.b(password))
-        else:
-            gen = RSA.generate(bits=key_len)
-            private_key = gen.exportKey('PEM', password)
+        gen = RSA.generate(bits=key_len)
+        private_key = gen.exportKey('PEM', password)
         if dns_name is not None:
             bank = 'venafi/domains'
             cache = salt.cache.Cache(__opts__, syspaths.CACHE_DIR)
@@ -206,8 +188,8 @@ def gen_csr(
 
     tmppriv = '{0}/priv'.format(tmpdir)
     tmpcsr = '{0}/csr'.format(tmpdir)
-    with salt.utils.files.fopen(tmppriv, 'w') as if_:
-        if_.write(salt.utils.stringutils.to_str(data['private_key']))
+    with salt.utils.fopen(tmppriv, 'w') as if_:
+        if_.write(data['private_key'])
 
     if country is None:
         country = __opts__.get('venafi', {}).get('country')
@@ -250,8 +232,8 @@ def gen_csr(
             'country, state, loc, org, org_unit'
         )
 
-    with salt.utils.files.fopen(tmpcsr, 'r') as of_:
-        csr = salt.utils.stringutils.to_unicode(of_.read())
+    with salt.utils.fopen(tmpcsr, 'r') as of_:
+        csr = of_.read()
 
     data['minion_id'] = minion_id
     data['csr'] = csr
@@ -318,7 +300,7 @@ def request(
         password=password,
     )
 
-    pdata = salt.utils.json.dumps({
+    pdata = json.dumps({
         'zoneId': zone_id,
         'certificateSigningRequest': csr,
     })
@@ -392,7 +374,7 @@ def register(email):
     data = __utils__['http.query'](
         '{0}/useraccounts'.format(_base_url()),
         method='POST',
-        data=salt.utils.json.dumps({
+        data=json.dumps({
             'username': email,
             'userAccountType': 'API',
         }),
@@ -404,7 +386,7 @@ def register(email):
         },
     )
     status = data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(data['error'])
         )
@@ -431,7 +413,7 @@ def show_company(domain):
         },
     )
     status = data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(data['error'])
         )
@@ -458,7 +440,7 @@ def show_csrs():
         },
     )
     status = data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(data['error'])
         )
@@ -486,7 +468,7 @@ def get_zone_id(zone_name):
     )
 
     status = data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(data['error'])
         )
@@ -513,7 +495,7 @@ def show_policies():
         },
     )
     status = data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(data['error'])
         )
@@ -540,7 +522,7 @@ def show_zones():
         },
     )
     status = data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(data['error'])
         )
@@ -568,7 +550,7 @@ def show_cert(id_):
         header_dict={'tppl-api-key': _api_key()},
     )
     status = data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(data['error'])
         )
@@ -581,7 +563,7 @@ def show_cert(id_):
         header_dict={'tppl-api-key': _api_key()},
     )
     status = csr_data['status']
-    if six.text_type(status).startswith('4') or six.text_type(status).startswith('5'):
+    if str(status).startswith('4') or str(status).startswith('5'):
         raise CommandExecutionError(
             'There was an API error: {0}'.format(csr_data['error'])
         )

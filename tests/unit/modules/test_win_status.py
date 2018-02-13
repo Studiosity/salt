@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import sys
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 
 # Import Salt Testing libs
 from tests.support.unit import skipIf, TestCase

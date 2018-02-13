@@ -2,7 +2,7 @@
 '''
 Manage ruby installations and gemsets with RVM, the Ruby Version Manager.
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import re
@@ -10,11 +10,8 @@ import os
 import logging
 
 # Import salt libs
-import salt.utils.args
+import salt.utils
 from salt.exceptions import CommandExecutionError
-
-# Import 3rd party libs
-from salt.ext import six
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +34,7 @@ def _get_rvm_location(runas=None):
     return ['/usr/local/rvm/bin/rvm']
 
 
-def _rvm(command, runas=None, cwd=None, env=None):
+def _rvm(command, runas=None, cwd=None):
     if runas is None:
         runas = __salt__['config.option']('rvm.runas')
     if not is_installed(runas):
@@ -48,16 +45,15 @@ def _rvm(command, runas=None, cwd=None, env=None):
     ret = __salt__['cmd.run_all'](cmd,
                                   runas=runas,
                                   cwd=cwd,
-                                  python_shell=False,
-                                  env=env)
+                                  python_shell=False)
 
     if ret['retcode'] == 0:
         return ret['stdout']
     return False
 
 
-def _rvm_do(ruby, command, runas=None, cwd=None, env=None):
-    return _rvm([ruby or 'default', 'do'] + command, runas=runas, cwd=cwd, env=env)
+def _rvm_do(ruby, command, runas=None, cwd=None):
+    return _rvm([ruby or 'default', 'do'] + command, runas=runas, cwd=cwd)
 
 
 def is_installed(runas=None):
@@ -108,7 +104,7 @@ def install(runas=None):
     return True
 
 
-def install_ruby(ruby, runas=None, opts=None, env=None):
+def install_ruby(ruby, runas=None):
     '''
     Install a ruby implementation.
 
@@ -118,13 +114,6 @@ def install_ruby(ruby, runas=None, opts=None, env=None):
     runas
         The user under which to run rvm. If not specified, then rvm will be run
         as the user under which Salt is running.
-
-    env
-        Environment to set for the install command. Useful for exporting compilation
-        flags such as RUBY_CONFIGURE_OPTS
-
-    opts
-        List of options to pass to the RVM installer (ie -C, --patch, etc)
 
     CLI Example:
 
@@ -137,16 +126,14 @@ def install_ruby(ruby, runas=None, opts=None, env=None):
     #   git-core zlib1g zlib1g-dev libssl-dev libyaml-dev libsqlite3-0
     #   libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev autoconf libc6-dev
     #   libncurses5-dev automake libtool bison subversion ruby
-    if opts is None:
-        opts = []
-
     if runas and runas != 'root':
-        _rvm(['autolibs', 'disable', ruby] + opts, runas=runas)
-        opts.append('--disable-binary')
-    return _rvm(['install', ruby] + opts, runas=runas, env=env)
+        _rvm(['autolibs', 'disable', ruby], runas=runas)
+        return _rvm(['install', '--disable-binary', ruby], runas=runas)
+    else:
+        return _rvm(['install', ruby], runas=runas)
 
 
-def reinstall_ruby(ruby, runas=None, env=None):
+def reinstall_ruby(ruby, runas=None):
     '''
     Reinstall a ruby implementation
 
@@ -163,7 +150,7 @@ def reinstall_ruby(ruby, runas=None, env=None):
 
         salt '*' rvm.reinstall_ruby 1.9.3-p385
     '''
-    return _rvm(['reinstall', ruby], runas=runas, env=env)
+    return _rvm(['reinstall', ruby], runas=runas)
 
 
 def list_(runas=None):
@@ -440,7 +427,7 @@ def gemset_list_all(runas=None):
     return gemsets
 
 
-def do(ruby, command, runas=None, cwd=None, env=None):  # pylint: disable=C0103
+def do(ruby, command, runas=None, cwd=None):  # pylint: disable=C0103
     '''
     Execute a command in an RVM controlled environment.
 
@@ -465,7 +452,7 @@ def do(ruby, command, runas=None, cwd=None, env=None):  # pylint: disable=C0103
         salt '*' rvm.do 2.0.0 <command>
     '''
     try:
-        command = salt.utils.args.shlex_split(command)
+        command = salt.utils.shlex_split(command)
     except AttributeError:
-        command = salt.utils.args.shlex_split(six.text_type(command))
-    return _rvm_do(ruby, command, runas=runas, cwd=cwd, env=env)
+        command = salt.utils.shlex_split(str(command))
+    return _rvm_do(ruby, command, runas=runas, cwd=cwd)

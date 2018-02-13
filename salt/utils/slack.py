@@ -15,7 +15,7 @@ Library for interacting with Slack API
         slack:
           api_key: peWcBiMOS9HrZG15peWcBiMOS9HrZG15
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 import logging
 # Import 3rd-party libs
@@ -45,6 +45,7 @@ def query(function,
     :param data:        The data to be sent for POST method.
     :return:            The json response from the API call or False.
     '''
+    query_params = {}
 
     ret = {'message': '',
            'res': True}
@@ -81,8 +82,6 @@ def query(function,
 
     if not isinstance(args, dict):
         query_params = {}
-    else:
-        query_params = args.copy()
     query_params['token'] = api_key
 
     if header_dict is None:

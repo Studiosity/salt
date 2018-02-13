@@ -295,18 +295,18 @@ TODO
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import os
 import re
 
 # Import Salt Libs
-from salt.ext import six
-import salt.utils.files
+from salt.ext.six import exec_
+import salt.utils
 import salt.loader
 from salt.fileclient import get_file_client
 from salt.utils.pyobjects import Registry, StateFactory, SaltObject, Map
-from salt.ext import six
+import salt.ext.six as six
 
 # our import regexes
 FROM_RE = re.compile(r'^\s*from\s+(salt:\/\/.*)\s+import (.*)$')
@@ -384,7 +384,7 @@ def render(template, saltenv='base', sls='', salt_data=True, **kwargs):
             mod,
             valid_funcs
         )
-        six.exec_(mod_cmd, mod_globals, mod_locals)
+        exec_(mod_cmd, mod_globals, mod_locals)
 
         _globals[mod_camel] = mod_locals[mod_camel]
 
@@ -457,9 +457,9 @@ def render(template, saltenv='base', sls='', salt_data=True, **kwargs):
                         'Could not find the file \'{0}\''.format(import_file)
                     )
 
-                with salt.utils.files.fopen(state_file) as state_fh:
+                with salt.utils.fopen(state_file) as state_fh:
                     state_contents, state_globals = process_template(state_fh)
-                six.exec_(state_contents, state_globals)
+                exec_(state_contents, state_globals)
 
                 # if no imports have been specified then we are being imported as: import salt://foo.sls
                 # so we want to stick all of the locals from our state file into the template globals
@@ -501,6 +501,6 @@ def render(template, saltenv='base', sls='', salt_data=True, **kwargs):
     Registry.enabled = True
 
     # now exec our template using our created scopes
-    six.exec_(final_template, _globals)
+    exec_(final_template, _globals)
 
     return Registry.salt_data()

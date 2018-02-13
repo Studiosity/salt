@@ -5,10 +5,9 @@ Returners Directory
 :func:`get_returner_options` is a general purpose function that returners may
 use to fetch their configuration options.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 import logging
-from salt.ext import six
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +116,7 @@ def _fetch_ret_config(ret):
         return None
     if 'ret_config' not in ret:
         return ''
-    return six.text_type(ret['ret_config'])
+    return str(ret['ret_config'])
 
 
 def _fetch_option(cfg, ret_config, virtualname, attr_name):
@@ -137,7 +136,7 @@ def _fetch_option(cfg, ret_config, virtualname, attr_name):
     if not ret_config:
         # Using the default configuration key
         if isinstance(cfg, dict):
-            return c_cfg.get(default_cfg_key, cfg.get(attr_name))
+            return c_cfg.get(attr_name, cfg.get(default_cfg_key))
         else:
             return c_cfg.get(attr_name, cfg(default_cfg_key))
 

@@ -22,7 +22,6 @@ beacon modules
     load
     log
     memusage
-    napalm_beacon
     network_info
     network_settings
     pkg

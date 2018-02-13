@@ -73,7 +73,7 @@ pushed files are made available.
 Simple Configuration
 --------------------
 
-To use the :mod:`minionfs <salt.fileserver.minionfs>` backend, add ``minionfs``
+To use the :mod:`minionfs <salt.fileserver.minionfs>` backend, add ``minion``
 to the list of backends in the :conf_master:`fileserver_backend` configuration
 option on the master:
 
@@ -83,13 +83,10 @@ option on the master:
 
     fileserver_backend:
       - roots
-      - minionfs
+      - minion
 
 .. note::
-    ``minion`` also works here. Prior to the Oxygen release, *only* ``minion``
-    would work.
-
-    Also, as described earlier, ``file_recv: True`` is needed to enable the
+    As described earlier, ``file_recv: True`` is also needed to enable the
     master to receive files pushed from minions. As always, changes to the
     master configuration require a restart of the ``salt-master`` service.
 
@@ -130,7 +127,7 @@ blacklist, can be found below:
 
     fileserver_backend:
       - roots
-      - minionfs
+      - minion
 
     minionfs_mountpoint: salt://minionfs
 

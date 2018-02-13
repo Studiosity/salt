@@ -2,15 +2,12 @@
 
 # Import Python libs
 from __future__ import absolute_import
-
-# Import Salt libs
-import salt.utils.json
-import salt.utils.yaml
+import json
 
 # Import 3rd-party libs
+import yaml
 from salt.ext.six.moves.urllib.parse import urlencode  # pylint: disable=no-name-in-module,import-error
 
-# Import Salt libs
 from tests.support.cherrypy_testclasses import BaseToolsTest
 
 
@@ -61,7 +58,7 @@ class TestInFormats(BaseToolsTest):
     def test_json_ctype(self):
         data = {'valid': 'stuff'}
         request, response = self.request('/', method='POST',
-            body=salt.utils.json.dumps(data), headers=(
+            body=json.dumps(data), headers=(
                 ('Content-type', 'application/json'),
         ))
         self.assertEqual(response.status, '200 OK')
@@ -73,7 +70,7 @@ class TestInFormats(BaseToolsTest):
         '''
         data = {'valid': 'stuff'}
         request, response = self.request('/', method='POST',
-            body=salt.utils.json.dumps(data), headers=(
+            body=json.dumps(data), headers=(
                 ('Content-type', 'text/plain'),
         ))
         self.assertEqual(response.status, '200 OK')
@@ -82,7 +79,7 @@ class TestInFormats(BaseToolsTest):
     def test_yaml_ctype(self):
         data = {'valid': 'stuff'}
         request, response = self.request('/', method='POST',
-            body=salt.utils.yaml.safe_dump(data), headers=(
+            body=yaml.dump(data), headers=(
                 ('Content-type', 'application/x-yaml'),
         ))
         self.assertEqual(response.status, '200 OK')

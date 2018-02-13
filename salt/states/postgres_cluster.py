@@ -13,7 +13,7 @@ Clusters can be set as either absent or present
           - name: 'main'
           - version: '9.3'
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 
 def __virtual__():

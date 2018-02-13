@@ -5,12 +5,10 @@ Manage and query udev info
 .. versionadded:: 2015.8.0
 
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import logging
+from __future__ import absolute_import
 
-# Import Salt libs
-import salt.utils.path
+import logging
+import salt.utils
 import salt.modules.cmdmod
 from salt.exceptions import CommandExecutionError
 
@@ -25,7 +23,7 @@ def __virtual__():
     '''
     Only work when udevadm is installed.
     '''
-    return salt.utils.path.which_bin(['udevadm']) is not None
+    return salt.utils.which_bin(['udevadm']) is not None
 
 
 def _parse_udevadm_info(udev_info):
@@ -172,7 +170,6 @@ def exportdb():
     CLI Example:
 
     .. code-block:: bash
-
         salt '*' udev.exportdb
     '''
 

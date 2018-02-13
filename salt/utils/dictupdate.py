@@ -5,13 +5,13 @@ http://stackoverflow.com/a/3233356
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import collections
 
 # Import 3rd-party libs
 import copy
 import logging
-from salt.ext import six
+import salt.ext.six as six
 from salt.serializers.yamlex import merge_recursive as _yamlex_merge_recursive
 
 log = logging.getLogger(__name__)
@@ -121,10 +121,8 @@ def merge(obj_a, obj_b, strategy='smart', renderer='yaml', merge_lists=False):
         # we just do not want to log an error
         merged = merge_recurse(obj_a, obj_b)
     else:
-        log.warning(
-            'Unknown merging strategy \'%s\', fallback to recurse',
-            strategy
-        )
+        log.warning('Unknown merging strategy \'{0}\', '
+                    'fallback to recurse'.format(strategy))
         merged = merge_recurse(obj_a, obj_b)
 
     return merged

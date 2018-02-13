@@ -1,7 +1,0 @@
-classes:
-  - roles.nginx
-
-pillars:
-  nginx:
-    pkg:
-      - nginx-module

@@ -12,14 +12,13 @@ Example:
         - user: rabbit
         - host: rabbit.example.com
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
 
 # Import salt libs
-import salt.utils.functools
-import salt.utils.path
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def __virtual__():
     '''
     Only load if RabbitMQ is installed.
     '''
-    return salt.utils.path.which('rabbitmqctl') is not None
+    return salt.utils.which('rabbitmqctl') is not None
 
 
 def joined(name, host, user='rabbit', ram_node=None, runas='root'):
@@ -78,4 +77,4 @@ def joined(name, host, user='rabbit', ram_node=None, runas='root'):
 
 
 # Alias join to preserve backward compat
-join = salt.utils.functools.alias_function(joined, 'join')
+join = salt.utils.alias_function(joined, 'join')

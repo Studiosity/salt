@@ -57,7 +57,7 @@ Complete example
             as_list: True
             with_lists: [1,3]
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 from contextlib import contextmanager

@@ -19,8 +19,9 @@ Module for working with the Zenoss API
 '''
 
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import re
+import json
 import logging
 
 try:
@@ -29,7 +30,6 @@ try:
 except ImportError:
     HAS_LIBS = False
 
-import salt.utils.json
 
 # Disable INFO level logs from requests/urllib3
 urllib3_logger = logging.getLogger('urllib3')
@@ -84,7 +84,7 @@ def _router_request(router, method, data=None):
     if router not in ROUTERS:
         return False
 
-    req_data = salt.utils.json.dumps([dict(
+    req_data = json.dumps([dict(
         action=router,
         method=method,
         data=data,
@@ -103,7 +103,7 @@ def _router_request(router, method, data=None):
         log.error('Request failed. Bad username/password.')
         raise Exception('Request failed. Bad username/password.')
 
-    return salt.utils.json.loads(response.content).get('result', None)
+    return json.loads(response.content).get('result', None)
 
 
 def _determine_device_class():

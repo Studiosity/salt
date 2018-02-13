@@ -13,8 +13,8 @@ State modules to interact with Junos devices.
 
 Refer to :mod:`junos <salt.proxy.junos>` for information on connecting to junos proxy.
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+
 import logging
 
 log = logging.getLogger()

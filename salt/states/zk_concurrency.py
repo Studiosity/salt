@@ -3,10 +3,6 @@
 Control concurrency of steps within state execution using zookeeper
 ===================================================================
 
-:depends: kazoo
-:configuration: See :py:mod:`salt.modules.zookeeper` for setup instructions.
-
-
 This module allows you to "wrap" a state's execution with concurrency control.
 This is useful to protect against all hosts executing highstate simultaneously
 if your services don't all HUP restart. The common way of protecting against this
@@ -46,9 +42,6 @@ This example would allow the file state to change, but would limit the
 concurrency of the trafficserver service restart to 4.
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-
 # TODO: use depends decorator to make these per function deps, instead of all or nothing
 REQUIRED_FUNCS = (
     'zk_concurrency.lock',
@@ -67,16 +60,12 @@ def __virtual__():
 
 
 def lock(name,
-         zk_hosts=None,
+         zk_hosts,
          identifier=None,
          max_concurrency=1,
          timeout=None,
          ephemeral_lease=False,
-         profile=None,
-         scheme=None,
-         username=None,
-         password=None,
-         default_acl=None):
+         ):
     '''
     Block state execution until you are able to get the lock (or hit the timeout)
 
@@ -85,8 +74,6 @@ def lock(name,
            'changes': {},
            'result': False,
            'comment': ''}
-    conn_kwargs = {'profile': profile, 'scheme': scheme,
-                   'username': username, 'password': password, 'default_acl': default_acl}
 
     if __opts__['test']:
         ret['result'] = None
@@ -101,8 +88,7 @@ def lock(name,
                                              identifier=identifier,
                                              max_concurrency=max_concurrency,
                                              timeout=timeout,
-                                             ephemeral_lease=ephemeral_lease,
-                                             **conn_kwargs)
+                                             ephemeral_lease=ephemeral_lease)
     if locked:
         ret['result'] = True
         ret['comment'] = 'lock acquired'
@@ -116,12 +102,8 @@ def unlock(name,
            zk_hosts=None,  # in case you need to unlock without having run lock (failed execution for example)
            identifier=None,
            max_concurrency=1,
-           ephemeral_lease=False,
-           profile=None,
-           scheme=None,
-           username=None,
-           password=None,
-           default_acl=None):
+           ephemeral_lease=False
+           ):
     '''
     Remove lease from semaphore.
     '''
@@ -129,8 +111,6 @@ def unlock(name,
            'changes': {},
            'result': False,
            'comment': ''}
-    conn_kwargs = {'profile': profile, 'scheme': scheme,
-                   'username': username, 'password': password, 'default_acl': default_acl}
 
     if __opts__['test']:
         ret['result'] = None
@@ -144,8 +124,7 @@ def unlock(name,
                                                  zk_hosts=zk_hosts,
                                                  identifier=identifier,
                                                  max_concurrency=max_concurrency,
-                                                 ephemeral_lease=ephemeral_lease,
-                                                 **conn_kwargs)
+                                                 ephemeral_lease=ephemeral_lease)
 
     if unlocked:
         ret['result'] = True
@@ -158,12 +137,8 @@ def unlock(name,
 def min_party(name,
               zk_hosts,
               min_nodes,
-              blocking=False,
-              profile=None,
-              scheme=None,
-              username=None,
-              password=None,
-              default_acl=None):
+              blocking=False
+              ):
     '''
     Ensure that there are `min_nodes` in the party at `name`, optionally blocking if not available.
     '''
@@ -171,15 +146,13 @@ def min_party(name,
            'changes': {},
            'result': False,
            'comment': ''}
-    conn_kwargs = {'profile': profile, 'scheme': scheme,
-                   'username': username, 'password': password, 'default_acl': default_acl}
 
     if __opts__['test']:
         ret['result'] = None
         ret['comment'] = 'Attempt to ensure min_party'
         return ret
 
-    nodes = __salt__['zk_concurrency.party_members'](name, zk_hosts, min_nodes, blocking=blocking, **conn_kwargs)
+    nodes = __salt__['zk_concurrency.party_members'](name, zk_hosts, min_nodes, blocking=blocking)
     if not isinstance(nodes, list):
         raise Exception('Error from zk_concurrency.party_members, return was not a list: {0}'.format(nodes))
 

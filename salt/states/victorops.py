@@ -17,9 +17,6 @@ VictorOps service during state runs.
         - state_message: 'Webserver diskspace is low.'
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-
 
 def __virtual__():
     '''

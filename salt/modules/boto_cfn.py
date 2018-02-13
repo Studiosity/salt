@@ -32,13 +32,10 @@ Connection module for Amazon Cloud Formation
 # keep lint from choking on _get_conn and _cache_id
 #pylint: disable=E0602
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
-
-# Import Salt libs
-import salt.utils.versions
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +57,9 @@ def __virtual__():
     '''
     Only load if boto libraries exist.
     '''
-    return salt.utils.versions.check_boto_reqs(check_boto3=False)
+    if not HAS_BOTO:
+        return (False, 'The module boto_cfs could not be loaded: boto libraries not found')
+    return True
 
 
 def __init__(opts):
@@ -81,10 +80,10 @@ def exists(name, region=None, key=None, keyid=None, profile=None):
     try:
         # Returns an object if stack exists else an exception
         exists = conn.describe_stacks(name)
-        log.debug('Stack %s exists.', name)
+        log.debug('Stack {0} exists.'.format(name))
         return True
     except BotoServerError as e:
-        log.debug('boto_cfn.exists raised an exception', exc_info=True)
+        log.debug('Exists returned an exception.\n{0}'.format(str(e)))
         return False
 
 
@@ -105,27 +104,22 @@ def describe(name, region=None, key=None, keyid=None, profile=None):
         r = conn.describe_stacks(name)
         if r:
             stack = r[0]
-            log.debug('Found VPC: %s', stack.stack_id)
-            keys = ('stack_id', 'description', 'stack_status', 'stack_status_reason', 'tags')
+            log.debug('Found VPC: {0}'.format(stack.stack_id))
+            keys = ('stack_id', 'description', 'stack_status', 'stack_status_reason')
 
             ret = dict([(k, getattr(stack, k)) for k in keys if hasattr(stack, k)])
             o = getattr(stack, 'outputs')
-            p = getattr(stack, 'parameters')
             outputs = {}
-            parameters = {}
             for i in o:
                 outputs[i.key] = i.value
             ret['outputs'] = outputs
-            for j in p:
-                parameters[j.key] = j.value
-            ret['parameters'] = parameters
 
             return {'stack': ret}
 
-        log.debug('Stack %s exists.', name)
+        log.debug('Stack {0} exists.'.format(name))
         return True
     except BotoServerError as e:
-        log.warning('Could not describe stack %s.\n%s', name, e)
+        log.warning('Could not describe stack {0}.\n{1}'.format(name, str(e)))
         return False
 
 
@@ -146,7 +140,7 @@ def create(name, template_body=None, template_url=None, parameters=None, notific
         return conn.create_stack(name, template_body, template_url, parameters, notification_arns, disable_rollback,
                                  timeout_in_minutes, capabilities, tags, on_failure, stack_policy_body, stack_policy_url)
     except BotoServerError as e:
-        msg = 'Failed to create stack {0}.\n{1}'.format(name, e)
+        msg = 'Failed to create stack {0}.\n{1}'.format(name, str(e))
         log.error(msg)
         log.debug(e)
         return False
@@ -173,13 +167,13 @@ def update_stack(name, template_body=None, template_url=None, parameters=None, n
                                    disable_rollback, timeout_in_minutes, capabilities, tags, use_previous_template,
                                    stack_policy_during_update_body, stack_policy_during_update_url,
                                    stack_policy_body, stack_policy_url)
-        log.debug('Updated result is : %s.', update)
+        log.debug('Updated result is : {0}.'.format(update))
         return update
     except BotoServerError as e:
         msg = 'Failed to update stack {0}.'.format(name)
         log.debug(e)
         log.error(msg)
-        return six.text_type(e)
+        return str(e)
 
 
 def delete(name, region=None, key=None, keyid=None, profile=None):
@@ -198,7 +192,7 @@ def delete(name, region=None, key=None, keyid=None, profile=None):
         msg = 'Failed to create stack {0}.'.format(name)
         log.error(msg)
         log.debug(e)
-        return six.text_type(e)
+        return str(e)
 
 
 def get_template(name, region=None, key=None, keyid=None, profile=None):
@@ -213,13 +207,13 @@ def get_template(name, region=None, key=None, keyid=None, profile=None):
 
     try:
         template = conn.get_template(name)
-        log.info('Retrieved template for stack %s', name)
+        log.info('Retrieved template for stack {0}'.format(name))
         return template
     except BotoServerError as e:
         log.debug(e)
         msg = 'Template {0} does not exist'.format(name)
         log.error(msg)
-        return six.text_type(e)
+        return str(e)
 
 
 def validate_template(template_body=None, template_url=None, region=None, key=None, keyid=None, profile=None):
@@ -241,4 +235,4 @@ def validate_template(template_body=None, template_url=None, region=None, key=No
         log.debug(e)
         msg = 'Error while trying to validate template {0}.'.format(template_body)
         log.error(msg)
-        return six.text_type(e)
+        return str(e)

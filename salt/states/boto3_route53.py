@@ -65,13 +65,12 @@ passed in as a dict, or as a string to pull from pillars or minion config:
 #pylint: disable=E1320
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import uuid
 
 # Import Salt Libs
 import salt.utils.dictupdate as dictupdate
-from salt.utils import exactly_one
-from salt.exceptions import SaltInvocationError
+from salt.utils import SaltInvocationError, exactly_one
 import logging
 log = logging.getLogger(__name__)  # pylint: disable=W1699
 
@@ -129,7 +128,7 @@ def _to_aws_encoding(instring):
             raise SaltInvocationError("Invalid Route53 domain character seen (octal {0}) in string "
                                       "{1}.  Do you need to punycode it?".format(octal, instring))
     ret = ''.join(outlist)
-    log.debug('Name after massaging is: %s', ret)
+    log.debug('Name after massaging is: {}'.format(ret))
     return ret
 
 
@@ -138,13 +137,14 @@ def _from_aws_encoding(string):  # XXX TODO
 
 
 def hosted_zone_present(name, Name=None, PrivateZone=False,
-                        CallerReference=None, Comment=None, VPCs=None,
+                        CallerReference=None, Comment='', VPCs=None,
                         region=None, key=None, keyid=None, profile=None):
     '''
     Ensure a hosted zone exists with the given attributes.
 
     name
-        The name of the state definition.
+        The name of the state definition.  This will be used as the 'CallerReference' param when
+        creating the hosted zone to help ensure idempotency.
 
     Name
         The name of the domain. This should be a fully-specified domain, and should terminate with a
@@ -247,7 +247,7 @@ def hosted_zone_present(name, Name=None, PrivateZone=False,
         if len(fixed_vpcs) > 1:
             add_vpcs = fixed_vpcs[1:]
             fixed_vpcs = fixed_vpcs[:1]
-        CallerReference = CallerReference if CallerReference else str(uuid.uuid4())  # future lint: disable=blacklisted-function
+        CallerReference = CallerReference if CallerReference else str(uuid.uuid4())
     else:
         # Currently the only modifiable traits about a zone are associated VPCs and the comment.
         zone = zone[0]
@@ -642,11 +642,6 @@ def rr_present(name, HostedZoneId=None, DomainName=None, PrivateZone=False, Name
                     ret['result'] = False
                     return ret
             else:
-                # for TXT records the entry must be encapsulated in quotes as required by the API
-                # this appears to be incredibly difficult with the jinja templating engine
-                # so inject the quotations here to make a viable ChangeBatch
-                if Type == 'TXT':
-                    rr = '"%s"' % (rr)
                 fixed_rrs += [rr]
         ResourceRecords = [{'Value': rr} for rr in sorted(fixed_rrs)]
 
@@ -655,9 +650,9 @@ def rr_present(name, HostedZoneId=None, DomainName=None, PrivateZone=False, Name
             profile=profile)
 
     if SetIdentifier and recordsets:
-        log.debug('Filter recordsets %s by SetIdentifier %s.', recordsets, SetIdentifier)
+        log.debug('Filter recordsets {} by SetIdentifier {}.'.format(recordsets, SetIdentifier))
         recordsets = [r for r in recordsets if r.get('SetIdentifier') == SetIdentifier]
-        log.debug('Resulted in recordsets %s.', recordsets)
+        log.debug('Resulted in recordsets {}.'.format(recordsets))
 
     create = False
     update = False
@@ -701,6 +696,7 @@ def rr_present(name, HostedZoneId=None, DomainName=None, PrivateZone=False, Name
         }
         if ResourceRecords:
             ResourceRecordSet['ResourceRecords'] = ResourceRecords
+
         for u in updatable:
             ResourceRecordSet.update({u: locals().get(u)}) if locals().get(u) else None
 
@@ -798,9 +794,9 @@ def rr_absent(name, HostedZoneId=None, DomainName=None, PrivateZone=False,
             StartRecordName=Name, StartRecordType=Type, region=region, key=key, keyid=keyid,
             profile=profile)
     if SetIdentifier and recordsets:
-        log.debug('Filter recordsets %s by SetIdentifier %s.', recordsets, SetIdentifier)
+        log.debug('Filter recordsets {} by SetIdentifier {}.'.format(recordsets, SetIdentifier))
         recordsets = [r for r in recordsets if r.get('SetIdentifier') == SetIdentifier]
-        log.debug('Resulted in recordsets %s.', recordsets)
+        log.debug('Resulted in recordsets {}.'.format(recordsets))
     if not recordsets:
         ret['comment'] = 'Route 53 resource record {} with type {} already absent.'.format(
                 Name, Type)

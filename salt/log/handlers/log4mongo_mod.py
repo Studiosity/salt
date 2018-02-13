@@ -35,12 +35,12 @@
         Sentry and by the log4mongo Python implementation.
 '''
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import socket
 import logging
 
 # Import salt libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.log.mixins import NewStyleClassMixIn
 from salt.log.setup import LOG_LEVELS
 

@@ -11,10 +11,10 @@ Manage ini files
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 
 __virtualname__ = 'ini'
 
@@ -65,7 +65,7 @@ def options_present(name, sections=None, separator='=', strict=False):
                 return ret
             for key in sections[section]:
                 cur_value = cur_section.get(key)
-                if cur_value == six.text_type(sections[section][key]):
+                if cur_value == str(sections[section][key]):
                     ret['comment'] += 'Key {0}{1} unchanged.\n'.format(key, section_name)
                     continue
                 ret['comment'] += 'Changed key {0}{1}.\n'.format(key, section_name)

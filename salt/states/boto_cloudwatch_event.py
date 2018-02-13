@@ -52,16 +52,15 @@ config:
 
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import Python Libs
+from __future__ import absolute_import
 import logging
 import os
+import os.path
+import json
 
-# Import Salt libs
-import salt.utils.json
-
-# Import 3rd-party libs
-from salt.ext import six
+# Import Salt Libs
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
@@ -133,7 +132,7 @@ def present(name, Name=None,
     Name = Name if Name else name
 
     if isinstance(Targets, six.string_types):
-        Targets = salt.utils.json.loads(Targets)
+        Targets = json.loads(Targets)
     if Targets is None:
         Targets = []
 

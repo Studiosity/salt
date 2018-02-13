@@ -29,16 +29,11 @@ single-line output format and to parse each line individually. Example output
     {"phill": {"en0": {"hwaddr": "02:1d:cc:a2:33:55", ...}}}
     {"stuart": {"en0": {"hwaddr": "02:9a:e0:ea:9e:3c", ...}}}
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
+import json
 import logging
-
-# Import Salt libs
-import salt.utils.json
-
-# Import 3rd-party libs
-from salt.ext import six
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +54,7 @@ def output(data, **kwargs):  # pylint: disable=unused-argument
     '''
     try:
         if 'output_indent' not in __opts__:
-            return salt.utils.json.dumps(data, default=repr, indent=4)
+            return json.dumps(data, default=repr, indent=4)
 
         indent = __opts__.get('output_indent')
         sort_keys = False
@@ -77,16 +72,13 @@ def output(data, **kwargs):  # pylint: disable=unused-argument
             else:
                 indent = None
 
-        return salt.utils.json.dumps(data, default=repr, indent=indent, sort_keys=sort_keys)
+        return json.dumps(data, default=repr, indent=indent, sort_keys=sort_keys)
 
     except UnicodeDecodeError as exc:
         log.error('Unable to serialize output to json')
-        return salt.utils.json.dumps(
-            {'error': 'Unable to serialize output to json',
-             'message': six.text_type(exc)}
-        )
+        return json.dumps({'error': 'Unable to serialize output to json', 'message': str(exc)})
 
     except TypeError:
         log.debug('An error occurred while outputting JSON', exc_info=True)
     # Return valid JSON for unserializable objects
-    return salt.utils.json.dumps({})
+    return json.dumps({})

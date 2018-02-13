@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-The networking module for Debian-based distros
+The networking module for Debian based distros
 
 References:
 
@@ -8,7 +8,7 @@ References:
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import functools
 import logging
 import os.path
@@ -19,15 +19,14 @@ import time
 # Import third party libs
 import jinja2
 import jinja2.exceptions
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import StringIO  # pylint: disable=import-error,no-name-in-module
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.odict
-import salt.utils.stringutils
+import salt.utils
 import salt.utils.templates
 import salt.utils.validate.net
+import salt.utils.odict
 
 
 # Set up logging
@@ -46,7 +45,7 @@ __virtualname__ = 'ip'
 
 def __virtual__():
     '''
-    Confine this module to Debian-based distros
+    Confine this module to Debian based distros
     '''
     if __grains__['os_family'] == 'Debian':
         return __virtualname__
@@ -220,8 +219,8 @@ def _read_file(path):
     Reads and returns the contents of a text file
     '''
     try:
-        with salt.utils.files.flopen(path, 'rb') as contents:
-            return [salt.utils.stringutils.to_str(line) for line in contents.readlines()]
+        with salt.utils.flopen(path, 'rb') as contents:
+            return [salt.utils.to_str(line) for line in contents.readlines()]
     except (OSError, IOError):
         return ''
 
@@ -281,9 +280,8 @@ def _parse_current_network_settings():
     opts['networking'] = ''
 
     if os.path.isfile(_DEB_NETWORKING_FILE):
-        with salt.utils.files.fopen(_DEB_NETWORKING_FILE) as contents:
+        with salt.utils.fopen(_DEB_NETWORKING_FILE) as contents:
             for line in contents:
-                salt.utils.stringutils.to_unicode(line)
                 if line.startswith('#'):
                     continue
                 elif line.startswith('CONFIGURE_INTERFACES'):
@@ -426,7 +424,7 @@ DEBIAN_ATTR_TO_SALT_ATTR_MAP['hwaddress'] = 'hwaddress'
 IPV4_VALID_PROTO = ['bootp', 'dhcp', 'static', 'manual', 'loopback', 'ppp']
 
 IPV4_ATTR_MAP = {
-    'proto': __within(IPV4_VALID_PROTO, dtype=six.text_type),
+    'proto': __within(IPV4_VALID_PROTO, dtype=str),
     # ipv4 static & manual
     'address': __ipv4_quad,
     'netmask': __ipv4_netmask,
@@ -436,7 +434,7 @@ IPV4_ATTR_MAP = {
     'pointopoint':  __ipv4_quad,
     'hwaddress':  __mac,
     'mtu':  __int,
-    'scope': __within(['global', 'link', 'host'], dtype=six.text_type),
+    'scope': __within(['global', 'link', 'host'], dtype=str),
     # dhcp
     'hostname': __anything,
     'leasehours':  __int,
@@ -448,7 +446,7 @@ IPV4_ATTR_MAP = {
     'server':  __ipv4_quad,
     'hwaddr':  __mac,
     # tunnel
-    'mode':  __within(['gre', 'GRE', 'ipip', 'IPIP', '802.3ad'], dtype=six.text_type),
+    'mode':  __within(['gre', 'GRE', 'ipip', 'IPIP', '802.3ad'], dtype=str),
     'endpoint':  __ipv4_quad,
     'dstaddr':  __ipv4_quad,
     'local':  __ipv4_quad,
@@ -484,7 +482,7 @@ IPV6_ATTR_MAP = {
     'gateway': __ipv6,  # supports a colon-delimited list
     'hwaddress':  __mac,
     'mtu':  __int,
-    'scope': __within(['global', 'site', 'link', 'host'], dtype=six.text_type),
+    'scope': __within(['global', 'site', 'link', 'host'], dtype=str),
     # inet6 auto
     'privext': __within([0, 1, 2], dtype=int),
     'dhcp':  __within([0, 1], dtype=int),
@@ -498,7 +496,7 @@ IPV6_ATTR_MAP = {
     # bond
     'slaves': __anything,
     # tunnel
-    'mode':  __within(['gre', 'GRE', 'ipip', 'IPIP', '802.3ad'], dtype=six.text_type),
+    'mode':  __within(['gre', 'GRE', 'ipip', 'IPIP', '802.3ad'], dtype=str),
     'endpoint': __ipv4_quad,
     'local':  __ipv4_quad,
     'ttl':  __int,
@@ -576,11 +574,10 @@ def _parse_interfaces(interface_files=None):
     method = -1
 
     for interface_file in interface_files:
-        with salt.utils.files.fopen(interface_file) as interfaces:
+        with salt.utils.fopen(interface_file) as interfaces:
             # This ensures iface_dict exists, but does not ensure we're not reading a new interface.
             iface_dict = {}
             for line in interfaces:
-                line = salt.utils.stringutils.to_unicode(line)
                 # Identify the clauses by the first word of each line.
                 # Go to the next line if the current line is a comment
                 # or all spaces.
@@ -726,7 +723,7 @@ def _parse_ethtool_opts(opts, iface):
 
     if 'speed' in opts:
         valid = ['10', '100', '1000', '10000']
-        if six.text_type(opts['speed']) in valid:
+        if str(opts['speed']) in valid:
             config.update({'speed': opts['speed']})
         else:
             _raise_error_iface(iface, opts['speed'], valid)
@@ -1492,8 +1489,8 @@ def _write_file(iface, data, folder, pattern):
         msg = msg.format(filename, folder)
         log.error(msg)
         raise AttributeError(msg)
-    with salt.utils.files.flopen(filename, 'w') as fout:
-        fout.write(salt.utils.stringutils.to_str(data))
+    with salt.utils.flopen(filename, 'w') as fout:
+        fout.write(data)
     return filename
 
 
@@ -1501,24 +1498,14 @@ def _write_file_routes(iface, data, folder, pattern):
     '''
     Writes a file to disk
     '''
-    # ifup / ifdown is executing given folder via run-parts.
-    # according to run-parts man-page, only filenames with this pattern are
-    # executed: (^[a-zA-Z0-9_-]+$)
-
-    # In order to make the routes file work for vlan interfaces
-    # (default would have been in example /etc/network/if-up.d/route-bond0.12)
-    # these dots in the iface name need to be replaced by underscores, so it
-    # can be executed by run-parts
-    iface = iface.replace('.', '_')
-
     filename = os.path.join(folder, pattern.format(iface))
     if not os.path.exists(folder):
         msg = '{0} cannot be written. {1} does not exist'
         msg = msg.format(filename, folder)
         log.error(msg)
         raise AttributeError(msg)
-    with salt.utils.files.flopen(filename, 'w') as fout:
-        fout.write(salt.utils.stringutils.to_str(data))
+    with salt.utils.flopen(filename, 'w') as fout:
+        fout.write(data)
 
     __salt__['file.set_mode'](filename, '0755')
     return filename
@@ -1536,8 +1523,8 @@ def _write_file_network(data, filename, create=False):
         msg = msg.format(filename)
         log.error(msg)
         raise AttributeError(msg)
-    with salt.utils.files.flopen(filename, 'w') as fout:
-        fout.write(salt.utils.stringutils.to_str(data))
+    with salt.utils.flopen(filename, 'w') as fout:
+        fout.write(data)
 
 
 def _read_temp(data):
@@ -1564,7 +1551,7 @@ def _read_temp_ifaces(iface, data):
         return ''
 
     ifcfg = template.render({'name': iface, 'data': data})
-    # Return as an array so the difflib works
+    # Return as a array so the difflib works
     return [item + '\n' for item in ifcfg.split('\n')]
 
 
@@ -1612,13 +1599,13 @@ def _write_file_ifaces(iface, data, **settings):
         msg = msg.format(os.path.dirname(filename))
         log.error(msg)
         raise AttributeError(msg)
-    with salt.utils.files.flopen(filename, 'w') as fout:
+    with salt.utils.flopen(filename, 'w') as fout:
         if _SEPARATE_FILE:
-            fout.write(salt.utils.stringutils.to_str(saved_ifcfg))
+            fout.write(saved_ifcfg)
         else:
-            fout.write(salt.utils.stringutils.to_str(ifcfg))
+            fout.write(ifcfg)
 
-    # Return as an array so the difflib works
+    # Return as a array so the difflib works
     return saved_ifcfg.split('\n')
 
 
@@ -1645,10 +1632,10 @@ def _write_file_ppp_ifaces(iface, data):
         msg = msg.format(os.path.dirname(filename))
         log.error(msg)
         raise AttributeError(msg)
-    with salt.utils.files.fopen(filename, 'w') as fout:
-        fout.write(salt.utils.stringutils.to_str(ifcfg))
+    with salt.utils.fopen(filename, 'w') as fout:
+        fout.write(ifcfg)
 
-    # Return as an array so the difflib works
+    # Return as a array so the difflib works
     return filename
 
 
@@ -1705,6 +1692,7 @@ def build_interface(iface, iface_type, enabled, **settings):
         salt '*' ip.build_interface eth0 eth <settings>
     '''
 
+    iface = iface.lower()
     iface_type = iface_type.lower()
 
     if iface_type not in _IFACE_TYPES:
@@ -1774,6 +1762,7 @@ def build_routes(iface, **settings):
         salt '*' ip.build_routes eth0 <settings>
     '''
 
+    iface = iface.lower()
     opts = _parse_routes(iface, settings)
     try:
         template = JINJA.get_template('route_eth.jinja')

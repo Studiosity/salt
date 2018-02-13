@@ -10,21 +10,17 @@ or for problem solving if your minion is having problems.
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import datetime
 import logging
 import subprocess
 log = logging.getLogger(__name__)
 
 # Import Salt Libs
+import salt.utils
 import salt.utils.event
-import salt.utils.platform
-import salt.utils.stringutils
 from salt.utils.network import host_to_ips as _host_to_ips
-from salt.utils.functools import namespaced_function as _namespaced_function
-
-# Import 3rd party Libs
-from salt.ext import six
+from salt.utils import namespaced_function as _namespaced_function
 
 # These imports needed for namespaced functions
 # pylint: disable=W0611
@@ -34,7 +30,7 @@ import copy
 
 # Import 3rd Party Libs
 try:
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         import wmi
         import salt.utils.winapi
         HAS_WMI = True
@@ -44,7 +40,7 @@ except ImportError:
     HAS_WMI = False
 
 HAS_PSUTIL = False
-if salt.utils.platform.is_windows():
+if salt.utils.is_windows():
     import psutil
     HAS_PSUTIL = True
 
@@ -56,7 +52,7 @@ def __virtual__():
     '''
     Only works on Windows systems with WMI and WinAPI
     '''
-    if not salt.utils.platform.is_windows():
+    if not salt.utils.is_windows():
         return False, 'win_status.py: Requires Windows'
 
     if not HAS_WMI:
@@ -211,15 +207,15 @@ def uptime(human_readable=False):
     # Subtract startup time from current time to get the uptime of the system
     uptime = datetime.datetime.now() - startup_time
 
-    return six.text_type(uptime) if human_readable else uptime.total_seconds()
+    return str(uptime) if human_readable else uptime.total_seconds()
 
 
 def _get_process_info(proc):
     '''
     Return  process information
     '''
-    cmd = salt.utils.stringutils.to_unicode(proc.CommandLine or '')
-    name = salt.utils.stringutils.to_unicode(proc.Name)
+    cmd = salt.utils.to_str(proc.CommandLine or '')
+    name = salt.utils.to_str(proc.Name)
     info = dict(
         cmd=cmd,
         name=name,
@@ -233,34 +229,34 @@ def _get_process_owner(process):
     domain, error_code, user = None, None, None
     try:
         domain, error_code, user = process.GetOwner()
-        owner['user'] = salt.utils.stringutils.to_unicode(user)
-        owner['user_domain'] = salt.utils.stringutils.to_unicode(domain)
+        owner['user'] = salt.utils.to_str(user)
+        owner['user_domain'] = salt.utils.to_str(domain)
     except Exception as exc:
         pass
     if not error_code and all((user, domain)):
-        owner['user'] = salt.utils.stringutils.to_unicode(user)
-        owner['user_domain'] = salt.utils.stringutils.to_unicode(domain)
+        owner['user'] = salt.utils.to_str(user)
+        owner['user_domain'] = salt.utils.to_str(domain)
     elif process.ProcessId in [0, 4] and error_code == 2:
         # Access Denied for System Idle Process and System
         owner['user'] = 'SYSTEM'
         owner['user_domain'] = 'NT AUTHORITY'
     else:
-        log.warning('Error getting owner of process; PID=\'%s\'; Error: %s',
-                    process.ProcessId, error_code)
+        log.warning('Error getting owner of process; PID=\'{0}\'; Error: {1}'
+                    .format(process.ProcessId, error_code))
     return owner
 
 
 def _byte_calc(val):
     if val < 1024:
-        tstr = six.text_type(val)+'B'
+        tstr = str(val)+'B'
     elif val < 1038336:
-        tstr = six.text_type(val/1024)+'KB'
+        tstr = str(val/1024)+'KB'
     elif val < 1073741824:
-        tstr = six.text_type(val/1038336)+'MB'
+        tstr = str(val/1038336)+'MB'
     elif val < 1099511627776:
-        tstr = six.text_type(val/1073741824)+'GB'
+        tstr = str(val/1073741824)+'GB'
     else:
-        tstr = six.text_type(val/1099511627776)+'TB'
+        tstr = str(val/1099511627776)+'TB'
     return tstr
 
 
@@ -306,7 +302,7 @@ def master(master=None, connected=True):
             log.error('Failed netstat')
             raise
 
-        lines = salt.utils.stringutils.to_unicode(data).split('\n')
+        lines = salt.utils.to_str(data).split('\n')
         for line in lines:
             if 'ESTABLISHED' not in line:
                 continue

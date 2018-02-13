@@ -7,11 +7,10 @@ State module to manage Elasticsearch index templates
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
-# Import Salt libs
-from salt.ext import six
+# Import salt libs
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +41,9 @@ def absent(name):
                     ret['comment'] = 'Failed to remove index template {0} for unknown reasons'.format(name)
         else:
             ret['comment'] = 'Index template {0} is already absent'.format(name)
-    except Exception as err:
+    except Exception as e:
         ret['result'] = False
-        ret['comment'] = six.text_type(err)
+        ret['comment'] = str(e)
 
     return ret
 
@@ -66,7 +65,6 @@ def present(name, definition):
     **Example:**
 
     .. code-block:: yaml
-
         mytestindex2_template:
           elasticsearch_index_template.present:
             - definition:
@@ -95,8 +93,8 @@ def present(name, definition):
                     ret['comment'] = 'Cannot create index template {0}, {1}'.format(name, output)
         else:
             ret['comment'] = 'Index template {0} is already present'.format(name)
-    except Exception as err:
+    except Exception as e:
         ret['result'] = False
-        ret['comment'] = six.text_type(err)
+        ret['comment'] = str(e)
 
     return ret

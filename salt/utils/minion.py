@@ -4,16 +4,17 @@ Utility functions for minions
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 import os
 import logging
 import threading
 
 # Import Salt Libs
+import salt.utils
 import salt.payload
-import salt.utils.files
-import salt.utils.platform
-import salt.utils.process
+
+# Import 3rd-party libs
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ def cache_jobs(opts, jid, ret):
     jdir = os.path.dirname(fn_)
     if not os.path.isdir(jdir):
         os.makedirs(jdir)
-    with salt.utils.files.fopen(fn_, 'w+b') as fp_:
+    with salt.utils.fopen(fn_, 'w+b') as fp_:
         fp_.write(serial.dumps(ret))
 
 
@@ -63,7 +64,7 @@ def _read_proc_file(path, opts):
     serial = salt.payload.Serial(opts)
     current_thread = threading.currentThread().name
     pid = os.getpid()
-    with salt.utils.files.fopen(path, 'rb') as fp_:
+    with salt.utils.fopen(path, 'rb') as fp_:
         buf = fp_.read()
         fp_.close()
         if buf:
@@ -109,7 +110,7 @@ def _read_proc_file(path, opts):
         pid = data.get('pid')
         if pid:
             log.warning(
-                'PID %s exists but does not appear to be a salt process.', pid
+                'PID {0} exists but does not appear to be a salt process.'.format(pid)
             )
         try:
             os.remove(path)
@@ -128,7 +129,7 @@ def _check_cmdline(data):
 
     For non-Linux systems we punt and just return True
     '''
-    if not salt.utils.platform.is_linux():
+    if not salt.utils.is_linux():
         return True
     pid = data.get('pid')
     if not pid:
@@ -139,8 +140,8 @@ def _check_cmdline(data):
     if not os.path.isfile(path):
         return False
     try:
-        with salt.utils.files.fopen(path, 'rb') as fp_:
-            if b'salt' in fp_.read():
+        with salt.utils.fopen(path, 'rb') as fp_:
+            if six.b('salt') in fp_.read():
                 return True
     except (OSError, IOError):
         return False

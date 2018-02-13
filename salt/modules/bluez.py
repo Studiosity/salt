@@ -9,7 +9,10 @@ The following packages are required packages for this module:
     bluez-utils >= 5.7
     pybluez >= 0.18
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+
+# Import python libs
+import logging
 
 # Import 3rd-party libs
 # pylint: disable=import-error
@@ -21,6 +24,7 @@ import salt.utils.validate.net
 from salt.exceptions import CommandExecutionError
 
 
+log = logging.getLogger(__name__)
 HAS_PYBLUEZ = False
 try:
     import bluetooth  # pylint: disable=import-error

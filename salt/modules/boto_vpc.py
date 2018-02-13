@@ -127,7 +127,7 @@ Deleting VPC peering connection via this module
 #pylint: disable=E0602
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import socket
 import time
@@ -137,8 +137,8 @@ import random
 import salt.utils.boto
 import salt.utils.boto3
 import salt.utils.compat
-import salt.utils.versions
 from salt.exceptions import SaltInvocationError, CommandExecutionError
+from salt.utils.versions import LooseVersion as _LooseVersion
 
 # from salt.utils import exactly_one
 # TODO: Uncomment this and s/_exactly_one/exactly_one/
@@ -150,7 +150,7 @@ ACTIVE = 'active'
 log = logging.getLogger(__name__)
 
 # Import third party libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import range  # pylint: disable=import-error
 # pylint: disable=import-error
 try:
@@ -180,15 +180,22 @@ def __virtual__():
     Only load if boto libraries exist and if boto libraries are greater than
     a given version.
     '''
+    required_boto_version = '2.8.0'
     # the boto_vpc execution module relies on the connect_to_region() method
     # which was added in boto 2.8.0
     # https://github.com/boto/boto/commit/33ac26b416fbb48a60602542b4ce15dcc7029f12
+    if not HAS_BOTO:
+        return (False, 'The boto_vpc module could not be loaded: boto libraries not found')
+    elif _LooseVersion(boto.__version__) < _LooseVersion(required_boto_version):
+        return (False, 'The boto_vpc module could not be loaded: boto library version 2.8.0 is required')
+    required_boto3_version = '1.2.6'
     # the boto_vpc execution module relies on the create_nat_gateway() method
     # which was added in boto3 1.2.6
-    return salt.utils.versions.check_boto_reqs(
-        boto_ver='2.8.0',
-        boto3_ver='1.2.6'
-    )
+    if not HAS_BOTO3:
+        return (False, 'The boto_vpc module could not be loaded: boto3 libraries not found')
+    elif _LooseVersion(boto3.__version__) < _LooseVersion(required_boto3_version):
+        return (False, 'The boto_vpc module could not be loaded: boto3 library version 1.2.6 is required')
+    return True
 
 
 def __init__(opts):
@@ -227,7 +234,7 @@ def check_vpc(vpc_id=None, vpc_name=None, region=None, key=None,
                          profile=profile)
     elif not _find_vpcs(vpc_id=vpc_id, region=region, key=key, keyid=keyid,
                         profile=profile):
-        log.info('VPC %s does not exist.', vpc_id)
+        log.info('VPC {0} does not exist.'.format(vpc_id))
         return None
     return vpc_id
 
@@ -259,7 +266,7 @@ def _create_resource(resource, name=None, tags=None, region=None, key=None,
             if isinstance(r, bool):
                 return {'created': True}
             else:
-                log.info('A %s with id %s was created', resource, r.id)
+                log.info('A {0} with id {1} was created'.format(resource, r.id))
                 _maybe_set_name_tag(name, r)
                 _maybe_set_tags(tags, r)
 
@@ -513,8 +520,7 @@ def _find_vpcs(vpc_id=None, vpc_name=None, cidr=None, tags=None,
             filter_parameters['filters']['tag:{0}'.format(tag_name)] = tag_value
 
     vpcs = conn.get_all_vpcs(**filter_parameters)
-    log.debug('The filters criteria %s matched the following VPCs:%s',
-              filter_parameters, vpcs)
+    log.debug('The filters criteria {0} matched the following VPCs:{1}'.format(filter_parameters, vpcs))
 
     if vpcs:
         return [vpc.id for vpc in vpcs]
@@ -538,7 +544,7 @@ def _get_id(vpc_name=None, cidr=None, tags=None, region=None, key=None,
     vpc_ids = _find_vpcs(vpc_name=vpc_name, cidr=cidr, tags=tags, region=region,
                          key=key, keyid=keyid, profile=profile)
     if vpc_ids:
-        log.debug("Matching VPC: %s", " ".join(vpc_ids))
+        log.debug("Matching VPC: {0}".format(" ".join(vpc_ids)))
         if len(vpc_ids) == 1:
             vpc_id = vpc_ids[0]
             if vpc_name:
@@ -628,7 +634,7 @@ def create(cidr_block, instance_tenancy=None, vpc_name=None,
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         vpc = conn.create_vpc(cidr_block, instance_tenancy=instance_tenancy)
         if vpc:
-            log.info('The newly created VPC id is %s', vpc.id)
+            log.info('The newly created VPC id is {0}'.format(vpc.id))
 
             _maybe_set_name_tag(vpc_name, vpc)
             _maybe_set_tags(tags, vpc)
@@ -681,7 +687,7 @@ def delete(vpc_id=None, name=None, vpc_name=None, tags=None,
                         'VPC {0} not found'.format(vpc_name)}}
 
         if conn.delete_vpc(vpc_id):
-            log.info('VPC %s was deleted.', vpc_id)
+            log.info('VPC {0} was deleted.'.format(vpc_id))
             if vpc_name:
                 _cache_id(vpc_name, resource_id=vpc_id,
                           invalidate=True,
@@ -690,7 +696,7 @@ def delete(vpc_id=None, name=None, vpc_name=None, tags=None,
                           profile=profile)
             return {'deleted': True}
         else:
-            log.warning('VPC %s was not deleted.', vpc_id)
+            log.warning('VPC {0} was not deleted.'.format(vpc_id))
             return {'deleted': False}
     except BotoServerError as e:
         return {'deleted': False, 'error': salt.utils.boto.get_error(e)}
@@ -740,7 +746,7 @@ def describe(vpc_id=None, vpc_name=None, region=None, key=None,
 
     if vpcs:
         vpc = vpcs[0]  # Found!
-        log.debug('Found VPC: %s', vpc.id)
+        log.debug('Found VPC: {0}'.format(vpc.id))
 
         keys = ('id', 'cidr_block', 'is_default', 'state', 'tags',
                 'dhcp_options_id', 'instance_tenancy')
@@ -756,7 +762,7 @@ def describe_vpcs(vpc_id=None, name=None, cidr=None, tags=None,
     '''
     Describe all VPCs, matching the filter criteria if provided.
 
-    Returns a list of dictionaries with interesting properties.
+    Returns a a list of dictionaries with interesting properties.
 
     .. versionadded:: 2015.8.0
 
@@ -834,8 +840,7 @@ def _find_subnets(subnet_name=None, vpc_id=None, cidr=None, tags=None, conn=None
             filter_parameters['filters']['tag:{0}'.format(tag_name)] = tag_value
 
     subnets = conn.get_all_subnets(**filter_parameters)
-    log.debug('The filters criteria %s matched the following subnets: %s',
-              filter_parameters, subnets)
+    log.debug('The filters criteria {0} matched the following subnets: {1}'.format(filter_parameters, subnets))
 
     if subnets:
         return [subnet.id for subnet in subnets]
@@ -958,13 +963,12 @@ def subnet_exists(subnet_id=None, name=None, subnet_name=None, cidr=None,
             return {'exists': False}
         return {'error': boto_err}
 
-    log.debug('The filters criteria %s matched the following subnets:%s',
-              filter_parameters, subnets)
+    log.debug('The filters criteria {0} matched the following subnets:{1}'.format(filter_parameters, subnets))
     if subnets:
-        log.info('Subnet %s exists.', subnet_name or subnet_id)
+        log.info('Subnet {0} exists.'.format(subnet_name or subnet_id))
         return {'exists': True}
     else:
-        log.info('Subnet %s does not exist.', subnet_name or subnet_id)
+        log.info('Subnet {0} does not exist.'.format(subnet_name or subnet_id))
         return {'exists': False}
 
 
@@ -1001,10 +1005,10 @@ def get_subnet_association(subnets, region=None, key=None, keyid=None,
     # vpc_id values
     vpc_ids = set()
     for subnet in subnets:
-        log.debug('examining subnet id: %s for vpc_id', subnet.id)
+        log.debug('examining subnet id: {0} for vpc_id'.format(subnet.id))
         if subnet in subnets:
-            log.debug('subnet id: %s is associated with vpc id: %s',
-                      subnet.id, subnet.vpc_id)
+            log.debug('subnet id: {0} is associated with vpc id: {1}'
+                      .format(subnet.id, subnet.vpc_id))
             vpc_ids.add(subnet.vpc_id)
     if not vpc_ids:
         return {'vpc_id': None}
@@ -1039,7 +1043,7 @@ def describe_subnet(subnet_id=None, subnet_name=None, region=None,
 
     if not subnet:
         return {'subnet': None}
-    log.debug('Found subnet: %s', subnet.id)
+    log.debug('Found subnet: {0}'.format(subnet.id))
 
     keys = ('id', 'cidr_block', 'availability_zone', 'tags', 'vpc_id')
     ret = {'subnet': dict((k, getattr(subnet, k)) for k in keys)}
@@ -1096,8 +1100,8 @@ def describe_subnets(subnet_ids=None, subnet_names=None, vpc_id=None, cidr=None,
             filter_parameters['filters']['tag:Name'] = subnet_names
 
         subnets = conn.get_all_subnets(subnet_ids=subnet_ids, **filter_parameters)
-        log.debug('The filters criteria %s matched the following subnets: %s',
-                  filter_parameters, subnets)
+        log.debug('The filters criteria {0} matched the following subnets: '
+                  '{1}'.format(filter_parameters, subnets))
 
         if not subnets:
             return {'subnets': None}
@@ -1152,10 +1156,8 @@ def create_internet_gateway(internet_gateway_name=None, vpc_id=None,
         if r.get('created') and vpc_id:
             conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
             conn.attach_internet_gateway(r['id'], vpc_id)
-            log.info(
-                'Attached internet gateway %s to VPC %s',
-                r['id'], vpc_name or vpc_id
-            )
+            log.info('Attached internet gateway {0} to '
+                     'VPC {1}'.format(r['id'], (vpc_name or vpc_id)))
         return r
     except BotoServerError as e:
         return {'created': False, 'error': salt.utils.boto.get_error(e)}
@@ -1259,8 +1261,7 @@ def _find_nat_gateways(nat_gateway_id=None, subnet_id=None, subnet_name=None, vp
         for gw in ret.get('NatGateways', []):
             if gw.get('State') in states:
                 nat_gateways.append(gw)
-    log.debug('The filters criteria %s matched the following nat gateways: %s',
-              filter_parameters, nat_gateways)
+    log.debug('The filters criteria {0} matched the following nat gateways: {1}'.format(filter_parameters, nat_gateways))
 
     if nat_gateways:
         return nat_gateways
@@ -1567,10 +1568,8 @@ def create_dhcp_options(domain_name=None, domain_name_servers=None, ntp_servers=
         if r.get('created') and vpc_id:
             conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
             conn.associate_dhcp_options(r['id'], vpc_id)
-            log.info(
-                'Associated options %s to VPC %s',
-                r['id'], vpc_name or vpc_id
-            )
+            log.info('Associated options {0} to '
+                     'VPC {1}'.format(r['id'], (vpc_name or vpc_id)))
         return r
     except BotoServerError as e:
         return {'created': False, 'error': salt.utils.boto.get_error(e)}
@@ -1659,12 +1658,10 @@ def associate_dhcp_options_to_vpc(dhcp_options_id, vpc_id=None, vpc_name=None,
 
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         if conn.associate_dhcp_options(dhcp_options_id, vpc_id):
-            log.info('DHCP options with id %s were associated with VPC %s',
-                     dhcp_options_id, vpc_id)
+            log.info('DHCP options with id {0} were associated with VPC {1}'.format(dhcp_options_id, vpc_id))
             return {'associated': True}
         else:
-            log.warning('DHCP options with id %s were not associated with VPC %s',
-                        dhcp_options_id, vpc_id)
+            log.warning('DHCP options with id {0} were not associated with VPC {1}'.format(dhcp_options_id, vpc_id))
             return {'associated': False, 'error': {'message': 'DHCP options could not be associated.'}}
     except BotoServerError as e:
         return {'associated': False, 'error': salt.utils.boto.get_error(e)}
@@ -1857,13 +1854,11 @@ def associate_network_acl_to_subnet(network_acl_id=None, subnet_id=None,
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         association_id = conn.associate_network_acl(network_acl_id, subnet_id)
         if association_id:
-            log.info('Network ACL with id %s was associated with subnet %s',
-                     network_acl_id, subnet_id)
+            log.info('Network ACL with id {0} was associated with subnet {1}'.format(network_acl_id, subnet_id))
 
             return {'associated': True, 'id': association_id}
         else:
-            log.warning('Network ACL with id %s was not associated with subnet %s',
-                        network_acl_id, subnet_id)
+            log.warning('Network ACL with id {0} was not associated with subnet {1}'.format(network_acl_id, subnet_id))
             return {'associated': False, 'error': {'message': 'ACL could not be assocaited.'}}
     except BotoServerError as e:
         return {'associated': False, 'error': salt.utils.boto.get_error(e)}
@@ -1953,9 +1948,9 @@ def _create_network_acl_entry(network_acl_id=None, rule_number=None, protocol=No
                     icmp_type=icmp_type, port_range_from=port_range_from,
                     port_range_to=port_range_to)
         if created:
-            log.info('Network ACL entry was %s', rkey)
+            log.info('Network ACL entry was {0}'.format(rkey))
         else:
-            log.warning('Network ACL entry was not %s', rkey)
+            log.warning('Network ACL entry was not {0}'.format(rkey))
         return {rkey: created}
     except BotoServerError as e:
         return {rkey: False, 'error': salt.utils.boto.get_error(e)}
@@ -2171,10 +2166,10 @@ def route_exists(destination_cidr_block, route_table_name=None, route_table_id=N
                           }
             route_comp = set(route_dict.items()) ^ set(route_check.items())
             if len(route_comp) == 0:
-                log.info('Route %s exists.', destination_cidr_block)
+                log.info('Route {0} exists.'.format(destination_cidr_block))
                 return {'exists': True}
 
-        log.warning('Route %s does not exist.', destination_cidr_block)
+        log.warning('Route {0} does not exist.'.format(destination_cidr_block))
         return {'exists': False}
     except BotoServerError as e:
         return {'error': salt.utils.boto.get_error(e)}
@@ -2225,8 +2220,7 @@ def associate_route_table(route_table_id=None, subnet_id=None,
     try:
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         association_id = conn.associate_route_table(route_table_id, subnet_id)
-        log.info('Route table %s was associated with subnet %s',
-                 route_table_id, subnet_id)
+        log.info('Route table {0} was associated with subnet {1}'.format(route_table_id, subnet_id))
         return {'association_id': association_id}
     except BotoServerError as e:
         return {'associated': False, 'error': salt.utils.boto.get_error(e)}
@@ -2250,10 +2244,10 @@ def disassociate_route_table(association_id, region=None, key=None, keyid=None, 
     try:
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         if conn.disassociate_route_table(association_id):
-            log.info('Route table with association id %s has been disassociated.', association_id)
+            log.info('Route table with association id {0} has been disassociated.'.format(association_id))
             return {'disassociated': True}
         else:
-            log.warning('Route table with association id %s has not been disassociated.', association_id)
+            log.warning('Route table with association id {0} has not been disassociated.'.format(association_id))
             return {'disassociated': False}
     except BotoServerError as e:
         return {'disassociated': False, 'error': salt.utils.boto.get_error(e)}
@@ -2274,8 +2268,7 @@ def replace_route_table_association(association_id, route_table_id, region=None,
     try:
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         association_id = conn.replace_route_table_association_with_assoc(association_id, route_table_id)
-        log.info('Route table %s was reassociated with association id %s',
-                 route_table_id, association_id)
+        log.info('Route table {0} was reassociated with association id {1}'.format(route_table_id, association_id))
         return {'replaced': True, 'association_id': association_id}
     except BotoServerError as e:
         return {'replaced': False, 'error': salt.utils.boto.get_error(e)}
@@ -2452,16 +2445,12 @@ def replace_route(route_table_id=None, destination_cidr_block=None,
         if conn.replace_route(route_table_id, destination_cidr_block,
                               gateway_id=gateway_id, instance_id=instance_id,
                               interface_id=interface_id, vpc_peering_connection_id=vpc_peering_connection_id):
-            log.info(
-                'Route with cidr block %s on route table %s was replaced',
-                route_table_id, destination_cidr_block
-            )
+            log.info('Route with cidr block {0} on route table {1} was '
+                     'replaced'.format(route_table_id, destination_cidr_block))
             return {'replaced': True}
         else:
-            log.warning(
-                'Route with cidr block %s on route table %s was not replaced',
-                route_table_id, destination_cidr_block
-            )
+            log.warning('Route with cidr block {0} on route table {1} was not replaced'.format(route_table_id,
+                        destination_cidr_block))
             return {'replaced': False}
     except BotoServerError as e:
         return {'replaced': False, 'error': salt.utils.boto.get_error(e)}
@@ -2482,7 +2471,8 @@ def describe_route_table(route_table_id=None, route_table_name=None,
         salt myminion boto_vpc.describe_route_table route_table_id='rtb-1f382e7d'
 
     '''
-    salt.utils.versions.warn_until(
+
+    salt.utils.warn_until(
         'Neon',
          'The \'describe_route_table\' method has been deprecated and '
          'replaced by \'describe_route_tables\'.'
@@ -2623,7 +2613,8 @@ def _create_dhcp_options(conn, domain_name=None, domain_name_servers=None, ntp_s
 def _maybe_set_name_tag(name, obj):
     if name:
         obj.add_tag("Name", name)
-        log.debug('%s is now named as %s', obj, name)
+
+        log.debug('{0} is now named as {1}'.format(obj, name))
 
 
 def _maybe_set_tags(tags, obj):
@@ -2635,16 +2626,17 @@ def _maybe_set_tags(tags, obj):
         except AttributeError:
             for tag, value in tags.items():
                 obj.add_tag(tag, value)
-        log.debug('The following tags: %s were added to %s', ', '.join(tags), obj)
+
+        log.debug('The following tags: {0} were added to {1}'.format(', '.join(tags), obj))
 
 
 def _maybe_set_dns(conn, vpcid, dns_support, dns_hostnames):
     if dns_support:
         conn.modify_vpc_attribute(vpc_id=vpcid, enable_dns_support=dns_support)
-        log.debug('DNS spport was set to: %s on vpc %s', dns_support, vpcid)
+        log.debug('DNS spport was set to: {0} on vpc {1}'.format(dns_support, vpcid))
     if dns_hostnames:
         conn.modify_vpc_attribute(vpc_id=vpcid, enable_dns_hostnames=dns_hostnames)
-        log.debug('DNS hostnames was set to: %s on vpc %s', dns_hostnames, vpcid)
+        log.debug('DNS hostnames was set to: {0} on vpc {1}'.format(dns_hostnames, vpcid))
 
 
 def _maybe_name_route_table(conn, vpcid, vpc_name):
@@ -2664,7 +2656,7 @@ def _maybe_name_route_table(conn, vpcid, vpc_name):
 
     name = '{0}-default-table'.format(vpc_name)
     _maybe_set_name_tag(name, default_table)
-    log.debug('Default route table name was set to: %s on vpc %s', name, vpcid)
+    log.debug('Default route table name was set to: {0} on vpc {1}'.format(name, vpcid))
 
 
 def _key_iter(key, keys, item):
@@ -2722,11 +2714,11 @@ def request_vpc_peering_connection(requester_vpc_id=None, requester_vpc_name=Non
         Name tag of the requesting VPC.  Exclusive with requester_vpc_id.
 
     peer_vpc_id
-        ID of the VPC to create VPC peering connection with. This can be a VPC in
+        ID of the VPC tp crete VPC peering connection with. This can be a VPC in
         another account. Exclusive with peer_vpc_name.
 
     peer_vpc_name
-        Name tag of the VPC to create VPC peering connection with. This can only
+        Name tag of the VPC tp crete VPC peering connection with. This can only
         be a VPC in the same account, else resolving it into a vpc ID will almost
         certainly fail. Exclusive with peer_vpc_id.
 
@@ -3026,7 +3018,7 @@ def delete_vpc_peering_connection(conn_id=None, conn_name=None, region=None,
         return {'msg': 'VPC peering connection deleted.'}
     except botocore.exceptions.ClientError as err:
         e = salt.utils.boto.get_error(err)
-        log.error('Failed to delete VPC peering %s: %s', conn_name or conn_id, e)
+        log.error('Failed to delete VPC peering {0}: {1}'.format(conn_name or conn_id, e))
         return {'error': e}
 
 
@@ -3140,7 +3132,7 @@ def peering_connection_pending_from_vpc(conn_id=None, conn_name=None, vpc_id=Non
     if vpc_name:
         vpc_id = check_vpc(vpc_name=vpc_name, region=region, key=key, keyid=keyid, profile=profile)
         if not vpc_id:
-            log.warning('Could not resolve VPC name %s to an ID', vpc_name)
+            log.warning('Could not resolve VPC name {0} to an ID'.format(vpc_name))
             return False
 
     conn = _get_conn3(region=region, key=key, keyid=keyid, profile=profile)

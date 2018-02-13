@@ -19,7 +19,7 @@ under the "SSH Keys" section.
     # /etc/salt/cloud.providers.d/ directory.
 
     my-digitalocean-config:
-      driver: digitalocean
+      driver: digital_ocean
       personal_access_token: xxx
       ssh_key_file: /path/to/ssh/key/file
       ssh_key_names: my-key-name,my-key-name-2
@@ -54,10 +54,6 @@ Set up an initial profile at ``/etc/salt/cloud.profiles`` or in the
       ipv6: True
       create_dns_record: True
       userdata_file: /etc/salt/cloud.userdata.d/setup
-      tags:
-        - tag1
-        - tag2
-        - tag3
 
 Locations can be obtained using the ``--list-locations`` option for the ``salt-cloud``
 command:
@@ -67,7 +63,7 @@ command:
     # salt-cloud --list-locations my-digitalocean-config
     my-digitalocean-config:
         ----------
-        digitalocean:
+        digital_ocean:
             ----------
             Amsterdam 1:
                 ----------
@@ -91,7 +87,7 @@ command:
     # salt-cloud --list-sizes my-digitalocean-config
     my-digitalocean-config:
         ----------
-        digitalocean:
+        digital_ocean:
             ----------
             512MB:
                 ----------
@@ -121,7 +117,7 @@ command:
     # salt-cloud --list-images my-digitalocean-config
     my-digitalocean-config:
         ----------
-        digitalocean:
+        digital_ocean:
             ----------
             10.1:
                 ----------
@@ -146,7 +142,7 @@ Profile Specifics:
 ssh_username
 ------------
 
-If using a FreeBSD image from DigitalOcean, you'll need to set the ``ssh_username``
+If using a FreeBSD image from Digital Ocean, you'll need to set the ``ssh_username``
 setting to ``freebsd`` in your profile configuration.
 
 .. code-block:: yaml

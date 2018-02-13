@@ -35,9 +35,10 @@ keys make the engine interactive.
                 wait_time: 1
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import time
+import json
 import os
 
 
@@ -47,17 +48,13 @@ try:
 except ImportError:
     HAS_HYPCHAT = False
 
-import salt.utils.args
-import salt.utils.event
+import salt.utils
 import salt.utils.files
-import salt.utils.http
-import salt.utils.json
-import salt.utils.stringutils
 import salt.runner
 import salt.client
 import salt.loader
 import salt.output
-from salt.ext import six
+import salt.ext.six as six
 
 
 def __virtual__():
@@ -71,9 +68,7 @@ _DEFAULT_MAX_ROOMS = 1000
 
 
 def _publish_file(token, room, filepath, message='', outputter=None, api_url=None):
-    '''
-    Send file to a HipChat room via API version 2
-
+    """ Send file to a HipChat room via API version 2
     Parameters
     ----------
     token : str
@@ -86,7 +81,7 @@ def _publish_file(token, room, filepath, message='', outputter=None, api_url=Non
         Message to send to room
     api_url: str, optional
         Hipchat API URL to use, defaults to http://api.hipchat.com
-    '''
+    """
 
     if not os.path.isfile(filepath):
         raise ValueError("File '{0}' does not exist".format(filepath))
@@ -96,11 +91,10 @@ def _publish_file(token, room, filepath, message='', outputter=None, api_url=Non
     url = "{0}/v2/room/{1}/share/file".format(api_url, room)
     headers = {'Content-type': 'multipart/related; boundary=boundary123456'}
     headers['Authorization'] = "Bearer " + token
-    msg = salt.utils.json.dumps({'message': message})
+    msg = json.dumps({'message': message})
 
-    # future lint: disable=blacklisted-function
-    with salt.utils.files.fopen(filepath, 'rb') as rfh:
-        payload = str('''\
+    with salt.utils.fopen(filepath, 'rb') as rfh:
+        payload = """\
 --boundary123456
 Content-Type: application/json; charset=UTF-8
 Content-Disposition: attachment; name="metadata"
@@ -113,10 +107,7 @@ Content-Disposition: attachment; name="file"; filename="{1}"
 {2}
 
 --boundary123456--\
-''').format(msg,
-            os.path.basename(salt.utils.stringutils.to_str(filepath)),
-            salt.utils.stringutils.to_str(rfh.read()))
-    # future lint: enable=blacklisted-function
+""".format(msg, os.path.basename(filepath), rfh.read())
 
     salt.utils.http.query(url, method='POST', header_dict=headers, data=payload)
 
@@ -316,7 +307,7 @@ def start(token,
         if a_room['name'] == room:
             target_room = a_room
     if not target_room:
-        log.debug("Unable to connect to room %s", room)
+        log.debug("Unable to connect to room {0}".format(room))
         # wait for a bit as to not burn through api calls
         time.sleep(30)
         raise UserWarning("Unable to connect to room {0}".format(room))
@@ -348,13 +339,13 @@ def start(token,
             args = []
             kwargs = {}
 
-            cmdline = salt.utils.args.shlex_split(text)
+            cmdline = salt.utils.shlex_split(text)
             cmd = cmdline[0]
 
             # Evaluate aliases
             if aliases and isinstance(aliases, dict) and cmd in aliases.keys():
                 cmdline = aliases[cmd].get('cmd')
-                cmdline = salt.utils.args.shlex_split(cmdline)
+                cmdline = salt.utils.shlex_split(cmdline)
                 cmd = cmdline[0]
 
             # Parse args and kwargs
@@ -420,8 +411,8 @@ def start(token,
                 _publish_code_message(token, room, ret, message=message_string, outputter=outputter, api_url=api_url)
             else:
                 tmp_path_fn = salt.utils.files.mkstemp()
-                with salt.utils.files.fopen(tmp_path_fn, 'w+') as fp_:
-                    salt.utils.json.dump(ret, fp_, sort_keys=True, indent=4)
+                with salt.utils.fopen(tmp_path_fn, 'w+') as fp_:
+                    fp_.write(json.dumps(ret, sort_keys=True, indent=4))
                 _publish_file(token, room, tmp_path_fn, message=message_string, api_url=api_url)
-                salt.utils.files.safe_rm(tmp_path_fn)
+                salt.utils.safe_rm(tmp_path_fn)
         time.sleep(wait_time or _DEFAULT_SLEEP)

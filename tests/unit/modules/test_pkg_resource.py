@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import yaml
 
 # Import Salt Testing Libs
@@ -18,10 +18,9 @@ from tests.support.mock import (
 )
 
 # Import Salt Libs
-import salt.utils.data
-import salt.utils.yaml
+import salt.utils
 import salt.modules.pkg_resource as pkg_resource
-from salt.ext import six
+import salt.ext.six as six
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
@@ -37,7 +36,7 @@ class PkgresTestCase(TestCase, LoaderModuleMockMixin):
             Test to accepts list of dicts (or a string representing a
             list of dicts) and packs the key/value pairs into a single dict.
         '''
-        with patch.object(salt.utils.yaml,
+        with patch.object(yaml,
                           'safe_load',
                           MagicMock(side_effect=yaml.parser.ParserError('f'))):
             with patch.dict(pkg_resource.__salt__,
@@ -100,7 +99,7 @@ class PkgresTestCase(TestCase, LoaderModuleMockMixin):
             Test to Common interface for obtaining the version
             of installed packages.
         '''
-        with patch.object(salt.utils.data, 'is_true', return_value=True):
+        with patch.object(salt.utils, 'is_true', return_value=True):
             mock = MagicMock(return_value={'A': 'B'})
             with patch.dict(pkg_resource.__salt__,
                             {'pkg.list_pkgs': mock}):

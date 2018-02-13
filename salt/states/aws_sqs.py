@@ -15,7 +15,6 @@ information.
         aws_sqs.exists:
             - region: eu-west-1
 '''
-from __future__ import absolute_import, print_function, unicode_literals
 
 
 def __virtual__():
@@ -65,7 +64,7 @@ def exists(
             ret['comment'] = created['stderr']
 
     else:
-        ret['comment'] = '{0} exists in {1}'.format(name, region)
+        ret['comment'] = u'{0} exists in {1}'.format(name, region)
 
     return ret
 
@@ -107,6 +106,6 @@ def absent(
             ret['result'] = False
             ret['comment'] = removed['stderr']
     else:
-        ret['comment'] = '{0} does not exist in {1}'.format(name, region)
+        ret['comment'] = u'{0} does not exist in {1}'.format(name, region)
 
     return ret

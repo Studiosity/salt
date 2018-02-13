@@ -12,7 +12,7 @@ A state module to manage Portage configuration on Gentoo
             - use:
                 - openssl
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 
 def __virtual__():

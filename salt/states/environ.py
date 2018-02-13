@@ -4,15 +4,13 @@ Support for getting and setting the environment variables
 of the current salt process.
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
+from __future__ import absolute_import
 import os
 
-# Import Salt libs
-import salt.utils.platform
-
-# Import 3rd-party libs
-from salt.ext import six
+# Import salt libs
+import salt.utils as utils
+import salt.ext.six as six
 
 
 def __virtual__():
@@ -119,7 +117,7 @@ def setenv(name,
             # false_unsets is True. Otherwise we want to set
             # the value to ''
             def key_exists():
-                if salt.utils.platform.is_windows():
+                if utils.is_windows():
                     permanent_hive = 'HKCU'
                     permanent_key = 'Environment'
                     if permanent == 'HKLM':

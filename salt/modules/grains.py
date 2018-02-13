@@ -11,23 +11,24 @@ file on the minions. By default, this file is located at: ``/etc/salt/grains``
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import os
 import random
 import logging
 import operator
 import collections
+import json
 import math
 from functools import reduce  # pylint: disable=redefined-builtin
 
-# Import Salt libs
-from salt.ext import six
+# Import 3rd-party libs
+import yaml
 import salt.utils.compat
-import salt.utils.data
-import salt.utils.files
-import salt.utils.json
-import salt.utils.platform
-import salt.utils.yaml
+import salt.ext.six as six
+
+# Import salt libs
+import salt.utils
+import salt.utils.yamldumper
 from salt.defaults import DEFAULT_TARGET_DELIM
 from salt.exceptions import SaltException
 from salt.ext.six.moves import range
@@ -115,12 +116,11 @@ def get(key, default='', delimiter=DEFAULT_TARGET_DELIM, ordered=True):
     if ordered is True:
         grains = __grains__
     else:
-        grains = salt.utils.json.loads(salt.utils.json.dumps(__grains__))
-    return salt.utils.data.traverse_dict_and_list(
-        grains,
-        key,
-        default,
-        delimiter)
+        grains = json.loads(json.dumps(__grains__))
+    return salt.utils.traverse_dict_and_list(grains,
+                                             key,
+                                             default,
+                                             delimiter)
 
 
 def has_value(key):
@@ -141,7 +141,7 @@ def has_value(key):
 
         salt '*' grains.has_value pkg:apache
     '''
-    return salt.utils.data.traverse_dict_and_list(
+    return salt.utils.traverse_dict_and_list(
         __grains__,
         key,
         KeyError) is not KeyError
@@ -163,7 +163,7 @@ def items(sanitize=False):
 
         salt '*' grains.items sanitize=True
     '''
-    if salt.utils.data.is_true(sanitize):
+    if salt.utils.is_true(sanitize):
         out = dict(__grains__)
         for key, func in six.iteritems(_SANITIZERS):
             if key in out:
@@ -196,15 +196,14 @@ def item(*args, **kwargs):
 
     try:
         for arg in args:
-            ret[arg] = salt.utils.data.traverse_dict_and_list(
-                __grains__,
-                arg,
-                default,
-                delimiter)
+            ret[arg] = salt.utils.traverse_dict_and_list(__grains__,
+                                                        arg,
+                                                        default,
+                                                        delimiter)
     except KeyError:
         pass
 
-    if salt.utils.data.is_true(kwargs.get('sanitize')):
+    if salt.utils.is_true(kwargs.get('sanitize')):
         for arg, func in six.iteritems(_SANITIZERS):
             if arg in ret:
                 ret[arg] = func(ret[arg])
@@ -230,7 +229,7 @@ def setvals(grains, destructive=False):
         raise SaltException('setvals grains must be a dictionary.')
     grains = {}
     if os.path.isfile(__opts__['conf_file']):
-        if salt.utils.platform.is_proxy():
+        if salt.utils.is_proxy():
             gfn = os.path.join(
                 os.path.dirname(__opts__['conf_file']),
                 'proxy.d',
@@ -243,7 +242,7 @@ def setvals(grains, destructive=False):
                 'grains'
             )
     elif os.path.isdir(__opts__['conf_file']):
-        if salt.utils.platform.is_proxy():
+        if salt.utils.is_proxy():
             gfn = os.path.join(
                 __opts__['conf_file'],
                 'proxy.d',
@@ -256,7 +255,7 @@ def setvals(grains, destructive=False):
                 'grains'
             )
     else:
-        if salt.utils.platform.is_proxy():
+        if salt.utils.is_proxy():
             gfn = os.path.join(
                 os.path.dirname(__opts__['conf_file']),
                 'proxy.d',
@@ -270,10 +269,10 @@ def setvals(grains, destructive=False):
             )
 
     if os.path.isfile(gfn):
-        with salt.utils.files.fopen(gfn, 'rb') as fp_:
+        with salt.utils.fopen(gfn, 'rb') as fp_:
             try:
-                grains = salt.utils.yaml.safe_load(fp_)
-            except salt.utils.yaml.YAMLError as exc:
+                grains = yaml.safe_load(fp_.read())
+            except yaml.YAMLError as exc:
                 return 'Unable to read existing grains file: {0}'.format(exc)
         if not isinstance(grains, dict):
             grains = {}
@@ -286,23 +285,20 @@ def setvals(grains, destructive=False):
         else:
             grains[key] = val
             __grains__[key] = val
+    cstr = salt.utils.yamldumper.safe_dump(grains, default_flow_style=False)
     try:
-        with salt.utils.files.fopen(gfn, 'w+') as fp_:
-            salt.utils.yaml.safe_dump(grains, fp_, default_flow_style=False)
+        with salt.utils.fopen(gfn, 'w+') as fp_:
+            fp_.write(cstr)
     except (IOError, OSError):
-        log.error(
-            'Unable to write to grains file at %s. Check permissions.',
-            gfn
-        )
+        msg = 'Unable to write to grains file at {0}. Check permissions.'
+        log.error(msg.format(gfn))
     fn_ = os.path.join(__opts__['cachedir'], 'module_refresh')
     try:
-        with salt.utils.files.flopen(fn_, 'w+'):
-            pass
+        with salt.utils.flopen(fn_, 'w+') as fp_:
+            fp_.write('')
     except (IOError, OSError):
-        log.error(
-            'Unable to write to cache file %s. Check permissions.',
-            fn_
-        )
+        msg = 'Unable to write to cache file {0}. Check permissions.'
+        log.error(msg.format(fn_))
     if not __opts__.get('local', False):
         # Refresh the grains
         __salt__['saltutil.refresh_grains']()
@@ -447,7 +443,6 @@ def delkey(key):
     CLI Example:
 
     .. code-block:: bash
-
         salt '*' grains.delkey key
     '''
     setval(key, None, destructive=True)
@@ -592,12 +587,12 @@ def filter_by(lookup_dict, grain='os_family', merge=None, default='default', bas
         salt '*' grains.filter_by '{default: {A: {B: C}, D: E}, F: {A: {B: G}}, H: {D: I}}' 'xxx' '{D: J}' 'F' 'default'
         # next same as above when default='H' instead of 'F' renders {A: {B: C}, D: J}
     '''
-    return salt.utils.data.filter_by(lookup_dict=lookup_dict,
-                                     lookup=grain,
-                                     traverse=__grains__,
-                                     merge=merge,
-                                     default=default,
-                                     base=base)
+    return salt.utils.filter_by(lookup_dict=lookup_dict,
+                                lookup=grain,
+                                traverse=__grains__,
+                                merge=merge,
+                                default=default,
+                                base=base)
 
 
 def _dict_from_path(path, val, delimiter=DEFAULT_TARGET_DELIM):
@@ -727,17 +722,13 @@ def set(key,
 
     if _existing_value is not None and not force:
         if _existing_value_type == 'complex':
-            ret['comment'] = (
-                'The key \'{0}\' exists but is a dict or a list. '
-                'Use \'force=True\' to overwrite.'.format(key)
-            )
+            ret['comment'] = 'The key \'{0}\' exists but is a dict or a list. '.format(key) \
+                 + 'Use \'force=True\' to overwrite.'
             ret['result'] = False
             return ret
         elif _new_value_type == 'complex' and _existing_value_type is not None:
-            ret['comment'] = (
-                'The key \'{0}\' exists and the given value is a dict or a '
-                'list. Use \'force=True\' to overwrite.'.format(key)
-            )
+            ret['comment'] = 'The key \'{0}\' exists and the given value is a '.format(key) \
+                 + 'dict or a list. Use \'force=True\' to overwrite.'
             ret['result'] = False
             return ret
         else:
@@ -769,11 +760,9 @@ def set(key,
         elif _existing_value == rest or force:
             _existing_value = {rest: _value}
         else:
-            ret['comment'] = (
-                'The key \'{0}\' value is \'{1}\', which is different from '
-                'the provided key \'{2}\'. Use \'force=True\' to overwrite.'
-                .format(key, _existing_value, rest)
-            )
+            ret['comment'] = 'The key \'{0}\' value is \'{1}\', '.format(key, _existing_value) \
+                 + 'which is different from the provided key \'{0}\'. '.format(rest) \
+                 + 'Use \'force=True\' to overwrite.'
             ret['result'] = False
             return ret
         _value = _existing_value
@@ -802,7 +791,7 @@ def equals(key, value):
         salt '*' grains.equals fqdn <expected_fqdn>
         salt '*' grains.equals systemd:version 219
     '''
-    return six.text_type(value) == six.text_type(get(key))
+    return str(value) == str(get(key))
 
 
 # Provide a jinja function call compatible get aliased as fetch

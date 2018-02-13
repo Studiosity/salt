@@ -18,7 +18,7 @@ Dicts provided by salt:
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import salt libs
@@ -200,7 +200,7 @@ def create(vm_info):
 
         if len(ips):
             ip = ips[interface_index]
-            log.info("[ %s ] IPv4 is: %s", vm_name, ip)
+            log.info("[ {0} ] IPv4 is: {1}".format(vm_name, ip))
             # ssh or smb using ip and install salt only if deploy is True
             if deploy:
                 vm_info['key_filename'] = key_filename
@@ -231,9 +231,7 @@ def list_nodes_full(kwargs=None, call=None):
     This is because some functions both within Salt and 3rd party will break if an expected field is not present.
     This function is normally called with the -F option:
 
-
     .. code-block:: bash
-
         salt-cloud -F
 
 
@@ -279,7 +277,6 @@ def list_nodes(kwargs=None, call=None):
     This function is normally called with the -Q option:
 
     .. code-block:: bash
-
         salt-cloud -Q
 
 
@@ -363,13 +360,13 @@ def destroy(name, call=None):
 
 
 def start(name, call=None):
-    '''
+    """
     Start a machine.
     @param name: Machine to start
     @type name: str
     @param call: Must be "action"
     @type call: str
-    '''
+    """
     if call != 'action':
         raise SaltCloudSystemExit(
             'The instance action must be called with -a or --action.'

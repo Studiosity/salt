@@ -2,16 +2,13 @@
 '''
 Wrap the cp module allowing for managed ssh file transfers
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function
-import logging
-import os
+from __future__ import absolute_import
 
 # Import salt libs
 import salt.client.ssh
 import salt.utils.files
-import salt.utils.stringutils
-import salt.utils.templates
+import logging
+import os
 from salt.exceptions import CommandExecutionError
 
 log = logging.getLogger(__name__)
@@ -141,14 +138,14 @@ def _render_filenames(path, dest, saltenv, template):
         '''
         # write out path to temp file
         tmp_path_fn = salt.utils.files.mkstemp()
-        with salt.utils.files.fopen(tmp_path_fn, 'w+') as fp_:
-            fp_.write(salt.utils.stringutils.to_str(contents))
+        with salt.utils.fopen(tmp_path_fn, 'w+') as fp_:
+            fp_.write(contents)
         data = salt.utils.templates.TEMPLATE_REGISTRY[template](
             tmp_path_fn,
             to_str=True,
             **kwargs
         )
-        salt.utils.files.safe_rm(tmp_path_fn)
+        salt.utils.safe_rm(tmp_path_fn)
         if not data['result']:
             # Failed to render the template
             raise CommandExecutionError(

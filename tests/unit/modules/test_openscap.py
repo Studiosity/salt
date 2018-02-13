@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 from subprocess import PIPE
 
 # Import salt libs
@@ -18,7 +18,7 @@ from tests.support.mock import (
 )
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
@@ -190,16 +190,12 @@ class OpenscapTestCase(TestCase):
 
     def test_openscap_xccdf_eval_fail_not_implemented_action(self):
         response = openscap.xccdf('info {0}'.format(self.policy_file))
-        if six.PY2:
-            mock_err = "argument action: invalid choice: 'info' (choose from u'eval')"
-        else:
-            mock_err = "argument action: invalid choice: 'info' (choose from 'eval')"
 
         self.assertEqual(
             response,
             {
                 'upload_dir': None,
-                'error': mock_err,
+                'error': "argument action: invalid choice: 'info' (choose from 'eval')",
                 'success': False,
                 'returncode': None
             }

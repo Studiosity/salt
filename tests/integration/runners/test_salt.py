@@ -5,7 +5,7 @@ Tests for the salt runner
 .. versionadded:: 2016.11.0
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.case import ShellCase

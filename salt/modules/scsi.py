@@ -2,11 +2,11 @@
 '''
 SCSI administration module
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 import os.path
 import logging
-import salt.utils.path
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def ls_(get_size=True):
         .. versionadded:: 2015.5.10
     '''
 
-    if not salt.utils.path.which('lsscsi'):
+    if not salt.utils.which('lsscsi'):
         __context__['retcode'] = 1
         return 'scsi.ls not available - lsscsi command not found'
 

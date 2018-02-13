@@ -4,7 +4,7 @@
 #       module functions.
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import random
 import string
 import os.path
@@ -28,7 +28,7 @@ from salt.exceptions import SaltInvocationError, CommandExecutionError
 from salt.modules.boto_vpc import _maybe_set_name_tag, _maybe_set_tags
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 # pylint: disable=import-error
 from salt.ext.six.moves import range  # pylint: disable=redefined-builtin
 # pylint: disable=no-name-in-module,unused-import
@@ -132,9 +132,8 @@ def _has_required_moto():
 @skipIf(HAS_MOTO is False, 'The moto module must be installed.')
 @skipIf(_has_required_boto() is False, 'The boto module must be greater than'
                                        ' or equal to version {}. Installed: {}'
-        .format(required_boto_version, _get_boto_version() if HAS_BOTO else 'None'))
-@skipIf(_has_required_moto() is False, 'The moto version must be >= to version {}. Installed: {}'
-        .format(required_moto_version, _get_moto_version() if HAS_MOTO else 'None'))
+        .format(required_boto_version, _get_boto_version()))
+@skipIf(_has_required_moto() is False, 'The moto version must be >= to version {}. Installed: {}'.format(required_moto_version, _get_moto_version()))
 class BotoVpcTestCaseBase(TestCase, LoaderModuleMockMixin):
     conn3 = None
 

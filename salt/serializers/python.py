@@ -7,15 +7,16 @@
 
     Implements a Python serializer (via pprint.format)
 '''
-from __future__ import absolute_import, unicode_literals
-import pprint
+
+from __future__ import absolute_import
 
 try:
-    import simplejson as _json
+    import simplejson as json
 except ImportError:
-    import json as _json  # pylint: disable=blacklisted-import
+    import json
 
-import salt.utils.json
+import pprint
+import salt.utils
 
 __all__ = ['serialize', 'available']
 
@@ -35,9 +36,9 @@ def serialize(obj, **options):
     # TODO remove json round-trip when all dataset will use
     # serializers
     return pprint.pformat(
-        salt.utils.json.loads(
-            salt.utils.json.dumps(obj, _json_module=_json),
-            _json_module=_json
+        json.loads(
+            json.dumps(obj),
+            object_hook=salt.utils.decode_dict
         ),
         **options
     )

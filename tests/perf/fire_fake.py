@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function
 # Import system libs
 import sys
+import time
 import datetime
 
 # Import salt libs

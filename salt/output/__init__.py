@@ -4,23 +4,21 @@ Used to manage the outputter system. This package is the modular system used
 for managing outputters.
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
+from __future__ import print_function
+from __future__ import absolute_import
+import re
+import os
+import sys
 import errno
 import logging
-import os
-import re
-import sys
 import traceback
 
-# Import Salt libs
+# Import salt libs
 import salt.loader
-import salt.utils.files
-import salt.utils.platform
-import salt.utils.stringutils
-
-# Import 3rd-party libs
-from salt.ext import six
+import salt.utils
+import salt.ext.six as six
+from salt.utils import print_cli
 
 # Are you really sure !!!
 # dealing with unicode is not as simple as setting defaultencoding
@@ -99,7 +97,7 @@ def display_output(data, out=None, opts=None, **kwargs):
         # output filename can be either '' or None
         if output_filename:
             if not hasattr(output_filename, 'write'):
-                ofh = salt.utils.files.fopen(output_filename, 'a')  # pylint: disable=resource-leakage
+                ofh = salt.utils.fopen(output_filename, 'a')  # pylint: disable=resource-leakage
                 fh_opened = True
             else:
                 # Filehandle/file-like object
@@ -116,14 +114,17 @@ def display_output(data, out=None, opts=None, **kwargs):
                         # even if we didn't encode it
                         pass
                 if fdata:
-                    ofh.write(salt.utils.stringutils.to_str(fdata))
+                    if six.PY3:
+                        ofh.write(fdata.decode())
+                    else:
+                        ofh.write(fdata)
                     ofh.write('\n')
             finally:
                 if fh_opened:
                     ofh.close()
             return
         if display_data:
-            salt.utils.stringutils.print_cli(display_data)
+            print_cli(display_data)
     except IOError as exc:
         # Only raise if it's NOT a broken pipe
         if exc.errno != errno.EPIPE:
@@ -174,14 +175,14 @@ def get_printout(out, opts=None, **kwargs):
 
         if opts.get('force_color', False):
             opts['color'] = True
-        elif opts.get('no_color', False) or is_pipe() or salt.utils.platform.is_windows():
+        elif opts.get('no_color', False) or is_pipe() or salt.utils.is_windows():
             opts['color'] = False
         else:
             opts['color'] = True
     else:
         if opts.get('force_color', False):
             opts['color'] = True
-        elif opts.get('no_color', False) or salt.utils.platform.is_windows():
+        elif opts.get('no_color', False) or salt.utils.is_windows():
             opts['color'] = False
         else:
             pass

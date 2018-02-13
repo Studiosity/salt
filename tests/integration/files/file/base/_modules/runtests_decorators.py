@@ -9,11 +9,6 @@ import salt.utils.decorators
 
 
 def _fallbackfunc():
-    '''
-    CLI Example:
-
-    .. code-block:: bash
-    '''
     return False, 'fallback'
 
 
@@ -38,21 +33,11 @@ def booldependsTrue():
 
 @salt.utils.decorators.depends(False)
 def booldependsFalse():
-    '''
-    CLI Example:
-
-    .. code-block:: bash
-    '''
     return True
 
 
 @salt.utils.decorators.depends('time')
 def depends():
-    '''
-    CLI Example:
-
-    .. code-block:: bash
-    '''
     ret = {'ret': True,
            'time': time.time()}
     return ret
@@ -60,11 +45,6 @@ def depends():
 
 @salt.utils.decorators.depends('time123')
 def missing_depends():
-    '''
-    CLI Example:
-
-    .. code-block:: bash
-    '''
     return True
 
 
@@ -82,11 +62,6 @@ def depends_will_not_fallback():
 
 @salt.utils.decorators.depends('time123', fallback_function=_fallbackfunc)
 def missing_depends_will_fallback():
-    '''
-    CLI Example:
-
-    .. code-block:: bash
-    '''
     ret = {'ret': True,
            'time': time.time()}
     return ret

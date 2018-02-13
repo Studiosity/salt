@@ -98,7 +98,7 @@ and autoscale groups are completely dependent on each other.
             key: askdjghsdfjkghWupUjasdflkdfklgjsdfjajkghs
             region: us-east-1
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 from salt.exceptions import SaltInvocationError
 
 
@@ -165,9 +165,8 @@ def present(
         The user data available to launched EC2 instances.
 
     cloud_init
-        A dict of cloud_init configuration. Currently supported keys:
-        boothooks, scripts and cloud-config.
-        Mutually exclusive with user_data.
+        A dict of cloud_init configuration. Currently supported values:
+        scripts, cloud-config. Mutually exclusive with user_data.
 
     instance_type
         The instance type. ex: m1.small.

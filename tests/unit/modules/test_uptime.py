@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -14,9 +14,7 @@ import salt.modules.uptime as uptime
 
 
 class RequestMock(Mock):
-    '''
-    Request Mock
-    '''
+    ''' Request Mock'''
 
     def get(self, *args, **kwargs):
         return RequestResponseMock()
@@ -51,9 +49,7 @@ REQUEST_MOCK = RequestMock()
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
 class UptimeTestCase(TestCase, LoaderModuleMockMixin):
-    '''
-    UptimeTestCase
-    '''
+    ''' UptimeTestCase'''
 
     def setup_loader_modules(self):
         return {

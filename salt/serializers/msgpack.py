@@ -7,16 +7,16 @@
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import copy
+from __future__ import absolute_import
 import logging
+from copy import copy
 
 # Import Salt Libs
 from salt.log import setup_console_logger
 from salt.serializers import DeserializationError, SerializationError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ else:  # msgpack.version < 0.2.0
             return dict(data)
         elif isinstance(obj, (list, tuple)):
             return [_encoder(value) for value in obj]
-        return copy.copy(obj)
+        return copy(obj)
 
     def _decoder(obj):
         return obj

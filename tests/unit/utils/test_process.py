@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import sys
 import time
@@ -11,18 +11,13 @@ import functools
 
 # Import Salt Testing libs
 from tests.support.unit import TestCase, skipIf
-from tests.support.mock import (
-    patch,
-    NO_MOCK,
-    NO_MOCK_REASON
-)
 
 # Import salt libs
-import salt.utils.platform
+import salt.utils
 import salt.utils.process
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import range  # pylint: disable=import-error,redefined-builtin
 
 
@@ -36,7 +31,7 @@ def die(func):
         name = func.__name__[5:]
 
         def _die():
-            salt.utils.process.appendproctitle('test_{0}'.format(name))
+            salt.utils.appendproctitle('test_{0}'.format(name))
         setattr(self, 'die_' + name, _die)
 
     return wrapper
@@ -52,7 +47,7 @@ def incr(func):
         name = func.__name__[5:]
 
         def _incr(counter, num):
-            salt.utils.process.appendproctitle('test_{0}'.format(name))
+            salt.utils.appendproctitle('test_{0}'.format(name))
             for _ in range(0, num):
                 counter.value += 1
         setattr(self, 'incr_' + name, _incr)
@@ -70,7 +65,7 @@ def spin(func):
         name = func.__name__[5:]
 
         def _spin():
-            salt.utils.process.appendproctitle('test_{0}'.format(name))
+            salt.utils.appendproctitle('test_{0}'.format(name))
             while True:
                 time.sleep(1)
         setattr(self, 'spin_' + name, _spin)
@@ -108,7 +103,7 @@ class TestProcessManager(TestCase):
         process_manager.add_process(self.spin_kill)
         initial_pid = next(six.iterkeys(process_manager._process_map))
         # kill the child
-        if salt.utils.platform.is_windows():
+        if salt.utils.is_windows():
             os.kill(initial_pid, signal.SIGTERM)
         else:
             os.kill(initial_pid, signal.SIGKILL)
@@ -210,26 +205,3 @@ class TestThreadPool(TestCase):
         self.assertEqual(counter.value, 0)
         # make sure the queue is still full
         self.assertEqual(pool._job_queue.qsize(), 1)
-
-
-class TestProcess(TestCase):
-
-    @skipIf(NO_MOCK, NO_MOCK_REASON)
-    def test_daemonize_if(self):
-        # pylint: disable=assignment-from-none
-        with patch('sys.argv', ['salt-call']):
-            ret = salt.utils.process.daemonize_if({})
-            self.assertEqual(None, ret)
-
-        ret = salt.utils.process.daemonize_if({'multiprocessing': False})
-        self.assertEqual(None, ret)
-
-        with patch('sys.platform', 'win'):
-            ret = salt.utils.process.daemonize_if({})
-            self.assertEqual(None, ret)
-
-        with patch('salt.utils.process.daemonize'), \
-                patch('sys.platform', 'linux2'):
-            salt.utils.process.daemonize_if({})
-            self.assertTrue(salt.utils.process.daemonize.called)
-        # pylint: enable=assignment-from-none

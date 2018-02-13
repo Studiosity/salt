@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import re
 import os
 
@@ -11,14 +11,15 @@ from tests.support.unit import skipIf, TestCase
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 
 # Import salt libs
-import salt.utils.yaml
 import salt.modules.virt as virt
 import salt.modules.config as config
 from salt._compat import ElementTree as ET
 import salt.config
+import salt.utils
 
 # Import third party libs
-from salt.ext import six
+import yaml
+import salt.ext.six as six
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
@@ -216,7 +217,7 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
         self.assertEqual(root.find('name').text, 'vmname/system.qcow2')
         self.assertEqual(root.find('key').text, 'vmname/system')
         self.assertEqual(root.find('capacity').attrib['unit'], 'KiB')
-        self.assertEqual(root.find('capacity').text, six.text_type(8192 * 1024))
+        self.assertEqual(root.find('capacity').text, str(8192 * 1024))
 
     def test_gen_vol_xml_for_esxi(self):
         xml_data = virt._gen_vol_xml('vmname', 'system', 8192, 'esxi')
@@ -224,7 +225,7 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
         self.assertEqual(root.find('name').text, 'vmname/system.vmdk')
         self.assertEqual(root.find('key').text, 'vmname/system')
         self.assertEqual(root.find('capacity').attrib['unit'], 'KiB')
-        self.assertEqual(root.find('capacity').text, six.text_type(8192 * 1024))
+        self.assertEqual(root.find('capacity').text, str(8192 * 1024))
 
     def test_gen_xml_for_kvm_default_profile(self):
         diskp = virt._disk_profile('default', 'kvm')
@@ -240,7 +241,7 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
         root = ET.fromstring(xml_data)
         self.assertEqual(root.attrib['type'], 'kvm')
         self.assertEqual(root.find('vcpu').text, '1')
-        self.assertEqual(root.find('memory').text, six.text_type(512 * 1024))
+        self.assertEqual(root.find('memory').text, str(512 * 1024))
         self.assertEqual(root.find('memory').attrib['unit'], 'KiB')
 
         disks = root.findall('.//disk')
@@ -279,7 +280,7 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
         root = ET.fromstring(xml_data)
         self.assertEqual(root.attrib['type'], 'vmware')
         self.assertEqual(root.find('vcpu').text, '1')
-        self.assertEqual(root.find('memory').text, six.text_type(512 * 1024))
+        self.assertEqual(root.find('memory').text, str(512 * 1024))
         self.assertEqual(root.find('memory').attrib['unit'], 'KiB')
 
         disks = root.findall('.//disk')
@@ -329,8 +330,8 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
 '''
         with patch('salt.modules.virt._nic_profile') as nic_profile, \
                 patch('salt.modules.virt._disk_profile') as disk_profile:
-            disk_profile.return_value = salt.utils.yaml.safe_load(diskp_yaml)
-            nic_profile.return_value = salt.utils.yaml.safe_load(nicp_yaml)
+            disk_profile.return_value = yaml.load(diskp_yaml)
+            nic_profile.return_value = yaml.load(nicp_yaml)
             diskp = virt._disk_profile('noeffect', 'esxi')
             nicp = virt._nic_profile('noeffect', 'esxi')
             xml_data = virt._gen_xml(
@@ -344,7 +345,7 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
             root = ET.fromstring(xml_data)
             self.assertEqual(root.attrib['type'], 'vmware')
             self.assertEqual(root.find('vcpu').text, '1')
-            self.assertEqual(root.find('memory').text, six.text_type(512 * 1024))
+            self.assertEqual(root.find('memory').text, str(512 * 1024))
             self.assertEqual(root.find('memory').attrib['unit'], 'KiB')
             self.assertTrue(len(root.findall('.//disk')) == 2)
             self.assertTrue(len(root.findall('.//interface')) == 2)
@@ -376,8 +377,8 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
 '''
         with patch('salt.modules.virt._nic_profile') as nic_profile, \
                 patch('salt.modules.virt._disk_profile') as disk_profile:
-            disk_profile.return_value = salt.utils.yaml.safe_load(diskp_yaml)
-            nic_profile.return_value = salt.utils.yaml.safe_load(nicp_yaml)
+            disk_profile.return_value = yaml.load(diskp_yaml)
+            nic_profile.return_value = yaml.load(nicp_yaml)
             diskp = virt._disk_profile('noeffect', 'kvm')
             nicp = virt._nic_profile('noeffect', 'kvm')
             xml_data = virt._gen_xml(
@@ -391,7 +392,7 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
             root = ET.fromstring(xml_data)
             self.assertEqual(root.attrib['type'], 'kvm')
             self.assertEqual(root.find('vcpu').text, '1')
-            self.assertEqual(root.find('memory').text, six.text_type(512 * 1024))
+            self.assertEqual(root.find('memory').text, str(512 * 1024))
             self.assertEqual(root.find('memory').attrib['unit'], 'KiB')
             self.assertTrue(len(root.findall('.//disk')) == 2)
             self.assertTrue(len(root.findall('.//interface')) == 2)
@@ -428,8 +429,6 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
         controllers = root.findall('.//devices/controller')
         # There should be no controller
         self.assertTrue(len(controllers) == 0)
-        # kvm mac address shoud start with 52:54:00
-        self.assertTrue("mac address='52:54:00" in xml_data)
 
     def test_mixed_dict_and_list_as_profile_objects(self):
 
@@ -455,7 +454,7 @@ class VirtTestCase(TestCase, LoaderModuleMockMixin):
                    bridge: br1
                    model: virtio
         '''
-        mock_config = salt.utils.yaml.safe_load(yaml_config)
+        mock_config = yaml.load(yaml_config)
         with patch.dict(salt.modules.config.__opts__, mock_config):
 
             for name in six.iterkeys(mock_config['virt.nic']):

@@ -3,7 +3,7 @@
 Tests for the rabbitmq state
 '''
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.case import ModuleCase

@@ -3,8 +3,8 @@
 integration tests for mac_pkgutil
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
+from __future__ import absolute_import
 import os
 
 # Import Salt Testing libs
@@ -12,9 +12,8 @@ from tests.support.case import ModuleCase
 from tests.support.paths import TMP
 from tests.support.helpers import destructiveTest, skip_if_not_root
 
-# Import Salt libs
-import salt.utils.path
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 
 TEST_PKG_URL = 'https://distfiles.macports.org/MacPorts/MacPorts-2.3.4-10.11-ElCapitan.pkg'
 TEST_PKG_NAME = 'org.macports.MacPorts'
@@ -31,15 +30,15 @@ class MacPkgutilModuleTest(ModuleCase):
         '''
         Get current settings
         '''
-        if not salt.utils.platform.is_darwin():
+        if not salt.utils.is_darwin():
             self.skipTest('Test only available on macOS')
 
-        if not salt.utils.path.which('pkgutil'):
+        if not salt.utils.which('pkgutil'):
             self.skipTest('Test requires pkgutil binary')
 
         os_release = self.run_function('grains.get', ['osrelease'])
         self.pkg_name = 'com.apple.pkg.BaseSystemResources'
-        if int(os_release.split('.')[1]) >= 13 and salt.utils.platform.is_darwin():
+        if int(os_release.split('.')[1]) >= 13 and salt.utils.is_darwin():
             self.pkg_name = 'com.apple.pkg.iTunesX'
 
     def tearDown(self):

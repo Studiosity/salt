@@ -14,7 +14,7 @@ Manage software from FreeBSD ports
 
         salt -t 1200 '*' state.highstate
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import copy
@@ -22,13 +22,13 @@ import logging
 import sys
 
 # Import salt libs
-import salt.utils.data
+import salt.utils
 from salt.exceptions import SaltInvocationError, CommandExecutionError
 from salt.modules.freebsdports import _normalize, _options_file_exists
 
 # Needed by imported function _options_file_exists
 import os  # pylint: disable=W0611
-from salt.ext import six
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
@@ -45,8 +45,8 @@ def _repack_options(options):
     '''
     return dict(
         [
-            (six.text_type(x), _normalize(y))
-            for x, y in six.iteritems(salt.utils.data.repack_dictlist(options))
+            (str(x), _normalize(y))
+            for x, y in six.iteritems(salt.utils.repack_dictlist(options))
         ]
     )
 

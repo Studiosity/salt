@@ -3,7 +3,7 @@
     :codeauthor: :email:`Joe Julian <me@joejulian.name>`
 '''
 # Import the future
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 
 # Import Python libs
@@ -34,9 +34,6 @@ from tests.support.mock import (
 # Import Salt Libs
 import salt.modules.tls as tls
 from salt.utils.versions import LooseVersion
-
-# Import 3rd party Libs
-import salt.ext as six
 
 log = logging.getLogger(__name__)
 
@@ -191,7 +188,7 @@ class TLSAddTestCase(TestCase, LoaderModuleMockMixin):
         ca_path = '/tmp/test_tls'
         ca_name = 'test_ca'
         mock_opt = MagicMock(return_value=ca_path)
-        with patch('salt.utils.files.fopen',
+        with patch('salt.utils.fopen',
                    mock_open(read_data=_TLS_TEST_DATA['ca_cert'])), \
                 patch.dict(tls.__salt__, {'config.option': mock_opt}), \
                 patch('os.path.exists', MagicMock(return_value=True)), \
@@ -272,7 +269,7 @@ class TLSAddTestCase(TestCase, LoaderModuleMockMixin):
                 if 'extensions' not in reference:
                     del source['extensions']
 
-            with patch('salt.utils.files.fopen',
+            with patch('salt.utils.fopen',
                        mock_open(read_data=_TLS_TEST_DATA['ca_cert'])):
                 try:
                     result = ignore_extensions(tls.cert_info(certp))
@@ -281,7 +278,7 @@ class TLSAddTestCase(TestCase, LoaderModuleMockMixin):
                     # in OpenSSL/crypto.py in the get_signature_algorithm function referencing
                     # the cert_info attribute, which doesn't exist. This was fixed in subsequent
                     # releases of PyOpenSSL with https://github.com/pyca/pyopenssl/pull/476
-                    if '\'_cffi_backend.CDataGCP\' object has no attribute \'cert_info\'' == six.text_type(err):
+                    if '\'_cffi_backend.CDataGCP\' object has no attribute \'cert_info\'' == str(err):
                         log.exception(err)
                         self.skipTest(
                             'Encountered an upstream error with PyOpenSSL: {0}'.format(

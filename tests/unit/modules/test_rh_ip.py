@@ -3,7 +3,7 @@
     :codeauthor: :email:`Jayesh Kariya <jayeshk@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import os
 
 # Import Salt Testing Libs
@@ -21,7 +21,6 @@ import salt.modules.rh_ip as rh_ip
 
 # Import 3rd-party libs
 import jinja2.exceptions
-from salt.ext import six
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
@@ -60,7 +59,7 @@ class RhipTestCase(TestCase, LoaderModuleMockMixin):
         '''
         Test to build an interface script for a network interface.
         '''
-        with patch.dict(rh_ip.__grains__, {'os': 'Fedora', 'osmajorrelease': 26}):
+        with patch.dict(rh_ip.__grains__, {'os': 'Fedora'}):
             with patch.object(rh_ip, '_raise_error_iface', return_value=None):
                 self.assertRaises(AttributeError,
                                   rh_ip.build_interface,
@@ -81,7 +80,7 @@ class RhipTestCase(TestCase, LoaderModuleMockMixin):
                                       test=True)
 
         for osrelease in range(5, 8):
-            with patch.dict(rh_ip.__grains__, {'os': 'RedHat', 'osrelease': six.text_type(osrelease)}):
+            with patch.dict(rh_ip.__grains__, {'os': 'RedHat', 'osrelease': str(osrelease)}):
                 with patch.object(rh_ip, '_raise_error_iface', return_value=None):
                     with patch.object(rh_ip, '_parse_settings_bond', MagicMock()):
                         mock = jinja2.exceptions.TemplateNotFound('foo')

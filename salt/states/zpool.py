@@ -65,7 +65,7 @@ Management zpool
     Filesystem properties are also not updated, this should be managed by the zfs state module.
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Python libs
 import os
@@ -73,7 +73,6 @@ import logging
 
 # Import Salt libs
 from salt.utils.odict import OrderedDict
-from salt.modules.zpool import _conform_value
 
 log = logging.getLogger(__name__)
 
@@ -176,7 +175,7 @@ def present(name, properties=None, filesystem_properties=None, layout=None, conf
     elif __grains__['kernel'] == 'Linux':
         config['device_dir'] = '/dev'
     config.update(state_config)
-    log.debug('zpool.present::%s::config - %s', name, config)
+    log.debug('zpool.present::{0}::config - {1}'.format(name, config))
 
     # parse layout
     if layout:
@@ -185,11 +184,7 @@ def present(name, properties=None, filesystem_properties=None, layout=None, conf
                 continue
             layout[root_dev] = layout[root_dev].keys() if isinstance(layout[root_dev], OrderedDict) else layout[root_dev].split(' ')
 
-        log.debug('zpool.present::%s::layout - %s', name, layout)
-
-    # ensure properties conform to the zfs parsable format
-    for prop in properties:
-        properties[prop] = _conform_value(properties[prop], True)
+        log.debug('zpool.present::{0}::layout - {1}'.format(name, layout))
 
     # ensure the pool is present
     ret['result'] = False
@@ -205,15 +200,26 @@ def present(name, properties=None, filesystem_properties=None, layout=None, conf
             if prop not in properties_current:
                 continue
 
-            if properties_current[prop] != properties[prop]:
+            value = properties[prop]
+            if isinstance(value, bool):
+                value = 'on' if value else 'off'
+
+            if properties_current[prop] != value:
                 properties_update.append(prop)
 
         # update properties
         for prop in properties_update:
-            res = __salt__['zpool.set'](name, prop, properties[prop])
+            value = properties[prop]
+            res = __salt__['zpool.set'](name, prop, value)
+
+            # also transform value so we match with the return
+            if isinstance(value, bool):
+                value = 'on' if value else 'off'
+            elif ' ' in value:
+                value = "'{0}'".format(value)
 
             # check return
-            if name in res and prop in res[name] and res[name][prop] == properties[prop]:
+            if name in res and prop in res[name] and res[name][prop] == value:
                 if name not in ret['changes']:
                     ret['changes'][name] = {}
                 ret['changes'][name].update(res[name])
@@ -228,7 +234,7 @@ def present(name, properties=None, filesystem_properties=None, layout=None, conf
 
     else:  # import or create
         if config['import']:  # try import
-            log.debug('zpool.present::%s::importing', name)
+            log.debug('zpool.present::{0}::importing'.format(name))
             ret['result'] = __salt__['zpool.import'](
                 name,
                 force=config['force'],
@@ -243,7 +249,7 @@ def present(name, properties=None, filesystem_properties=None, layout=None, conf
             if not layout:
                 ret['comment'] = 'storage pool {0} was not imported, no layout specified for creation'.format(name)
             else:
-                log.debug('zpool.present::%s::creating', name)
+                log.debug('zpool.present::{0}::creating'.format(name))
                 if __opts__['test']:
                     ret['result'] = True
                 else:
@@ -298,8 +304,8 @@ def absent(name, export=False, force=False):
            'comment': ''}
 
     # config defaults
-    log.debug('zpool.absent::%s::config::force = %s', name, force)
-    log.debug('zpool.absent::%s::config::export = %s', name, export)
+    log.debug('zpool.absent::{0}::config::force = {1}'.format(name, force))
+    log.debug('zpool.absent::{0}::config::export = {1}'.format(name, export))
 
     # ensure the pool is absent
     if __salt__['zpool.exists'](name):  # looks like we need to do some work

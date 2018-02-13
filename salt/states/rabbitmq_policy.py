@@ -17,11 +17,11 @@ Example:
         - pattern: '.*'
         - definition: '{"ha-mode": "all"}'
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import logging
-import salt.utils.path
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -30,13 +30,12 @@ def __virtual__():
     '''
     Only load if RabbitMQ is installed.
     '''
-    return salt.utils.path.which('rabbitmqctl') is not None
+    return salt.utils.which('rabbitmqctl') is not None
 
 
 def present(name,
             pattern,
             definition,
-            apply_to=None,
             priority=0,
             vhost='/',
             runas=None):
@@ -53,8 +52,6 @@ def present(name,
         A json dict describing the policy
     priority
         Priority (defaults to 0)
-    apply_to
-        Apply policy to 'queues', 'exchanges' or 'all' (defailt to 'all')
     vhost
         Virtual host to apply to (defaults to '/')
     runas
@@ -71,8 +68,6 @@ def present(name,
             updates.append('Pattern')
         if policy.get('definition') != definition:
             updates.append('Definition')
-        if apply_to and (policy.get('apply-to') != apply_to):
-            updates.append('Applyto')
         if int(policy.get('priority')) != priority:
             updates.append('Priority')
 
@@ -90,7 +85,6 @@ def present(name,
                                                      name,
                                                      pattern,
                                                      definition,
-                                                     apply_to,
                                                      priority=priority,
                                                      runas=runas)
     elif updates:
@@ -103,7 +97,6 @@ def present(name,
                                                      name,
                                                      pattern,
                                                      definition,
-                                                     apply_to,
                                                      priority=priority,
                                                      runas=runas)
 

@@ -4,7 +4,10 @@
 Runs minion floscript
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+
+from __future__ import print_function
+
+from __future__ import absolute_import
 # pylint: skip-file
 import os
 import stat

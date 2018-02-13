@@ -4,10 +4,9 @@
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import os
-import logging
 
 # Import Salt Testing Libs
 from tests.support.unit import skipIf, TestCase
@@ -20,11 +19,11 @@ from tests.support.mock import (
 )
 
 # Import Salt Libs
+import salt.utils.parsers
 import salt.log.setup as log
 import salt.config
 import salt.syspaths
-import salt.utils.parsers
-import salt.utils.platform
+import salt.utils
 
 
 class ErrorMock(object):  # pylint: disable=too-few-public-methods
@@ -491,7 +490,7 @@ class LogSettingsParserTests(TestCase):
         # Check log file logger
         self.assertEqual(self.log_setup.log_level_logfile, log_level_logfile)
 
-    @skipIf(salt.utils.platform.is_windows(), 'Windows uses a logging listener')
+    @skipIf(salt.utils.is_windows(), 'Windows uses a logging listener')
     def test_log_created(self):
         '''
         Tests that log file is created
@@ -501,24 +500,25 @@ class LogSettingsParserTests(TestCase):
         log_file_name = self.logfile_config_setting_name
         opts = self.default_config.copy()
         opts.update({'log_file': log_file})
-        if log_file_name != 'log_file':
-            opts.update({log_file_name: getattr(self, log_file_name)})
+        if log_file_name is not 'log_file':
+            opts.update({log_file_name:
+                         getattr(self, log_file_name)})
 
-        if log_file_name == 'key_logfile':
+        if log_file_name is 'key_logfile':
             self.skipTest('salt-key creates log file outside of parse_args.')
 
         parser = self.parser()
         with patch(self.config_func, MagicMock(return_value=opts)):
             parser.parse_args(args)
 
-        if log_file_name == 'log_file':
+        if log_file_name is 'log_file':
             self.assertEqual(os.path.getsize(log_file), 0)
         else:
             self.assertEqual(os.path.getsize(getattr(self, log_file_name)), 0)
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-@skipIf(salt.utils.platform.is_windows(), 'Windows uses a logging listener')
+@skipIf(salt.utils.is_windows(), 'Windows uses a logging listener')
 class MasterOptionParserTestCase(LogSettingsParserTests):
     '''
     Tests parsing Salt Master options
@@ -545,7 +545,7 @@ class MasterOptionParserTestCase(LogSettingsParserTests):
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-@skipIf(salt.utils.platform.is_windows(), 'Windows uses a logging listener')
+@skipIf(salt.utils.is_windows(), 'Windows uses a logging listener')
 class MinionOptionParserTestCase(LogSettingsParserTests):
     '''
     Tests parsing Salt Minion options
@@ -599,7 +599,7 @@ class ProxyMinionOptionParserTestCase(LogSettingsParserTests):
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-@skipIf(salt.utils.platform.is_windows(), 'Windows uses a logging listener')
+@skipIf(salt.utils.is_windows(), 'Windows uses a logging listener')
 class SyndicOptionParserTestCase(LogSettingsParserTests):
     '''
     Tests parsing Salt Syndic options

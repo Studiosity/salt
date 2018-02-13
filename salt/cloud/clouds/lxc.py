@@ -9,16 +9,19 @@ Please read :ref:`core config documentation <config_lxc>`.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import copy
-import logging
+from __future__ import absolute_import
+import json
 import os
-import pprint
+import logging
+import copy
 import time
+from pprint import pformat
+
+# Import salt libs
+import salt.utils
 
 # Import salt cloud libs
 import salt.utils.cloud
-import salt.utils.json
 import salt.config as config
 from salt.exceptions import SaltCloudSystemExit
 
@@ -27,7 +30,7 @@ import salt.runner
 
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # Get logging started
 log = logging.getLogger(__name__)
@@ -80,7 +83,6 @@ def _master_opts(cfg='master'):
     cfg = os.environ.get(
         'SALT_MASTER_CONFIG', os.path.join(default_dir, cfg))
     opts = config.master_config(cfg)
-    opts['output'] = 'quiet'
     return opts
 
 
@@ -137,15 +139,15 @@ def _salt(fun, *args, **kw):
         cache = True
         laps = laps // __CACHED_FUNS[fun]
     try:
-        sargs = salt.utils.json.dumps(args)
+        sargs = json.dumps(args)
     except TypeError:
         sargs = ''
     try:
-        skw = salt.utils.json.dumps(kw)
+        skw = json.dumps(kw)
     except TypeError:
         skw = ''
     try:
-        skwargs = salt.utils.json.dumps(kwargs)
+        skwargs = json.dumps(kwargs)
     except TypeError:
         skwargs = ''
     cache_key = (laps, target, fun, sargs, skw, skwargs)
@@ -185,7 +187,7 @@ def _salt(fun, *args, **kw):
             except Exception:
                 ping = False
                 ping_retries += 1
-                log.error('%s unreachable, retrying', target)
+                log.error('{0} unreachable, retrying'.format(target))
         if not ping:
             raise SaltCloudSystemExit('Target {0} unreachable'.format(target))
         jid = conn.cmd_async(tgt=target,
@@ -213,7 +215,7 @@ def _salt(fun, *args, **kw):
                 break
             if running and (time.time() > endto):
                 raise Exception('Timeout {0}s for {1} is elapsed'.format(
-                    timeout, pprint.pformat(rkwargs)))
+                    timeout, pformat(rkwargs)))
             time.sleep(poll)
         # timeout for the master to return data about a specific job
         wait_for_res = float({
@@ -448,7 +450,7 @@ def create(vm_, call=None):
 
     ret = {'name': vm_['name'], 'changes': {}, 'result': True, 'comment': ''}
     if 'pub_key' not in vm_ and 'priv_key' not in vm_:
-        log.debug('Generating minion keys for %s', vm_['name'])
+        log.debug('Generating minion keys for {0}'.format(vm_['name']))
         vm_['priv_key'], vm_['pub_key'] = salt.utils.cloud.gen_keys(
             salt.config.get_cloud_config_value(
                 'keysize', vm_, __opts__))
@@ -560,11 +562,9 @@ def get_configured_provider(vm_=None):
     # in all cases, verify that the linked saltmaster is alive.
     if data:
         ret = _salt('test.ping', salt_target=data['target'])
-        if ret:
-            return data
-        else:
-            log.error(
-                'Configured provider %s minion: %s is unreachable',
-                __active_provider_name__, data['target']
-            )
+        if not ret:
+            raise SaltCloudSystemExit(
+                'Configured provider {0} minion: {1} is unreachable'.format(
+                    __active_provider_name__, data['target']))
+        return data
     return False

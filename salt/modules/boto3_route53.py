@@ -49,14 +49,13 @@ Execution module for Amazon Route53 written against Boto 3
 #pylint: disable=E0602,W0106
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import time
 
 # Import Salt libs
 import salt.utils.boto3
 import salt.utils.compat
-import salt.utils.versions
 from salt.exceptions import SaltInvocationError
 log = logging.getLogger(__name__)  # pylint: disable=W1699
 
@@ -77,7 +76,9 @@ def __virtual__():
     Only load if boto libraries exist and if boto libraries are greater than
     a given version.
     '''
-    return salt.utils.versions.check_boto_reqs()
+    if not HAS_BOTO3:
+        return (False, 'The boto3_route53 module could not be loaded: boto3 libraries not found')
+    return True
 
 
 def __init__(opts):
@@ -100,7 +101,7 @@ def _collect_results(func, item, args, marker='Marker', nextmarker='NextMarker')
                 time.sleep(3)
                 tries -= 1
                 continue
-            log.error('Could not collect results from %s(): %s', func, e)
+            log.error('Could not collect results from {0}(): {1}'.format(func, str(e)))
             return []
         i = r.get(item, []) if item else r
         i.pop('ResponseMetadata', None) if isinstance(i, dict) else None
@@ -112,7 +113,7 @@ def _collect_results(func, item, args, marker='Marker', nextmarker='NextMarker')
 
 def _wait_for_sync(change, conn, tries=10, sleep=20):
     for retry in range(1, tries+1):
-        log.info('Getting route53 status (attempt %s)', retry)
+        log.info('Getting route53 status (attempt {0})'.format(retry))
         status = 'wait'
         try:
             status = conn.get_change(Id=change)['ChangeInfo']['Status']
@@ -175,10 +176,8 @@ def find_hosted_zone(Id=None, Name=None, PrivateZone=None,
     if PrivateZone is not None:
         ret = [m for m in ret if m['HostedZone']['Config']['PrivateZone'] is PrivateZone]
     if len(ret) > 1:
-        log.error(
-            'Request matched more than one Hosted Zone (%s). Refine your '
-            'criteria and try again.', [z['HostedZone']['Id'] for z in ret]
-        )
+        log.error('Request matched more than one Hosted Zone ({0}).  Refine your criteria and try '
+                  'again.'.format([z['HostedZone']['Id'] for z in ret]))
         ret = []
     return ret
 
@@ -349,10 +348,8 @@ def create_hosted_zone(Name, VPCId=None, VPCName=None, VPCRegion=None, CallerRef
     deets = find_hosted_zone(Name=Name, PrivateZone=PrivateZone,
                              region=region, key=key, keyid=keyid, profile=profile)
     if deets:
-        log.info(
-            'Route 53 hosted zone %s already exists. You may want to pass '
-            'e.g. \'PrivateZone=True\' or similar...', Name
-        )
+        log.info('Route 53 hosted zone {0} already exists.  You may want to pass e.g. '
+                 "'PrivateZone=True' or similar...".format(Name))
         return None
     args = {
             'Name': Name,
@@ -376,10 +373,8 @@ def create_hosted_zone(Name, VPCId=None, VPCName=None, VPCRegion=None, CallerRef
             log.error('Private zone requested but no VPC matching given criteria found.')
             return None
         if len(vpcs) > 1:
-            log.error(
-                'Private zone requested but multiple VPCs matching given '
-                'criteria found: %s.', [v['id'] for v in vpcs]
-            )
+            log.error('Private zone requested but multiple VPCs matching given criteria found: '
+                      '{0}.'.format([v['id'] for v in vpcs]))
             return None
         vpc = vpcs[0]
         if VPCName:
@@ -405,7 +400,7 @@ def create_hosted_zone(Name, VPCId=None, VPCName=None, VPCRegion=None, CallerRef
                 time.sleep(3)
                 tries -= 1
                 continue
-            log.error('Failed to create hosted zone %s: %s', Name, e)
+            log.error('Failed to create hosted zone {0}: {1}'.format(Name, str(e)))
             return []
     return []
 
@@ -440,7 +435,7 @@ def update_hosted_zone_comment(Id=None, Name=None, Comment=None, PrivateZone=Non
                 'key': key, 'keyid': keyid, 'profile': profile}
         zone = find_hosted_zone(**args)
         if not zone:
-            log.error("Couldn't resolve domain name %s to a hosted zone ID.", Name)
+            log.error("Couldn't resolve domain name {0} to a hosted zone ID.".format(Name))
             return []
         Id = zone[0]['HostedZone']['Id']
     tries = 10
@@ -455,8 +450,8 @@ def update_hosted_zone_comment(Id=None, Name=None, Comment=None, PrivateZone=Non
                 time.sleep(3)
                 tries -= 1
                 continue
-            log.error('Failed to update comment on hosted zone %s: %s',
-                      Name or Id, e)
+            log.error('Failed to update comment on hosted zone {0}: {1}'.format(
+                      Name or Id, str(e)))
     return []
 
 
@@ -519,10 +514,8 @@ def associate_vpc_with_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
                 'key': key, 'keyid': keyid, 'profile': profile}
         zone = find_hosted_zone(**args)
         if not zone:
-            log.error(
-                "Couldn't resolve domain name %s to a private hosted zone ID.",
-                Name
-            )
+            log.error("Couldn't resolve domain name {0} to a private hosted zone"
+                      'ID.'.format(Name))
             return False
         HostedZoneId = zone[0]['HostedZone']['Id']
     vpcs = __salt__['boto_vpc.describe_vpcs'](vpc_id=VPCId, name=VPCName, region=region, key=key,
@@ -533,8 +526,8 @@ def associate_vpc_with_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
         log.error('No VPC matching the given criteria found.')
         return False
     if len(vpcs) > 1:
-        log.error('Multiple VPCs matching the given criteria found: %s.',
-                  ', '.join([v['id'] for v in vpcs]))
+        log.error('Multiple VPCs matching the given criteria found: {0}.'
+                  ''.format(', '.join([v['id'] for v in vpcs])))
         return False
     vpc = vpcs[0]
     if VPCName:
@@ -556,12 +549,12 @@ def associate_vpc_with_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
                 time.sleep(3)
                 tries -= 1
                 continue
-            log.error('Failed to associate VPC %s with hosted zone %s: %s',
-                      VPCName or VPCId, Name or HostedZoneId, e)
+            log.error('Failed to associate VPC {0} with hosted zone {1}: {2}'.format(
+                      VPCName or VPCId, Name or HostedZoneId, str(e)))
     return False
 
 
-def disassociate_vpc_from_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
+def diassociate_vpc_from_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
                                      VPCName=None, VPCRegion=None, Comment=None,
                                      region=None, key=None, keyid=None, profile=None):
     '''
@@ -613,7 +606,8 @@ def disassociate_vpc_from_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
                 'key': key, 'keyid': keyid, 'profile': profile}
         zone = find_hosted_zone(**args)
         if not zone:
-            log.error("Couldn't resolve domain name %s to a private hosted zone ID.", Name)
+            log.error("Couldn't resolve domain name {0} to a private hosted zone"
+                      'ID.'.format(Name))
             return False
         HostedZoneId = zone[0]['HostedZone']['Id']
     vpcs = __salt__['boto_vpc.describe_vpcs'](vpc_id=VPCId, name=VPCName, region=region, key=key,
@@ -624,8 +618,8 @@ def disassociate_vpc_from_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
         log.error('No VPC matching the given criteria found.')
         return False
     if len(vpcs) > 1:
-        log.error('Multiple VPCs matching the given criteria found: %s.',
-                  ', '.join([v['id'] for v in vpcs]))
+        log.error('Multiple VPCs matching the given criteria found: {0}.'
+                  ''.format(', '.join([v['id'] for v in vpcs])))
         return False
     vpc = vpcs[0]
     if VPCName:
@@ -647,8 +641,8 @@ def disassociate_vpc_from_hosted_zone(HostedZoneId=None, Name=None, VPCId=None,
                 time.sleep(3)
                 tries -= 1
                 continue
-            log.error('Failed to associate VPC %s with hosted zone %s: %s',
-                      VPCName or VPCId, Name or HostedZoneId, e)
+            log.error('Failed to associate VPC {0} with hosted zone {1}: {2}'.format(
+                      VPCName or VPCId, Name or HostedZoneId, str(e)))
     return False
 
 
@@ -686,7 +680,7 @@ def delete_hosted_zone(Id, region=None, key=None, keyid=None, profile=None):
         r = conn.delete_hosted_zone(Id=Id)
         return _wait_for_sync(r['ChangeInfo']['Id'], conn)
     except ClientError as e:
-        log.error('Failed to delete hosted zone %s: %s', Id, e)
+        log.error('Failed to delete hosted zone {0}: {1}'.format(Id, str(e)))
     return False
 
 
@@ -705,7 +699,7 @@ def delete_hosted_zone_by_domain(Name, PrivateZone=None, region=None, key=None, 
     # name resolves to both, fail and require them to declare it explicitly.
     zone = find_hosted_zone(**args)
     if not zone:
-        log.error("Couldn't resolve domain name %s to a hosted zone ID.", Name)
+        log.error("Couldn't resolve domain name {0} to a hosted zone ID.".format(Name))
         return False
     Id = zone[0]['HostedZone']['Id']
     return delete_hosted_zone(Id=Id, region=region, key=key, keyid=keyid, profile=profile)
@@ -742,7 +736,7 @@ def get_resource_records(HostedZoneId=None, Name=None, StartRecordName=None,
         args.update({'PrivateZone': PrivateZone}) if PrivateZone is not None else None
         zone = find_hosted_zone(**args)
         if not zone:
-            log.error("Couldn't resolve domain name %s to a hosted zone ID.", Name)
+            log.error("Couldn't resolve domain name {0} to a hosted zone ID.".format(Name))
             return []
         HostedZoneId = zone[0]['HostedZone']['Id']
 
@@ -885,7 +879,7 @@ def change_resource_record_sets(HostedZoneId=None, Name=None,
                 time.sleep(3)
                 tries -= 1
                 continue
-            log.error('Failed to apply requested changes to the hosted zone %s: %s',
-                    (Name or HostedZoneId), six.text_type(e))
+            log.error('Failed to apply requested changes to the hosted zone {%s}: {%s}',
+                    (Name or HostedZoneId), str(e))
             raise e
     return False

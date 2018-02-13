@@ -3,9 +3,9 @@
 Helper functions for transport components to handle message framing
 '''
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import msgpack
-from salt.ext import six
+import salt.ext.six as six
 
 
 def frame_msg(body, header=None, raw_body=False):  # pylint: disable=unused-argument

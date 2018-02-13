@@ -209,32 +209,31 @@ pillar data like so:
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import re
 import logging
 from subprocess import Popen, PIPE
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 import salt.utils.stringio
 import salt.syspaths
 from salt.exceptions import SaltRenderError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 log = logging.getLogger(__name__)
 
-GPG_CIPHERTEXT = re.compile(
-    r'-----BEGIN PGP MESSAGE-----.*?-----END PGP MESSAGE-----', re.DOTALL)
+GPG_HEADER = re.compile(r'-----BEGIN PGP MESSAGE-----')
 
 
 def _get_gpg_exec():
     '''
     return the GPG executable or raise an error
     '''
-    gpg_exec = salt.utils.path.which('gpg')
+    gpg_exec = salt.utils.which('gpg')
     if gpg_exec:
         return gpg_exec
     else:
@@ -263,13 +262,14 @@ def _get_key_dir():
     return gpg_keydir
 
 
-def _decrypt_ciphertext(matchobj):
+def _decrypt_ciphertext(cipher, translate_newlines=False):
     '''
     Given a block of ciphertext as a string, and a gpg object, try to decrypt
     the cipher and return the decrypted string. If the cipher cannot be
     decrypted, log the error, and return the ciphertext back out.
     '''
-    cipher = matchobj.group()
+    if translate_newlines:
+        cipher = cipher.replace(r'\n', '\n')
     if six.PY3:
         cipher = cipher.encode(__salt_system_encoding__)
     cmd = [_get_gpg_exec(), '--homedir', _get_key_dir(), '--status-fd', '2',
@@ -288,13 +288,7 @@ def _decrypt_ciphertext(matchobj):
     else:
         if six.PY3 and isinstance(decrypted_data, bytes):
             decrypted_data = decrypted_data.decode(__salt_system_encoding__)
-        return six.text_type(decrypted_data)
-
-
-def _decrypt_ciphertexts(cipher, translate_newlines=False):
-    if translate_newlines:
-        cipher = cipher.replace(r'\n', '\n')
-    return GPG_CIPHERTEXT.sub(_decrypt_ciphertext, cipher)
+        return str(decrypted_data)
 
 
 def _decrypt_object(obj, translate_newlines=False):
@@ -306,7 +300,11 @@ def _decrypt_object(obj, translate_newlines=False):
     if salt.utils.stringio.is_readable(obj):
         return _decrypt_object(obj.getvalue(), translate_newlines)
     if isinstance(obj, six.string_types):
-        return _decrypt_ciphertexts(obj, translate_newlines=translate_newlines)
+        if GPG_HEADER.search(obj):
+            return _decrypt_ciphertext(obj,
+                                       translate_newlines=translate_newlines)
+        else:
+            return obj
     elif isinstance(obj, dict):
         for key, value in six.iteritems(obj):
             obj[key] = _decrypt_object(value,

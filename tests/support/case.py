@@ -17,6 +17,7 @@ from __future__ import absolute_import
 import os
 import re
 import sys
+import json
 import time
 import stat
 import errno
@@ -35,8 +36,7 @@ from tests.support.mixins import AdaptedConfigurationTestCaseMixin, SaltClientTe
 from tests.support.paths import ScriptPathMixin, INTEGRATION_TEST_DIR, CODE_DIR, PYEXEC, SCRIPT_DIR
 
 # Import 3rd-party libs
-import salt.utils.json
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import cStringIO  # pylint: disable=import-error
 
 STATE_FUNCTION_RUNNING_RE = re.compile(
@@ -84,9 +84,9 @@ class ShellTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             log.debug('Generating {0}'.format(script_path))
 
             # Late import
-            import salt.utils.files
+            import salt.utils
 
-            with salt.utils.files.fopen(script_path, 'w') as sfh:
+            with salt.utils.fopen(script_path, 'w') as sfh:
                 script_template = SCRIPT_TEMPLATES.get(script_name, None)
                 if script_template is None:
                     script_template = SCRIPT_TEMPLATES.get('common', None)
@@ -377,7 +377,7 @@ class ShellTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             finally:
                 try:
                     if os.path.exists(tmp_file.name):
-                        if isinstance(tmp_file.name, six.string_types):
+                        if isinstance(tmp_file.name, str):
                             # tmp_file.name is an int when using SpooledTemporaryFiles
                             # int types cannot be used with os.remove() in Python 3
                             os.remove(tmp_file.name)
@@ -409,7 +409,7 @@ class ShellTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         finally:
             try:
                 if os.path.exists(tmp_file.name):
-                    if isinstance(tmp_file.name, six.string_types):
+                    if isinstance(tmp_file.name, str):
                         # tmp_file.name is an int when using SpooledTemporaryFiles
                         # int types cannot be used with os.remove() in Python 3
                         os.remove(tmp_file.name)
@@ -442,25 +442,21 @@ class ShellCase(ShellTestCase, AdaptedConfigurationTestCaseMixin, ScriptPathMixi
         Execute salt
         '''
         arg_str = '-c {0} {1}'.format(self.get_config_dir(), arg_str)
-        ret = self.run_script('salt',
-                              arg_str,
-                              with_retcode=with_retcode,
-                              catch_stderr=catch_stderr,
-                              timeout=timeout)
-        log.debug('Result of run_salt for command \'%s\': %s', arg_str, ret)
-        return ret
+        return self.run_script('salt',
+                               arg_str,
+                               with_retcode=with_retcode,
+                               catch_stderr=catch_stderr,
+                               timeout=timeout)
 
     def run_spm(self, arg_str, with_retcode=False, catch_stderr=False, timeout=60):  # pylint: disable=W0221
         '''
         Execute spm
         '''
-        ret = self.run_script('spm',
-                              arg_str,
-                              with_retcode=with_retcode,
-                              catch_stderr=catch_stderr,
-                              timeout=timeout)
-        log.debug('Result of run_spm for command \'%s\': %s', arg_str, ret)
-        return ret
+        return self.run_script('spm',
+                               arg_str,
+                               with_retcode=with_retcode,
+                               catch_stderr=catch_stderr,
+                               timeout=timeout)
 
     def run_ssh(self, arg_str, with_retcode=False, catch_stderr=False,
                 timeout=60, wipe=True, raw=False):  # pylint: disable=W0221
@@ -474,14 +470,12 @@ class ShellCase(ShellTestCase, AdaptedConfigurationTestCaseMixin, ScriptPathMixi
             os.path.join(RUNTIME_VARS.TMP_CONF_DIR, 'key_test'),
             os.path.join(RUNTIME_VARS.TMP_CONF_DIR, 'roster'),
             arg_str)
-        ret = self.run_script('salt-ssh',
-                              arg_str,
-                              with_retcode=with_retcode,
-                              catch_stderr=catch_stderr,
-                              timeout=timeout,
-                              raw=True)
-        log.debug('Result of run_ssh for command \'%s\': %s', arg_str, ret)
-        return ret
+        return self.run_script('salt-ssh',
+                               arg_str,
+                               with_retcode=with_retcode,
+                               catch_stderr=catch_stderr,
+                               timeout=timeout,
+                               raw=True)
 
     def run_run(self, arg_str, with_retcode=False, catch_stderr=False, async=False, timeout=60, config_dir=None):
         '''
@@ -491,13 +485,11 @@ class ShellCase(ShellTestCase, AdaptedConfigurationTestCaseMixin, ScriptPathMixi
                                                                arg_str,
                                                                timeout=timeout,
                                                                async_flag=' --async' if async else '')
-        ret = self.run_script('salt-run',
-                              arg_str,
-                              with_retcode=with_retcode,
-                              catch_stderr=catch_stderr,
-                              timeout=60)
-        log.debug('Result of run_run for command \'%s\': %s', arg_str, ret)
-        return ret
+        return self.run_script('salt-run',
+                               arg_str,
+                               with_retcode=with_retcode,
+                               catch_stderr=catch_stderr,
+                               timeout=60)
 
     def run_run_plus(self, fun, *arg, **kwargs):
         '''
@@ -535,8 +527,6 @@ class ShellCase(ShellTestCase, AdaptedConfigurationTestCaseMixin, ScriptPathMixi
         finally:
             opts['output_file'].close()
 
-        log.debug('Result of run_run_plus for fun \'%s\' with arg \'%s\': %s',
-                  fun, opts_arg, ret)
         return ret
 
     def run_key(self, arg_str, catch_stderr=False, with_retcode=False):
@@ -544,20 +534,16 @@ class ShellCase(ShellTestCase, AdaptedConfigurationTestCaseMixin, ScriptPathMixi
         Execute salt-key
         '''
         arg_str = '-c {0} {1}'.format(self.get_config_dir(), arg_str)
-        ret = self.run_script('salt-key',
-                              arg_str,
-                              catch_stderr=catch_stderr,
-                              with_retcode=with_retcode,
-                              timeout=60)
-        log.debug('Result of run_key for command \'%s\': %s', arg_str, ret)
-        return ret
+        return self.run_script('salt-key',
+                               arg_str,
+                               catch_stderr=catch_stderr,
+                               with_retcode=with_retcode,
+                               timeout=60)
 
     def run_cp(self, arg_str, with_retcode=False, catch_stderr=False):
         '''
         Execute salt-cp
         '''
-        # Note: not logging result of run_cp because it will log a bunch of
-        # bytes which will not be very helpful.
         arg_str = '--config-dir {0} {1}'.format(self.get_config_dir(), arg_str)
         return self.run_script('salt-cp',
                                arg_str,
@@ -571,25 +557,21 @@ class ShellCase(ShellTestCase, AdaptedConfigurationTestCaseMixin, ScriptPathMixi
         '''
         arg_str = '{0} --config-dir {1} {2}'.format('--local' if local else '',
                                                     self.get_config_dir(), arg_str)
-        ret = self.run_script('salt-call',
-                              arg_str,
-                              with_retcode=with_retcode,
-                              catch_stderr=catch_stderr,
-                              timeout=60)
-        log.debug('Result of run_call for command \'%s\': %s', arg_str, ret)
-        return ret
+        return self.run_script('salt-call',
+                               arg_str,
+                               with_retcode=with_retcode,
+                               catch_stderr=catch_stderr,
+                               timeout=60)
 
     def run_cloud(self, arg_str, catch_stderr=False, timeout=30):
         '''
         Execute salt-cloud
         '''
         arg_str = '-c {0} {1}'.format(self.get_config_dir(), arg_str)
-        ret = self.run_script('salt-cloud',
-                              arg_str,
-                              catch_stderr,
-                              timeout=timeout)
-        log.debug('Result of run_cloud for command \'%s\': %s', arg_str, ret)
-        return ret
+        return self.run_script('salt-cloud',
+                               arg_str,
+                               catch_stderr,
+                               timeout=timeout)
 
 
 class SPMTestUserInterface(object):
@@ -626,17 +608,16 @@ class SPMCase(TestCase, AdaptedConfigurationTestCaseMixin):
         for f_dir in dirs:
             os.makedirs(f_dir)
 
-        # Late import
-        import salt.utils.files
+        import salt.utils
 
-        with salt.utils.files.fopen(self.formula_sls, 'w') as fp:
+        with salt.utils.fopen(self.formula_sls, 'w') as fp:
             fp.write(textwrap.dedent('''\
                      install-apache:
                        pkg.installed:
                          - name: apache2
                      '''))
 
-        with salt.utils.files.fopen(self.formula_file, 'w') as fp:
+        with salt.utils.fopen(self.formula_file, 'w') as fp:
             fp.write(textwrap.dedent('''\
                      name: apache
                      os: RedHat, Debian, Ubuntu, Suse, FreeBSD
@@ -672,14 +653,14 @@ class SPMCase(TestCase, AdaptedConfigurationTestCaseMixin):
             'spm_share_dir': os.path.join(self._tmp_spm, 'share'),
         })
 
-        import salt.utils.files
-        import salt.utils.yaml
+        import salt.utils
+        import yaml
 
         if not os.path.isdir(config['formula_path']):
             os.makedirs(config['formula_path'])
 
-        with salt.utils.files.fopen(os.path.join(self._tmp_spm, 'spm'), 'w') as fp:
-            salt.utils.yaml.safe_dump(config, fp)
+        with salt.utils.fopen(os.path.join(self._tmp_spm, 'spm'), 'w') as fp:
+            fp.write(yaml.dump(config))
 
         return config
 
@@ -693,10 +674,9 @@ class SPMCase(TestCase, AdaptedConfigurationTestCaseMixin):
         repo_conf_dir = self.config['spm_repos_config'] + '.d'
         os.makedirs(repo_conf_dir)
 
-        # Late import
-        import salt.utils.files
+        import salt.utils
 
-        with salt.utils.files.fopen(os.path.join(repo_conf_dir, 'spm.repo'), 'w') as fp:
+        with salt.utils.fopen(os.path.join(repo_conf_dir, 'spm.repo'), 'w') as fp:
             fp.write(textwrap.dedent('''\
                      local_repo:
                        url: file://{0}
@@ -734,7 +714,7 @@ class ModuleCase(TestCase, SaltClientTestCaseMixin):
         behavior of the raw function call
         '''
         know_to_return_none = (
-            'file.chown', 'file.chgrp', 'ssh.recv_known_host_entries'
+            'file.chown', 'file.chgrp', 'ssh.recv_known_host'
         )
         if 'f_arg' in kwargs:
             kwargs['arg'] = kwargs.pop('f_arg')
@@ -842,10 +822,8 @@ class SSHCase(ShellCase):
         '''
         ret = self.run_ssh(self._arg_str(function, arg), timeout=timeout,
                            wipe=wipe, raw=raw)
-        log.debug('SSHCase run_function executed %s with arg %s', function, arg)
-        log.debug('SSHCase JSON return: %s', ret)
         try:
-            return salt.utils.json.loads(ret)['localhost']
+            return json.loads(ret)['localhost']
         except Exception:
             return ret
 

@@ -4,7 +4,6 @@ Minion status monitoring
 
 Maps to the `status` execution module.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
 
 __monitor__ = [
         'loadavg',

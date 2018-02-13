@@ -3,16 +3,16 @@
 Use hiera data as a Pillar source
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
+from __future__ import absolute_import
 import logging
 
 # Import salt libs
-import salt.utils.path
-import salt.utils.yaml
+import salt.utils
 
-# Import 3rd-party libs
-from salt.ext import six
+# Import third party libs
+import yaml
+import salt.ext.six as six
 
 
 # Set up logging
@@ -23,7 +23,7 @@ def __virtual__():
     '''
     Only return if hiera is installed
     '''
-    return 'hiera' if salt.utils.path.which('hiera') else False
+    return 'hiera' if salt.utils.which('hiera') else False
 
 
 def ext_pillar(minion_id,  # pylint: disable=W0613
@@ -37,8 +37,10 @@ def ext_pillar(minion_id,  # pylint: disable=W0613
         if isinstance(val, six.string_types):
             cmd += ' {0}=\'{1}\''.format(key, val)
     try:
-        data = salt.utils.yaml.safe_load(__salt__['cmd.run'](cmd))
+        data = yaml.safe_load(__salt__['cmd.run'](cmd))
     except Exception:
-        log.critical('Hiera YAML data failed to parse from conf %s', conf)
+        log.critical(
+                'Hiera YAML data failed to parse from conf {0}'.format(conf)
+                )
         return {}
     return data

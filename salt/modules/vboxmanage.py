@@ -16,19 +16,16 @@ The default for this setting is ``False``.
 :depends: virtualbox
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import re
 import os.path
 import logging
 
 # pylint: disable=import-error,no-name-in-module
-import salt.utils.files
-import salt.utils.path
+import salt.utils
+from salt.ext.six import string_types
 from salt.exceptions import CommandExecutionError
 # pylint: enable=import-error,no-name-in-module
-
-# Import 3rd-party libs
-from salt.ext import six
 
 LOG = logging.getLogger(__name__)
 
@@ -58,7 +55,7 @@ def vboxcmd():
 
         salt '*' vboxmanage.vboxcmd
     '''
-    return salt.utils.path.which('VBoxManage')
+    return salt.utils.which('VBoxManage')
 
 
 def list_ostypes():
@@ -257,7 +254,7 @@ def create(name,
         params += ' --name {0}'.format(name)
 
     if groups:
-        if isinstance(groups, six.string_types):
+        if isinstance(groups, string_types):
             groups = [groups]
         if isinstance(groups, list):
             params += ' --groups {0}'.format(','.join(groups))
@@ -372,7 +369,7 @@ def clonevm(name=None,
         params += ' --name {0}'.format(new_name)
 
     if groups:
-        if isinstance(groups, six.string_types):
+        if isinstance(groups, string_types):
             groups = [groups]
         if isinstance(groups, list):
             params += ' --groups {0}'.format(','.join(groups))
@@ -460,7 +457,7 @@ def clonemedium(medium,
         params += ' ' + uuid_out
     elif file_out:
         try:
-            salt.utils.files.fopen(file_out, 'w').close()  # pylint: disable=resource-leakage
+            salt.utils.fopen(file_out, 'w').close()  # pylint: disable=resource-leakage
             os.unlink(file_out)
             params += ' ' + file_out
         except OSError:

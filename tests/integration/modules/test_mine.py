@@ -3,7 +3,7 @@
 Test the salt mine system
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import time
 
 # Import Salt Testing libs

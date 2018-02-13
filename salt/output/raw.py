@@ -17,19 +17,14 @@ Example output::
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt libs
-import salt.utils.stringutils
-
-# Import 3rd-party libs
-from salt.ext import six
+import salt.utils.locales
 
 
 def output(data, **kwargs):  # pylint: disable=unused-argument
     '''
     Rather basic....
     '''
-    if not isinstance(data, six.string_types):
-        data = six.text_type(data)
-    return salt.utils.stringutils.to_unicode(data)
+    return salt.utils.locales.sdecode(str(data))

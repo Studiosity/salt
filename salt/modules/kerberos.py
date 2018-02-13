@@ -20,18 +20,18 @@ authenticate as.
     auth_principal: kadmin/admin
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
+from __future__ import absolute_import
 import logging
 
 # Import Salt libs
-import salt.utils.path
+import salt.utils
 
 log = logging.getLogger(__name__)
 
 
 def __virtual__():
-    if salt.utils.path.which('kadmin'):
+    if salt.utils.which('kadmin'):
         return True
 
     return (False, 'The kerberos execution module not loaded: kadmin not in path')

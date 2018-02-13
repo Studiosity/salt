@@ -1,4 +1,4 @@
-# -*- strcoding: utf-8 -*-
+# -*- coding: utf-8 -*-
 '''
 A module to pull data from Foreman via its API into the Pillar dictionary
 
@@ -38,12 +38,11 @@ Further information can be found on `GitHub <https://github.com/theforeman/forem
 Module Documentation
 ====================
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
 
-from salt.ext import six
 try:
     import requests
     HAS_REQUESTS = True
@@ -103,7 +102,7 @@ def ext_pillar(minion_id,
                     'version 2 in your Salt master config')
             raise Exception
 
-        headers = {'accept': 'version=' + six.text_type(api) + ',application/json'}
+        headers = {'accept': 'version=' + str(api) + ',application/json'}
 
         if verify and cafile is not None:
             verify = cafile
@@ -117,14 +116,14 @@ def ext_pillar(minion_id,
                 )
         result = resp.json()
 
-        log.debug('Raw response of the Foreman request is %r', result)
+        log.debug('Raw response of the Foreman request is %r', format(result))
 
         if lookup_parameters:
             parameters = dict()
             for param in result['all_parameters']:
-                parameters.update({param['name']: param['value']})
+                parameters.update({param[u'name']: param[u'value']})
 
-            result['parameters'] = parameters
+            result[u'parameters'] = parameters
 
         if only:
             result = dict((k, result[k]) for k in only if k in result)

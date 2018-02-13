@@ -4,11 +4,10 @@ Support for modifying make.conf under Gentoo
 
 '''
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 
 # Import Salt libs
-import salt.utils.data
-import salt.utils.files
+import salt.utils
 
 
 def __virtual__():
@@ -185,8 +184,8 @@ def get_var(var):
     '''
     makeconf = _get_makeconf()
     # Open makeconf
-    with salt.utils.files.fopen(makeconf) as fn_:
-        conf_file = salt.utils.data.decode(fn_.readlines())
+    with salt.utils.fopen(makeconf) as fn_:
+        conf_file = fn_.readlines()
     for line in conf_file:
         if line.startswith(var):
             ret = line.split('=', 1)[1]

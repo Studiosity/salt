@@ -2,12 +2,12 @@
 '''
 Support for LVS (Linux Virtual Server)
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 import salt.utils.decorators as decorators
 from salt.exceptions import SaltException
 
@@ -20,7 +20,7 @@ __func_alias__ = {
 # Cache the output of running which('ipvsadm')
 @decorators.memoize
 def __detect_os():
-    return salt.utils.path.which('ipvsadm')
+    return salt.utils.which('ipvsadm')
 
 
 def __virtual__():

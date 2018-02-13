@@ -5,7 +5,7 @@ Tests for the SVN state
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import os
 import shutil
 import socket

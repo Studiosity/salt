@@ -4,18 +4,18 @@ Support for Alternatives system
 
 :codeauthor: Radek Rada <radek.rada@gmail.com>
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import os
 import logging
 
 # Import Salt libs
-import salt.utils.files
+import salt.utils
 import salt.utils.path
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 __outputter__ = {
@@ -90,15 +90,19 @@ def show_link(name):
     path += 'alternatives/{0}'.format(name)
 
     try:
-        with salt.utils.files.fopen(path, 'rb') as r_file:
-            contents = salt.utils.stringutils.to_unicode(r_file.read())
+        with salt.utils.fopen(path, 'rb') as r_file:
+            contents = r_file.read()
+            if six.PY3:
+                contents = contents.decode(__salt_system_encoding__)
             return contents.splitlines(True)[1].rstrip('\n')
     except OSError:
-        log.error('alternatives: %s does not exist', name)
+        log.error(
+            'alternatives: {0} does not exist'.format(name)
+        )
     except (IOError, IndexError) as exc:
         log.error(
-            'alternatives: unable to get master link for %s. '
-            'Exception: %s', name, exc
+            'alternatives: unable to get master link for {0}. '
+            'Exception: {1}'.format(name, exc)
         )
 
     return False
@@ -118,7 +122,9 @@ def show_current(name):
     try:
         return _read_link(name)
     except OSError:
-        log.error('alternative: %s does not exist', name)
+        log.error(
+            'alternative: {0} does not exist'.format(name)
+        )
     return False
 
 
@@ -170,7 +176,7 @@ def install(name, link, path, priority):
 
         salt '*' alternatives.install editor /usr/bin/editor /usr/bin/emacs23 50
     '''
-    cmd = [_get_cmd(), '--install', link, name, path, six.text_type(priority)]
+    cmd = [_get_cmd(), '--install', link, name, path, str(priority)]
     out = __salt__['cmd.run_all'](cmd, python_shell=False)
     if out['retcode'] > 0 and out['stderr'] != '':
         return out['stderr']

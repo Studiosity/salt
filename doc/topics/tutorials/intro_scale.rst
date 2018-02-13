@@ -260,11 +260,14 @@ the retention time defined by
 
     250 jobs/day * 2000 minions returns = 500,000 files a day
 
-Use and External Job Cache
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+If no job history is needed, the job cache can be disabled:
 
-An external job cache allows for job storage to be placed on an external
-system, such as a database.
+.. code-block:: yaml
+
+   job_cache: False
+
+
+If the job cache is necessary there are (currently) 2 options:
 
 - ext_job_cache: this will have the minions store their return data directly
   into a returner (not sent through the Master)
@@ -284,20 +287,3 @@ for up to sixty seconds by default.
 
 To enable the master key cache, set `key_cache: 'sched'` in the master
 configuration file.
-
-Disable The Job Cache
-~~~~~~~~~~~~~~~~~~~~~
-
-The job cache is a central component of the Salt Master and many aspects of
-the Salt Master will not function correctly without a running job cache.
-
-Disabling the job cache is **STRONGLY DISCOURAGED** and should not be done
-unless the master is being used to execute routines that require no history
-or reliable feedback!
-
-The job cache can be disabled:
-
-.. code-block:: yaml
-
-   job_cache: False
-

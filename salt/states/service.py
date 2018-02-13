@@ -57,18 +57,18 @@ service, then set the reload value to True:
     :ref:`Requisites <requisites>` documentation.
 
 '''
+
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import time
 
 # Import Salt libs
-import salt.utils.data
-import salt.utils.platform
+import salt.utils
 from salt.utils.args import get_function_argspec as _argspec
 from salt.exceptions import CommandExecutionError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 SYSTEMD_ONLY = ('no_block', 'unmask', 'unmask_runtime')
 
@@ -395,14 +395,11 @@ def running(name,
 
     # Convert enable to boolean in case user passed a string value
     if isinstance(enable, six.string_types):
-        enable = salt.utils.data.is_true(enable)
+        enable = salt.utils.is_true(enable)
 
     # Check if the service is available
     try:
         if not _available(name, ret):
-            if __opts__.get('test'):
-                ret['result'] = None
-                ret['comment'] = 'Service {0} not present; if created in this state run, it would have been started'.format(name)
             return ret
     except CommandExecutionError as exc:
         ret['result'] = False
@@ -432,7 +429,7 @@ def running(name,
         ret['comment'] = 'Service {0} is set to start'.format(name)
         return ret
 
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         if enable is True:
             ret.update(_enable(name, False, result=False, **kwargs))
 
@@ -534,18 +531,14 @@ def dead(name,
 
     # Convert enable to boolean in case user passed a string value
     if isinstance(enable, six.string_types):
-        enable = salt.utils.data.is_true(enable)
+        enable = salt.utils.is_true(enable)
 
     # Check if the service is available
     try:
         if not _available(name, ret):
-            if __opts__.get('test'):
-                ret['result'] = None
-                ret['comment'] = 'Service {0} not present; if created in this state run, it would have been stopped'.format(name)
-            else:
-                # A non-available service is OK here, don't let the state fail
-                # because of it.
-                ret['result'] = True
+            # A non-available service is OK here, don't let the state fail
+            # because of it.
+            ret['result'] = True
             return ret
     except CommandExecutionError as exc:
         ret['result'] = False

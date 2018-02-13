@@ -3,7 +3,7 @@
 The service module for macOS
 .. versionadded:: 2016.3.0
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import os
@@ -11,16 +11,13 @@ import re
 import plistlib
 
 # Import salt libs
+import salt.utils
 import salt.utils.decorators as decorators
-import salt.utils.files
-import salt.utils.path
-import salt.utils.platform
-import salt.utils.stringutils
 from salt.exceptions import CommandExecutionError
 from salt.utils.versions import LooseVersion as _LooseVersion
 
 # Import 3rd party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # Define the module's virtual name
 __virtualname__ = 'service'
@@ -34,15 +31,15 @@ def __virtual__():
     '''
     Only for macOS with launchctl
     '''
-    if not salt.utils.platform.is_darwin():
+    if not salt.utils.is_darwin():
         return (False, 'Failed to load the mac_service module:\n'
                        'Only available on macOS systems.')
 
-    if not salt.utils.path.which('launchctl'):
+    if not salt.utils.which('launchctl'):
         return (False, 'Failed to load the mac_service module:\n'
                        'Required binary not found: "launchctl"')
 
-    if not salt.utils.path.which('plutil'):
+    if not salt.utils.which('plutil'):
         return (False, 'Failed to load the mac_service module:\n'
                        'Required binary not found: "plutil"')
 
@@ -72,7 +69,7 @@ def _available_services():
     '''
     available_services = dict()
     for launch_dir in _launchd_paths():
-        for root, dirs, files in salt.utils.path.os_walk(launch_dir):
+        for root, dirs, files in os.walk(launch_dir):
             for file_name in files:
 
                 # Must be a plist file
@@ -90,7 +87,7 @@ def _available_services():
                 try:
                     # This assumes most of the plist files
                     # will be already in XML format
-                    with salt.utils.files.fopen(file_path):
+                    with salt.utils.fopen(file_path):
                         plist = plistlib.readPlist(true_path)
 
                 except Exception:
@@ -103,7 +100,7 @@ def _available_services():
                         plist = plistlib.readPlistFromString(plist_xml)
                     else:
                         plist = plistlib.readPlistFromBytes(
-                            salt.utils.stringutils.to_bytes(plist_xml))
+                            salt.utils.to_bytes(plist_xml))
 
                 try:
                     available_services[plist.Label.lower()] = {

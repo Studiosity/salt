@@ -2,7 +2,7 @@
 '''
 Manage PHP pecl extensions.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import re
@@ -14,11 +14,10 @@ except ImportError:
     from pipes import quote as _cmd_quote
 
 # Import salt libs
-import salt.utils.data
-import salt.utils.path
+import salt.utils
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 __func_alias__ = {
     'list_': 'list'
@@ -31,7 +30,7 @@ __virtualname__ = 'pecl'
 
 
 def __virtual__():
-    if salt.utils.path.which('pecl'):
+    if salt.utils.which('pecl'):
         return __virtualname__
     return (False, 'The pecl execution module not loaded: '
             'pecl binary is not in the path.')
@@ -42,7 +41,7 @@ def _pecl(command, defaults=False):
     Execute the command passed with pecl
     '''
     cmdline = 'pecl {0}'.format(command)
-    if salt.utils.data.is_true(defaults):
+    if salt.utils.is_true(defaults):
         cmdline = 'yes ' "''" + ' | ' + cmdline
 
     ret = __salt__['cmd.run_all'](cmdline, python_shell=True)

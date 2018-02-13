@@ -14,15 +14,15 @@ metadata server set `metadata_server_grains: True`.
     metadata_server_grains: True
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
+import json
 import os
 import socket
 
 # Import salt libs
 import salt.utils.http as http
-import salt.utils.json
 
 
 # metadata server information
@@ -59,8 +59,6 @@ def _search(prefix="latest/"):
             # they have stuff underneath. This will not be doubled up though,
             # because lines ending with a slash are checked first.
             ret[line] = _search(prefix=os.path.join(prefix, line + '/'))
-        elif line.endswith(('dynamic', 'meta-data')):
-            ret[line] = _search(prefix=os.path.join(prefix, line))
         elif '=' in line:
             key, value = line.split('=')
             ret[value] = _search(prefix=os.path.join(prefix, key))
@@ -69,7 +67,7 @@ def _search(prefix="latest/"):
             # (gtmanfred) This try except block is slightly faster than
             # checking if the string starts with a curly brace
             try:
-                ret[line] = salt.utils.json.loads(retdata)
+                ret[line] = json.loads(retdata)
             except ValueError:
                 ret[line] = retdata
     return ret

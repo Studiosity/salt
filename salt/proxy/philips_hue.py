@@ -18,31 +18,17 @@
 Philips HUE lamps module for proxy.
 
 .. versionadded:: 2015.8.3
-
-First create a new user on the Hue bridge by following the
-`Meet hue <https://www.developers.meethue.com/documentation/getting-started>`_ instructions.
-
-To configure the proxy minion:
-
-.. code-block:: yaml
-
-    proxy:
-      proxytype: philips_hue
-      host: [hostname or ip]
-      user: [username]
-
 '''
 
 # pylint: disable=import-error,no-name-in-module,redefined-builtin
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import salt.ext.six.moves.http_client as http_client
 
 # Import python libs
 import logging
 import time
-import salt.utils.json
+import json
 from salt.exceptions import (CommandExecutionError, MinionError)
-from salt.ext import six
 
 
 __proxyenabled__ = ['philips_hue']
@@ -121,13 +107,13 @@ def _query(lamp_id, state, action='', method='GET'):
           + (action and "/{0}".format(action) or '')
     conn = http_client.HTTPConnection(CONFIG['host'])
     if method == 'PUT':
-        conn.request(method, url, salt.utils.json.dumps(state))
+        conn.request(method, url, json.dumps(state))
     else:
         conn.request(method, url)
     resp = conn.getresponse()
 
     if resp.status == http_client.OK:
-        res = salt.utils.json.loads(resp.read())
+        res = json.loads(resp.read())
     else:
         err = "HTTP error: {0}, {1}".format(resp.status, resp.reason)
     conn.close()
@@ -202,8 +188,8 @@ def call_lights(*args, **kwargs):
     res = dict()
     lights = _get_lights()
     for dev_id in 'id' in kwargs and _get_devices(kwargs) or sorted(lights.keys()):
-        if lights.get(six.text_type(dev_id)):
-            res[dev_id] = lights[six.text_type(dev_id)]
+        if lights.get(str(dev_id)):
+            res[dev_id] = lights[str(dev_id)]
 
     return res or False
 
@@ -235,7 +221,7 @@ def call_switch(*args, **kwargs):
             state = kwargs['on'] and Const.LAMP_ON or Const.LAMP_OFF
         else:
             # Invert the current state
-            state = devices[six.text_type(dev_id)]['state']['on'] and Const.LAMP_OFF or Const.LAMP_ON
+            state = devices[str(dev_id)]['state']['on'] and Const.LAMP_OFF or Const.LAMP_ON
         out[dev_id] = _set(dev_id, state)
 
     return out
@@ -261,7 +247,7 @@ def call_blink(*args, **kwargs):
     pause = kwargs.get('pause', 0)
     res = dict()
     for dev_id in 'id' not in kwargs and sorted(devices.keys()) or _get_devices(kwargs):
-        state = devices[six.text_type(dev_id)]['state']['on']
+        state = devices[str(dev_id)]['state']['on']
         _set(dev_id, state and Const.LAMP_OFF or Const.LAMP_ON)
         if pause:
             time.sleep(pause)
@@ -307,7 +293,6 @@ def call_status(*args, **kwargs):
     res = dict()
     devices = _get_lights()
     for dev_id in 'id' not in kwargs and sorted(devices.keys()) or _get_devices(kwargs):
-        dev_id = six.text_type(dev_id)
         res[dev_id] = {
             'on': devices[dev_id]['state']['on'],
             'reachable': devices[dev_id]['state']['reachable']

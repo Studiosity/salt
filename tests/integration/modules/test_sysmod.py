@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.case import ModuleCase
-from salt.ext import six
 
 
 class SysModuleTest(ModuleCase):
@@ -20,10 +19,7 @@ class SysModuleTest(ModuleCase):
         if ret == {'missing_docstring': [], 'missing_cli_example': []}:
             return
 
-        if isinstance(ret, six.string_types):
-            self.fail(ret)
-
-        self.fail(
+        raise AssertionError(
             'There are some functions which do not have a docstring or do not '
             'have an example:\nNo docstring:\n{0}\nNo example:\n{1}\n'.format(
                 '\n'.join(['  - {0}'.format(f) for f in ret['missing_docstring']]),

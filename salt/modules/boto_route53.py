@@ -45,7 +45,7 @@ Connection module for Amazon Route53
 # keep lint from choking on _get_conn and _cache_id
 #pylint: disable=E0602
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
@@ -53,21 +53,23 @@ import time
 
 # Import salt libs
 import salt.utils.compat
-import salt.utils.versions
 import salt.utils.odict as odict
-import salt.utils.versions
 from salt.exceptions import SaltInvocationError
+from salt.utils.versions import LooseVersion as _LooseVersion
 
 log = logging.getLogger(__name__)
 
 # Import third party libs
+REQUIRED_BOTO_VERSION = '2.35.0'
 try:
     #pylint: disable=unused-import
     import boto
     import boto.route53
-    import boto.route53.healthcheck
     from boto.route53.exception import DNSServerError
     #pylint: enable=unused-import
+    # create_zone params were changed in boto 2.35+
+    if _LooseVersion(boto.__version__) < _LooseVersion(REQUIRED_BOTO_VERSION):
+        raise ImportError()
     logging.getLogger('boto').setLevel(logging.CRITICAL)
     HAS_BOTO = True
 except ImportError:
@@ -78,11 +80,11 @@ def __virtual__():
     '''
     Only load if boto libraries exist.
     '''
-    # create_zone params were changed in boto 2.35+
-    return salt.utils.versions.check_boto_reqs(
-        boto_ver='2.35.0',
-        check_boto3=False
-    )
+    if not HAS_BOTO:
+        msg = ('A boto library with version at least {0} was not '
+               'found').format(REQUIRED_BOTO_VERSION)
+        return (False, msg)
+    return True
 
 
 def __init__(opts):
@@ -166,16 +168,13 @@ def describe_hosted_zones(zone_id=None, domain_name=None, region=None,
                     marker = r['ListHostedZonesResponse'].get('NextMarker', '')
             return ret if ret else []
         except DNSServerError as e:
-            if retries:
-                if 'Throttling' == e.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == e.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
+            # if rate limit, retry:
+            if retries and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
                 time.sleep(3)
-                retries -= 1
+                tries -= 1
                 continue
-            log.error('Could not list zones: %s', e.message)
+            log.error('Could not list zones: {0}'.format(e.message))
             return []
 
 
@@ -236,8 +235,7 @@ def list_all_zones_by_id(region=None, key=None, keyid=None, profile=None):
 
 
 def zone_exists(zone, region=None, key=None, keyid=None, profile=None,
-                retry_on_rate_limit=None, rate_limit_retries=None,
-                retry_on_errors=True, error_retries=5):
+                retry_on_rate_limit=True, rate_limit_retries=5):
     '''
     Check for the existence of a Route53 hosted zone.
 
@@ -252,33 +250,17 @@ def zone_exists(zone, region=None, key=None, keyid=None, profile=None,
 
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
 
-    if retry_on_rate_limit or rate_limit_retries is not None:
-        salt.utils.versions.warn_until(
-            'Neon',
-            'The \'retry_on_rate_limit\' and \'rate_limit_retries\' arguments '
-            'have been deprecated in favor of \'retry_on_errors\' and '
-            '\'error_retries\' respectively. Their functionality will be '
-            'removed, as such, their usage is no longer required.'
-        )
-        if retry_on_rate_limit is not None:
-            retry_on_errors = retry_on_rate_limit
-        if rate_limit_retries is not None:
-            error_retries = rate_limit_retries
-
-    while error_retries > 0:
+    while rate_limit_retries > 0:
         try:
             return bool(conn.get_zone(zone))
 
         except DNSServerError as e:
-            if retry_on_errors:
-                if 'Throttling' == e.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == e.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
-                time.sleep(3)
-                error_retries -= 1
-                continue
+            # if rate limit, retry:
+            if retry_on_rate_limit and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
+                time.sleep(2)
+                rate_limit_retries -= 1
+                continue  # the while True; try again if not out of retries
             raise e
 
 
@@ -337,108 +319,6 @@ def create_zone(zone, private=False, vpc_id=None, vpc_region=None, region=None,
     return True
 
 
-def create_healthcheck(ip_addr=None, fqdn=None, region=None, key=None, keyid=None, profile=None,
-                      port=53, hc_type='TCP', resource_path='', string_match=None, request_interval=30,
-                      failure_threshold=3, retry_on_errors=True, error_retries=5):
-    '''
-    Create a Route53 healthcheck
-
-    .. versionadded:: Oxygen
-
-    ip_addr
-
-        IP address to check.  ip_addr or fqdn is required.
-
-    fqdn
-
-        Domain name of the endpoint to check.  ip_addr or fqdn is required
-
-    port
-
-        Port to check
-
-    hc_type
-
-        Healthcheck type.  HTTP | HTTPS | HTTP_STR_MATCH | HTTPS_STR_MATCH | TCP
-
-    resource_path
-
-        Path to check
-
-    string_match
-
-        If hc_type is HTTP_STR_MATCH or HTTPS_STR_MATCH, the string to search for in the
-        response body from the specified resource
-
-    request_interval
-
-        The number of seconds between the time that Amazon Route 53 gets a response from
-        your endpoint and the time that it sends the next health-check request.
-
-    failure_threshold
-
-        The number of consecutive health checks that an endpoint must pass or fail for
-        Amazon Route 53 to change the current status of the endpoint from unhealthy to
-        healthy or vice versa.
-
-    region
-
-        Region endpoint to connect to
-
-    key
-
-        AWS key
-
-    keyid
-
-        AWS keyid
-
-    profile
-
-        AWS pillar profile
-
-    CLI Example::
-
-        salt myminion boto_route53.create_healthcheck 192.168.0.1
-        salt myminion boto_route53.create_healthcheck 192.168.0.1 port=443 hc_type=HTTPS \
-                                                      resource_path=/ fqdn=blog.saltstack.furniture
-    '''
-    if fqdn is None and ip_addr is None:
-        msg = 'One of the following must be specified: fqdn or ip_addr'
-        log.error(msg)
-        return {'error': msg}
-    hc_ = boto.route53.healthcheck.HealthCheck(ip_addr,
-                                               port,
-                                               hc_type,
-                                               resource_path,
-                                               fqdn=fqdn,
-                                               string_match=string_match,
-                                               request_interval=request_interval,
-                                               failure_threshold=failure_threshold)
-
-    if region is None:
-        region = 'universal'
-
-    conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
-
-    while error_retries > 0:
-        try:
-            return {'result': conn.create_health_check(hc_)}
-        except DNSServerError as exc:
-            log.debug(exc)
-            if retry_on_errors:
-                if 'Throttling' == exc.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == exc.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
-                time.sleep(3)
-                error_retries -= 1
-                continue
-            return {'error': __utils__['boto.get_error'](exc)}
-    return False
-
-
 def delete_zone(zone, region=None, key=None, keyid=None, profile=None):
     '''
     Delete a Route53 hosted zone.
@@ -472,8 +352,7 @@ def _decode_name(name):
 
 def get_record(name, zone, record_type, fetch_all=False, region=None, key=None,
                keyid=None, profile=None, split_dns=False, private_zone=False,
-               identifier=None, retry_on_rate_limit=None,
-               rate_limit_retries=None, retry_on_errors=True, error_retries=5):
+               identifier=None, retry_on_rate_limit=True, rate_limit_retries=5):
     '''
     Get a record from a zone.
 
@@ -486,20 +365,7 @@ def get_record(name, zone, record_type, fetch_all=False, region=None, key=None,
 
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
 
-    if retry_on_rate_limit or rate_limit_retries is not None:
-        salt.utils.versions.warn_until(
-            'Neon',
-            'The \'retry_on_rate_limit\' and \'rate_limit_retries\' arguments '
-            'have been deprecated in favor of \'retry_on_errors\' and '
-            '\'error_retries\' respectively. Their functionality will be '
-            'removed, as such, their usage is no longer required.'
-        )
-        if retry_on_rate_limit is not None:
-            retry_on_errors = retry_on_rate_limit
-        if rate_limit_retries is not None:
-            error_retries = rate_limit_retries
-
-    while error_retries > 0:
+    while rate_limit_retries > 0:
         try:
             if split_dns:
                 _zone = _get_split_zone(zone, conn, private_zone)
@@ -519,15 +385,12 @@ def get_record(name, zone, record_type, fetch_all=False, region=None, key=None,
             break  # the while True
 
         except DNSServerError as e:
-            if retry_on_errors:
-                if 'Throttling' == e.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == e.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
-                time.sleep(3)
-                error_retries -= 1
-                continue
+            # if rate limit, retry:
+            if retry_on_rate_limit and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
+                time.sleep(2)
+                rate_limit_retries -= 1
+                continue  # the while True; try again if not out of retries
             raise e
 
     if _record:
@@ -553,8 +416,7 @@ def _munge_value(value, _type):
 def add_record(name, value, zone, record_type, identifier=None, ttl=None,
                region=None, key=None, keyid=None, profile=None,
                wait_for_sync=True, split_dns=False, private_zone=False,
-               retry_on_rate_limit=None, rate_limit_retries=None,
-               retry_on_errors=True, error_retries=5):
+               retry_on_rate_limit=True, rate_limit_retries=5):
     '''
     Add a record to a zone.
 
@@ -567,20 +429,7 @@ def add_record(name, value, zone, record_type, identifier=None, ttl=None,
 
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
 
-    if retry_on_rate_limit or rate_limit_retries is not None:
-        salt.utils.versions.warn_until(
-            'Neon',
-            'The \'retry_on_rate_limit\' and \'rate_limit_retries\' arguments '
-            'have been deprecated in favor of \'retry_on_errors\' and '
-            '\'error_retries\' respectively. Their functionality will be '
-            'removed, as such, their usage is no longer required.'
-        )
-        if retry_on_rate_limit is not None:
-            retry_on_errors = retry_on_rate_limit
-        if rate_limit_retries is not None:
-            error_retries = rate_limit_retries
-
-    while error_retries > 0:
+    while rate_limit_retries > 0:
         try:
             if split_dns:
                 _zone = _get_split_zone(zone, conn, private_zone)
@@ -594,19 +443,16 @@ def add_record(name, value, zone, record_type, identifier=None, ttl=None,
             break
 
         except DNSServerError as e:
-            if retry_on_errors:
-                if 'Throttling' == e.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == e.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
-                time.sleep(3)
-                error_retries -= 1
-                continue
+            # if rate limit, retry:
+            if retry_on_rate_limit and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
+                time.sleep(2)
+                rate_limit_retries -= 1
+                continue  # the while True; try again if not out of retries
             raise e
 
     _value = _munge_value(value, _type)
-    while error_retries > 0:
+    while rate_limit_retries > 0:
         try:
             # add_record requires a ttl value, annoyingly.
             if ttl is None:
@@ -615,23 +461,19 @@ def add_record(name, value, zone, record_type, identifier=None, ttl=None,
             return _wait_for_sync(status.id, conn, wait_for_sync)
 
         except DNSServerError as e:
-            if retry_on_errors:
-                if 'Throttling' == e.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == e.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
-                time.sleep(3)
-                error_retries -= 1
-                continue
+            # if rate limit, retry:
+            if retry_on_rate_limit and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
+                time.sleep(2)
+                rate_limit_retries -= 1
+                continue  # the while True; try again if not out of retries
             raise e
 
 
 def update_record(name, value, zone, record_type, identifier=None, ttl=None,
                   region=None, key=None, keyid=None, profile=None,
                   wait_for_sync=True, split_dns=False, private_zone=False,
-                  retry_on_rate_limit=None, rate_limit_retries=None,
-                  retry_on_errors=True, error_retries=5):
+                  retry_on_rate_limit=True, rate_limit_retries=5):
     '''
     Modify a record in a zone.
 
@@ -654,21 +496,8 @@ def update_record(name, value, zone, record_type, identifier=None, ttl=None,
         return False
     _type = record_type.upper()
 
-    if retry_on_rate_limit or rate_limit_retries is not None:
-        salt.utils.versions.warn_until(
-            'Neon',
-            'The \'retry_on_rate_limit\' and \'rate_limit_retries\' arguments '
-            'have been deprecated in favor of \'retry_on_errors\' and '
-            '\'error_retries\' respectively. Their functionality will be '
-            'removed, as such, their usage is no longer required.'
-        )
-        if retry_on_rate_limit is not None:
-            retry_on_errors = retry_on_rate_limit
-        if rate_limit_retries is not None:
-            error_retries = rate_limit_retries
-
     _value = _munge_value(value, _type)
-    while error_retries > 0:
+    while rate_limit_retries > 0:
         try:
             old_record = _zone.find_records(name, _type, identifier=identifier)
             if not old_record:
@@ -677,23 +506,19 @@ def update_record(name, value, zone, record_type, identifier=None, ttl=None,
             return _wait_for_sync(status.id, conn, wait_for_sync)
 
         except DNSServerError as e:
-            if retry_on_errors:
-                if 'Throttling' == e.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == e.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
-                time.sleep(3)
-                error_retries -= 1
-                continue
+            # if rate limit, retry:
+            if retry_on_rate_limit and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
+                time.sleep(2)
+                rate_limit_retries -= 1
+                continue  # the while True; try again if not out of retries
             raise e
 
 
 def delete_record(name, zone, record_type, identifier=None, all_records=False,
                   region=None, key=None, keyid=None, profile=None,
                   wait_for_sync=True, split_dns=False, private_zone=False,
-                  retry_on_rate_limit=None, rate_limit_retries=None,
-                  retry_on_errors=True, error_retries=5):
+                  retry_on_rate_limit=True, rate_limit_retries=5):
     '''
     Modify a record in a zone.
 
@@ -716,20 +541,7 @@ def delete_record(name, zone, record_type, identifier=None, all_records=False,
         return False
     _type = record_type.upper()
 
-    if retry_on_rate_limit or rate_limit_retries is not None:
-        salt.utils.versions.warn_until(
-            'Neon',
-            'The \'retry_on_rate_limit\' and \'rate_limit_retries\' arguments '
-            'have been deprecated in favor of \'retry_on_errors\' and '
-            '\'error_retries\' respectively. Their functionality will be '
-            'removed, as such, their usage is no longer required.'
-        )
-        if retry_on_rate_limit is not None:
-            retry_on_errors = retry_on_rate_limit
-        if rate_limit_retries is not None:
-            error_retries = rate_limit_retries
-
-    while error_retries > 0:
+    while rate_limit_retries > 0:
         try:
             old_record = _zone.find_records(name, _type, all=all_records, identifier=identifier)
             if not old_record:
@@ -738,85 +550,53 @@ def delete_record(name, zone, record_type, identifier=None, all_records=False,
             return _wait_for_sync(status.id, conn, wait_for_sync)
 
         except DNSServerError as e:
-            if retry_on_errors:
-                if 'Throttling' == e.code:
-                    log.debug('Throttled by AWS API.')
-                elif 'PriorRequestNotComplete' == e.code:
-                    log.debug('The request was rejected by AWS API.\
-                              Route 53 was still processing a prior request')
-                time.sleep(3)
-                error_retries -= 1
-                continue
+            # if rate limit, retry:
+            if retry_on_rate_limit and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
+                time.sleep(2)
+                rate_limit_retries -= 1
+                continue  # the while True; try again if not out of retries
             raise e
 
 
-def _try_func(conn, func, **args):
-    tries = 30
-    while True:
-        try:
-            return getattr(conn, func)(**args)
-        except AttributeError as e:
-            # Don't include **args in log messages - security concern.
-            log.error('Function `%s()` not found for AWS connection object %s',
-                      func, conn)
-            return None
-        except DNSServerError as e:
-            if tries and e.code == 'Throttling':
-                log.debug('Throttled by AWS API.  Will retry in 5 seconds')
-                time.sleep(5)
-                tries -= 1
-                continue
-            log.error('Failed calling %s(): %s', func, e)
-            return None
-
-
-def _wait_for_sync(status, conn, wait=True):
-    ### Wait should be a bool or an integer
-    if wait is True:
-        wait = 600
-    if not wait:
+def _wait_for_sync(status, conn, wait_for_sync):
+    if not wait_for_sync:
         return True
-    orig_wait = wait
-    log.info('Waiting up to %s seconds for Route53 changes to synchronize', orig_wait)
-    while wait > 0:
+    retry = 10
+    i = 0
+    while i < retry:
+        log.info('Getting route53 status (attempt {0})'.format(i + 1))
         change = conn.get_change(status)
-        current = change.GetChangeResponse.ChangeInfo.Status
-        if current == 'INSYNC':
+        log.debug(change.GetChangeResponse.ChangeInfo.Status)
+        if change.GetChangeResponse.ChangeInfo.Status == 'INSYNC':
             return True
-        sleep = wait if wait % 60 == wait else 60
-        log.info(
-            'Sleeping %s seconds waiting for changes to synch (current status %s)',
-            sleep, current
-        )
-        time.sleep(sleep)
-        wait -= sleep
-        continue
-    log.error('Route53 changes not synced after %s seconds.', orig_wait)
+        i = i + 1
+        time.sleep(20)
+    log.error('Timed out waiting for Route53 status update.')
     return False
 
 
-def create_hosted_zone(domain_name, caller_ref=None, comment='', private_zone=False, vpc_id=None,
-                       vpc_name=None, vpc_region=None, region=None, key=None, keyid=None,
+def create_hosted_zone(domain_name, caller_ref=None, comment='',
+                       private_zone=False, vpc_id=None, vpc_name=None,
+                       vpc_region=None, region=None, key=None, keyid=None,
                        profile=None):
     '''
-    Create a new Route53 Hosted Zone. Returns a Python data structure with information about the
-    newly created Hosted Zone.
+    Create a new Route53 Hosted Zone. Returns a Python data structure with
+    information about the newly created Hosted Zone.
 
     domain_name
-        The name of the domain. This must be fully-qualified, terminating with a period.  This is
-        the name you have registered with your domain registrar.  It is also the name you will
-        delegate from your registrar to the Amazon Route 53 delegation servers returned in response
+        The name of the domain. This should be a fully-specified domain, and
+        should terminate with a period. This is the name you have registered
+        with your DNS registrar. It is also the name you will delegate from your
+        registrar to the Amazon Route 53 delegation servers returned in response
         to this request.
 
     caller_ref
-        A unique string that identifies the request and that allows create_hosted_zone() calls to
-        be retried without the risk of executing the operation twice.  It can take several minutes
-        for the change to replicate globally, and change from PENDING to INSYNC status. Thus it's
-        best to provide some value for this where possible, since duplicate calls while the first
-        is in PENDING status will be accepted and can lead to multiple copies of the zone being
-        created.  On the other hand, if a zone is created with a given caller_ref, then deleted,
-        a second attempt to create a zone with the same caller_ref will fail until that caller_ref
-        is flushed from the Route53 system, which can take upwards of 24 hours.
+        A unique string that identifies the request and that allows
+        create_hosted_zone() calls to be retried without the risk of executing
+        the operation twice.  You want to provide this where possible, since
+        additional calls while the first is in PENDING status will be accepted
+        and can lead to multiple copies of the zone being created in Route53.
 
     comment
         Any comments you want to include about the hosted zone.
@@ -825,30 +605,33 @@ def create_hosted_zone(domain_name, caller_ref=None, comment='', private_zone=Fa
         Set True if creating a private hosted zone.
 
     vpc_id
-        When creating a private hosted zone, either the VPC ID or VPC Name to associate with is
-        required.  Exclusive with vpe_name.  Ignored when creating a non-private zone.
+        When creating a private hosted zone, either the VPC ID or VPC Name to
+        associate with is required.  Exclusive with vpe_name.  Ignored if passed
+        for a non-private zone.
 
     vpc_name
-        When creating a private hosted zone, either the VPC ID or VPC Name to associate with is
-        required.  Exclusive with vpe_id.  Ignored when creating a non-private zone.
+        When creating a private hosted zone, either the VPC ID or VPC Name to
+        associate with is required.  Exclusive with vpe_id.  Ignored if passed
+        for a non-private zone.
 
     vpc_region
-        When creating a private hosted zone, the region of the associated VPC is required.  If not
-        provided, an effort will be made to determine it from vpc_id or vpc_name, where possible.
-        If this fails, you'll need to provide an explicit value for this option.  Ignored when
-        creating a non-private zone.
+        When creating a private hosted zone, the region of the associated VPC is
+        required.  If not provided, an effort will be made to determine it from
+        vpc_id or vpc_name, if possible.  If this fails, you'll need to provide
+        an explicit value for this option.  Ignored if passed for a non-private
+        zone.
 
     region
-        Region endpoint to connect to.
+        Region endpoint to connect to
 
     key
-        AWS key to bind with.
+        AWS key to bind with
 
     keyid
-        AWS keyid to bind with.
+        AWS keyid to bind with
 
     profile
-        Dict, or pillar key pointing to a dict, containing AWS region/key/keyid.
+        Dict, or pillar key pointing to a dict, containing AWS region/key/keyid
 
     CLI Example::
 
@@ -865,7 +648,7 @@ def create_hosted_zone(domain_name, caller_ref=None, comment='', private_zone=Fa
 
     deets = conn.get_hosted_zone_by_name(domain_name)
     if deets:
-        log.info('Route53 hosted zone %s already exists', domain_name)
+        log.info('Route53 hosted zone {0} already exists'.format(domain_name))
         return None
 
     args = {'domain_name': domain_name,
@@ -888,7 +671,7 @@ def create_hosted_zone(domain_name, caller_ref=None, comment='', private_zone=Fa
             return None
         if len(vpcs) > 1:
             log.error('Private zone requested but multiple VPCs matching given '
-                      'criteria found: %s.', [v['id'] for v in vpcs])
+                      'criteria found: {0}.'.format([v['id'] for v in vpcs]))
             return None
         vpc = vpcs[0]
         if vpc_name:
@@ -901,15 +684,20 @@ def create_hosted_zone(domain_name, caller_ref=None, comment='', private_zone=Fa
             log.info('Options vpc_id, vpc_name, and vpc_region are ignored '
                      'when creating non-private zones.')
 
-    r = _try_func(conn, 'create_hosted_zone', **args)
-    if r is None:
-        log.error('Failed to create hosted zone %s', domain_name)
-        return None
-    r = r.get('CreateHostedZoneResponse', {})
-    # Pop it since it'll be irrelevant by the time we return
-    status = r.pop('ChangeInfo', {}).get('Id', '').replace('/change/', '')
-    synced = _wait_for_sync(status, conn, wait=600)
-    if not synced:
-        log.error('Hosted zone %s not synced after 600 seconds.', domain_name)
-        return None
-    return r
+    retries = 10
+    while retries:
+        try:
+            # Crazy layers of dereference...
+            r = conn.create_hosted_zone(**args)
+            r = r.CreateHostedZoneResponse.__dict__ if hasattr(r,
+                    'CreateHostedZoneResponse') else {}
+            return r.get('parent', {}).get('CreateHostedZoneResponse')
+        except DNSServerError as e:
+            if retries and 'Throttling' == e.code:
+                log.debug('Throttled by AWS API.')
+                time.sleep(3)
+                retries -= 1
+                continue
+            log.error('Failed to create hosted zone {0}: {1}'.format(
+                    domain_name, e.message))
+            return None

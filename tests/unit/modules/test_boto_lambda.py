@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import random
 import string
 import logging
@@ -30,10 +30,10 @@ import salt.loader
 import salt.modules.boto_lambda as boto_lambda
 from salt.exceptions import SaltInvocationError
 from salt.utils.versions import LooseVersion
-import salt.utils.stringutils
+import salt.utils
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import range  # pylint: disable=import-error,redefined-builtin
 # pylint: disable=import-error,no-name-in-module
 try:
@@ -155,7 +155,7 @@ class TempZipFile(object):
                 suffix='.zip', prefix='salt_test_', delete=False) as tmp:
             to_write = '###\n'
             if six.PY3:
-                to_write = salt.utils.stringutils.to_bytes(to_write)
+                to_write = salt.utils.to_bytes(to_write)
             tmp.write(to_write)
             self.zipfile = tmp.name
         return self.zipfile

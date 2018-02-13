@@ -8,7 +8,7 @@
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import errno
 import os
 import pwd
@@ -26,15 +26,13 @@ from tests.support.helpers import (
     skip_if_not_root
 )
 # Import salt libs
-import salt.utils.files
-import salt.utils.path
-import salt.utils.versions
+from tests.support.case import ModuleCase
+import salt.utils
 from salt.modules.virtualenv_mod import KNOWN_BINARY_NAMES
 from salt.exceptions import CommandExecutionError
-from tests.support.case import ModuleCase
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 class VirtualEnv(object):
@@ -51,7 +49,7 @@ class VirtualEnv(object):
             shutil.rmtree(self.venv_dir)
 
 
-@skipIf(salt.utils.path.which_bin(KNOWN_BINARY_NAMES) is None, 'virtualenv not installed')
+@skipIf(salt.utils.which_bin(KNOWN_BINARY_NAMES) is None, 'virtualenv not installed')
 class PipStateTest(ModuleCase, SaltReturnAssertsMixin):
 
     @skip_if_not_root
@@ -239,7 +237,7 @@ class PipStateTest(ModuleCase, SaltReturnAssertsMixin):
             )
         except (AssertionError, CommandExecutionError):
             pip_version = self.run_function('pip.version', [venv_dir])
-            if salt.utils.versions.compare(ver1=pip_version, oper='>=', ver2='7.0.0'):
+            if salt.utils.compare_versions(ver1=pip_version, oper='>=', ver2='7.0.0'):
                 self.skipTest('the --mirrors arg has been deprecated and removed in pip==7.0.0')
         finally:
             if os.path.isdir(venv_dir):
@@ -295,8 +293,8 @@ class PipStateTest(ModuleCase, SaltReturnAssertsMixin):
         req_filename = os.path.join(
             RUNTIME_VARS.TMP_STATE_TREE, 'issue-6912-requirements.txt'
         )
-        with salt.utils.files.fopen(req_filename, 'wb') as reqf:
-            reqf.write(b'pep8\n')
+        with salt.utils.fopen(req_filename, 'wb') as reqf:
+            reqf.write(six.b('pep8'))
 
         try:
             ret = self.run_state(
@@ -362,8 +360,8 @@ class PipStateTest(ModuleCase, SaltReturnAssertsMixin):
         req_filename = os.path.join(
             RUNTIME_VARS.TMP_STATE_TREE, 'issue-6912-requirements.txt'
         )
-        with salt.utils.files.fopen(req_filename, 'wb') as reqf:
-            reqf.write(b'pep8\n')
+        with salt.utils.fopen(req_filename, 'wb') as reqf:
+            reqf.write(six.b('pep8'))
 
         try:
             ret = self.run_state(
@@ -457,8 +455,8 @@ class PipStateTest(ModuleCase, SaltReturnAssertsMixin):
         requirements_file = os.path.join(
             RUNTIME_VARS.TMP_PRODENV_STATE_TREE, 'prod-env-requirements.txt'
         )
-        with salt.utils.files.fopen(requirements_file, 'wb') as reqf:
-            reqf.write(b'pep8\n')
+        with salt.utils.fopen(requirements_file, 'wb') as reqf:
+            reqf.write(six.b('pep8\n'))
 
         try:
             self.run_function('virtualenv.create', [venv_dir])

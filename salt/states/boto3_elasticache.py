@@ -86,7 +86,10 @@ XXX FIXME
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def __virtual__():

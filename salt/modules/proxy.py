@@ -8,12 +8,12 @@ This module allows you to manage proxy settings
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import logging
 import re
 
-# Import Salt libs
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 
 log = logging.getLogger(__name__)
 __virtualname__ = 'proxy'
@@ -23,7 +23,7 @@ def __virtual__():
     '''
     Only work on Mac OS and Windows
     '''
-    if salt.utils.platform.is_darwin() or salt.utils.platform.is_windows():
+    if salt.utils.is_darwin() or salt.utils.is_windows():
         return True
     return (False, 'Module proxy: module only works on Windows or MacOS systems')
 

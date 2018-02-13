@@ -1,6 +1,0 @@
-classes:
-  - app.ssh.server
-
-pillars:
-  sshd:
-    root_access: yes

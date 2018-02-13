@@ -11,12 +11,13 @@ Install certificates to the Windows Certificate Manager
       certutil.add_store:
         - store: TrustedPublisher
 '''
-# Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+
+# Import python libs
+from __future__ import absolute_import
 import logging
 
-# Import Salt libs
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 
 log = logging.getLogger(__name__)
 __virtualname__ = "certutil"
@@ -26,7 +27,7 @@ def __virtual__():
     '''
     Only work on Windows
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return __virtualname__
     return False
 

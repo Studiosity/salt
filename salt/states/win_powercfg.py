@@ -15,7 +15,7 @@ powercfg.
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import logging
 
 log = logging.getLogger(__name__)

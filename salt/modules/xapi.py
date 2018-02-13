@@ -16,7 +16,7 @@ Useful documentation:
 . https://github.com/xapi-project/xen-api/tree/master/scripts/examples/python
 . http://xenbits.xen.org/gitweb/?p=xen.git;a=tree;f=tools/python/xen/xm;hb=HEAD
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import sys
@@ -33,11 +33,9 @@ except ImportError:
     HAS_IMPORTLIB = False
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.path
-import salt.utils.stringutils
-import salt.modules.cmdmod
 from salt.exceptions import CommandExecutionError
+import salt.utils
+import salt.modules.cmdmod
 
 # Define the module's virtual name
 __virtualname__ = 'virt'
@@ -116,7 +114,7 @@ def _get_xtool():
     Internal, returns xl or xm command line path
     '''
     for xtool in ['xl', 'xm']:
-        path = salt.utils.path.which(xtool)
+        path = salt.utils.which(xtool)
         if path is not None:
             return path
 
@@ -775,8 +773,8 @@ def is_hyper():
         # virtual_subtype isn't set everywhere.
         return False
     try:
-        with salt.utils.files.fopen('/proc/modules') as fp_:
-            if 'xen_' not in salt.utils.stringutils.to_unicode(fp_.read()):
+        with salt.utils.fopen('/proc/modules') as fp_:
+            if 'xen_' not in fp_.read():
                 return False
     except (OSError, IOError):
         return False

@@ -17,13 +17,9 @@ Module for sending messages to Slack
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
+import json
 import logging
-
-# Import Salt libs
-import salt.utils.json
-import salt.utils.slack
-from salt.exceptions import SaltInvocationError
 
 # Import 3rd-party libs
 # pylint: disable=import-error,no-name-in-module,redefined-builtin
@@ -31,7 +27,11 @@ from salt.ext.six.moves.urllib.parse import urlencode as _urlencode
 from salt.ext.six.moves.urllib.parse import urljoin as _urljoin
 from salt.ext.six.moves import range
 import salt.ext.six.moves.http_client
+
+import salt.utils.slack
 # pylint: enable=import-error,no-name-in-module
+
+from salt.exceptions import SaltInvocationError
 
 log = logging.getLogger(__name__)
 
@@ -203,10 +203,7 @@ def post_message(channel,
 
     # channel must start with a hash or an @ (direct-message channels)
     if not channel.startswith('#') and not channel.startswith('@'):
-        log.warning('Channel name must start with a hash or @. '
-                    'Prepending a hash and using "#%s" as '
-                    'channel name instead of %s',
-                    channel, channel)
+        log.warning('Channel name must start with a hash or @. Prepending a hash and using "#{0}" as channel name instead of {1}'.format(channel, channel))
         channel = '#{0}'.format(channel)
 
     if not from_name:
@@ -267,7 +264,7 @@ def call_hook(message,
 
     .. code-block:: bash
 
-        salt '*' slack.call_hook message='Hello, from SaltStack'
+        salt '*' slack.post_hook message='Hello, from SaltStack'
 
     '''
     base_url = 'https://hooks.slack.com/services/'
@@ -311,7 +308,7 @@ def call_hook(message,
 
     data = _urlencode(
         {
-            'payload': salt.utils.json.dumps(payload)
+            'payload': json.dumps(payload, ensure_ascii=False)
         }
     )
     result = salt.utils.http.query(url, method='POST', data=data, status=True)

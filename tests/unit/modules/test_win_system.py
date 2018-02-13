@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import types
 from datetime import datetime
 
@@ -30,9 +30,7 @@ class WinSystemTestCase(TestCase, LoaderModuleMockMixin):
     def setup_loader_modules(self):
         modules_globals = {}
         if win_system.HAS_WIN32NET_MODS is False:
-            win32api = types.ModuleType(
-                str('win32api')  # future lint: disable=blacklisted-function
-            )
+            win32api = types.ModuleType('win32api')
             now = datetime.now()
             win32api.GetLocalTime = MagicMock(return_value=[now.year, now.month, now.weekday(),
                                                             now.day, now.hour, now.minute,

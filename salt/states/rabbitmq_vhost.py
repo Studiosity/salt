@@ -16,11 +16,11 @@ Example:
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import logging
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def __virtual__():
     '''
     Only load if RabbitMQ is installed.
     '''
-    return salt.utils.path.which('rabbitmqctl') is not None
+    return salt.utils.which('rabbitmqctl') is not None
 
 
 def present(name):

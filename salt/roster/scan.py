@@ -4,7 +4,7 @@ Scan a netmask or ipaddr for open ssh ports
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import socket
 import logging
 import copy
@@ -12,7 +12,6 @@ import copy
 # Import salt libs
 import salt.utils.network
 from salt._compat import ipaddress
-from salt.ext import six
 
 # Import 3rd-party libs
 from salt.ext.six.moves import map  # pylint: disable=import-error,redefined-builtin
@@ -47,7 +46,7 @@ class RosterMatcher(object):
         ports = __opts__['ssh_scan_ports']
         if not isinstance(ports, list):
             # Comma-separate list of integers
-            ports = list(map(int, six.text_type(ports).split(',')))
+            ports = list(map(int, str(ports).split(',')))
         try:
             addrs = [ipaddress.ip_address(self.tgt)]
         except ValueError:
@@ -56,11 +55,11 @@ class RosterMatcher(object):
             except ValueError:
                 pass
         for addr in addrs:
-            addr = six.text_type(addr)
+            addr = str(addr)
             ret[addr] = copy.deepcopy(__opts__.get('roster_defaults', {}))
-            log.trace('Scanning host: %s', addr)
+            log.trace('Scanning host: {0}'.format(addr))
             for port in ports:
-                log.trace('Scanning port: %s', port)
+                log.trace('Scanning port: {0}'.format(port))
                 try:
                     sock = salt.utils.network.get_socket(addr, socket.SOCK_STREAM)
                     sock.settimeout(float(__opts__['ssh_scan_timeout']))

@@ -2,7 +2,7 @@
 # pylint: disable=unused-argument
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt testing libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -12,7 +12,6 @@ from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 # Import Salt libs
 import salt.states.jboss7 as jboss7
 from salt.exceptions import CommandExecutionError
-from salt.ext import six
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
@@ -56,12 +55,10 @@ class JBoss7StateTestCase(TestCase, LoaderModuleMockMixin):
                                           'jboss7.update_datasource': update_mock}):
 
             # when
-            result = jboss7.datasource_exists(name='appDS', jboss_config={},
-                                              datasource_properties=datasource_properties, profile=None)
+            result = jboss7.datasource_exists(name='appDS', jboss_config={}, datasource_properties=datasource_properties, profile=None)
 
             # then
-            create_mock.assert_called_with(name='appDS', jboss_config={},
-                                           datasource_properties=datasource_properties, profile=None)
+            create_mock.assert_called_with(name='appDS', jboss_config={}, datasource_properties=datasource_properties, profile=None)
 
             self.assertFalse(update_mock.called)
             self.assertEqual(result['comment'], 'Datasource created.')
@@ -85,13 +82,9 @@ class JBoss7StateTestCase(TestCase, LoaderModuleMockMixin):
         with patch.dict(jboss7.__salt__, {'jboss7.read_datasource': read_mock,
                                           'jboss7.create_datasource': create_mock,
                                           'jboss7.update_datasource': update_mock}):
-            result = jboss7.datasource_exists(name='appDS', jboss_config={},
-                                              datasource_properties={'connection-url': 'jdbc:/new-connection-url'},
-                                              profile=None)
+            result = jboss7.datasource_exists(name='appDS', jboss_config={}, datasource_properties={'connection-url': 'jdbc:/new-connection-url'}, profile=None)
 
-            update_mock.assert_called_with(name='appDS', jboss_config={},
-                                           new_properties={'connection-url': 'jdbc:/new-connection-url'},
-                                           profile=None)
+            update_mock.assert_called_with(name='appDS', jboss_config={}, new_properties={'connection-url': 'jdbc:/new-connection-url'}, profile=None)
             self.assertTrue(read_mock.called)
             self.assertEqual(result['comment'], 'Datasource updated.')
 
@@ -106,14 +99,10 @@ class JBoss7StateTestCase(TestCase, LoaderModuleMockMixin):
                                           'jboss7.remove_datasource': remove_mock,
                                           'jboss7.update_datasource': update_mock}):
 
-            result = jboss7.datasource_exists(name='appDS', jboss_config={},
-                                              datasource_properties={'connection-url': 'jdbc:/same-connection-url'},
-                                              recreate=True)
+            result = jboss7.datasource_exists(name='appDS', jboss_config={}, datasource_properties={'connection-url': 'jdbc:/same-connection-url'}, recreate=True)
 
             remove_mock.assert_called_with(name='appDS', jboss_config={}, profile=None)
-            create_mock.assert_called_with(name='appDS', jboss_config={},
-                                           datasource_properties={'connection-url': 'jdbc:/same-connection-url'},
-                                           profile=None)
+            create_mock.assert_called_with(name='appDS', jboss_config={}, datasource_properties={'connection-url': 'jdbc:/same-connection-url'}, profile=None)
             self.assertEqual(result['changes']['removed'], 'appDS')
             self.assertEqual(result['changes']['created'], 'appDS')
 
@@ -129,11 +118,9 @@ class JBoss7StateTestCase(TestCase, LoaderModuleMockMixin):
                                           'jboss7.remove_datasource': remove_mock,
                                           'jboss7.update_datasource': update_mock}):
 
-            result = jboss7.datasource_exists(name='appDS', jboss_config={},
-                                              datasource_properties={'connection-url': 'jdbc:/old-connection-url'})
+            result = jboss7.datasource_exists(name='appDS', jboss_config={}, datasource_properties={'connection-url': 'jdbc:/old-connection-url'})
 
-            update_mock.assert_called_with(name='appDS', jboss_config={},
-                                           new_properties={'connection-url': 'jdbc:/old-connection-url'}, profile=None)
+            update_mock.assert_called_with(name='appDS', jboss_config={}, new_properties={'connection-url': 'jdbc:/old-connection-url'}, profile=None)
             self.assertFalse(create_mock.called)
             self.assertEqual(result['comment'], 'Datasource not changed.')
 
@@ -235,7 +222,7 @@ class JBoss7StateTestCase(TestCase, LoaderModuleMockMixin):
                 jboss7.bindings_exist(name='bindings', jboss_config={}, bindings={'env': 'DEV2'}, profile=None)
                 self.fail('An exception should be thrown')
             except CommandExecutionError as e:
-                self.assertEqual(six.text_type(e), 'Incorrect binding name.')
+                self.assertEqual(str(e), 'Incorrect binding name.')
 
     def test_should_raise_exception_if_cannot_update_binding(self):
         def read_func(jboss_config, binding_name, profile):
@@ -254,9 +241,7 @@ class JBoss7StateTestCase(TestCase, LoaderModuleMockMixin):
 
             # when
             try:
-                jboss7.bindings_exist(name='bindings', jboss_config={},
-                                      bindings={'env': '!@#!///some weird value'},
-                                      profile=None)
+                jboss7.bindings_exist(name='bindings', jboss_config={}, bindings={'env': '!@#!///some weird value'}, profile=None)
                 self.fail('An exception should be thrown')
             except CommandExecutionError as e:
-                self.assertEqual(six.text_type(e), 'Incorrect binding name.')
+                self.assertEqual(str(e), 'Incorrect binding name.')

@@ -21,12 +21,13 @@ Set up the cloud configuration at ``/etc/salt/cloud.providers`` or
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import time
 import pprint
 import logging
 
 # Import Salt libs
+import salt.utils
 from salt._compat import ElementTree as ET
 # pylint: disable=import-error,no-name-in-module
 from salt.ext.six.moves.urllib.error import URLError
@@ -49,9 +50,6 @@ from salt.exceptions import (
     SaltCloudExecutionFailure,
     SaltCloudExecutionTimeout
 )
-
-# Import 3rd-party libs
-from salt.ext import six
 
 # Get logging started
 log = logging.getLogger(__name__)
@@ -176,7 +174,7 @@ def get_image(vm_):
         'image', vm_, __opts__, search_global=False
     )
     for image in images:
-        if six.text_type(vm_image) in (images[image]['name'], images[image]['id']):
+        if str(vm_image) in (images[image]['name'], images[image]['id']):
             return images[image]['id']
     raise SaltCloudNotFound('The specified image could not be found.')
 
@@ -293,16 +291,17 @@ def create(vm_):
         transport=__opts__['transport']
     )
 
-    log.info('Creating Cloud VM %s', vm_['name'])
+    log.info('Creating Cloud VM {0}'.format(vm_['name']))
 
     try:
         data = create_node(vm_)
     except Exception as exc:
         log.error(
-            'Error creating %s on PARALLELS\n\n'
+            'Error creating {0} on PARALLELS\n\n'
             'The following exception was thrown when trying to '
-            'run the initial deployment: \n%s',
-            vm_['name'], exc,
+            'run the initial deployment: \n{1}'.format(
+                vm_['name'], str(exc)
+            ),
             # Show the traceback if the debug logging level is enabled
             exc_info_on_loglevel=logging.DEBUG
         )
@@ -339,7 +338,7 @@ def create(vm_):
         except SaltCloudSystemExit:
             pass
         finally:
-            raise SaltCloudSystemExit(six.text_type(exc))
+            raise SaltCloudSystemExit(str(exc))
 
     comps = data['network']['public-ip']['address'].split('/')
     public_ip = comps[0]
@@ -347,10 +346,11 @@ def create(vm_):
     vm_['ssh_host'] = public_ip
     ret = __utils__['cloud.bootstrap'](vm_, __opts__)
 
-    log.info('Created Cloud VM \'%s\'', vm_['name'])
+    log.info('Created Cloud VM \'{0[name]}\''.format(vm_))
     log.debug(
-        '\'%s\' VM creation details:\n%s',
-        vm_['name'], pprint.pformat(data)
+        '\'{0[name]}\' VM creation details:\n{1}'.format(
+            vm_, pprint.pformat(data)
+        )
     )
 
     __utils__['cloud.fire_event'](
@@ -397,7 +397,7 @@ def query(action=None, command=None, args=None, method='GET', data=None):
         args = {}
 
     kwargs = {'data': data}
-    if isinstance(data, six.string_types) and '<?xml' in data:
+    if isinstance(data, str) and '<?xml' in data:
         kwargs['headers'] = {
             'Content-type': 'application/xml',
         }
@@ -410,13 +410,17 @@ def query(action=None, command=None, args=None, method='GET', data=None):
 
     req.get_method = lambda: method
 
-    log.debug('%s %s', method, req.get_full_url())
+    log.debug('{0} {1}'.format(method, req.get_full_url()))
     if data:
         log.debug(data)
 
     try:
         result = _urlopen(req)
-        log.debug('PARALLELS Response Status Code: %s', result.getcode())
+        log.debug(
+            'PARALLELS Response Status Code: {0}'.format(
+                result.getcode()
+            )
+        )
 
         if 'content-length' in result.headers:
             content = result.read()
@@ -426,7 +430,12 @@ def query(action=None, command=None, args=None, method='GET', data=None):
 
         return {}
     except URLError as exc:
-        log.error('PARALLELS Response Status Code: %s %s', exc.code, exc.msg)
+        log.error(
+            'PARALLELS Response Status Code: {0} {1}'.format(
+                exc.code,
+                exc.msg
+            )
+        )
         root = ET.fromstring(exc.read())
         log.error(root)
         return {'error': root}

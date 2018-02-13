@@ -9,18 +9,15 @@ Package support for XBPS package manager (used by VoidLinux)
 # new repo?
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import re
 import logging
 import glob
 
 # Import salt libs
-import salt.utils.data
-import salt.utils.files
-import salt.utils.path
+import salt.utils
 import salt.utils.pkg
-import salt.utils.stringutils
 import salt.utils.decorators as decorators
 from salt.exceptions import CommandExecutionError, MinionError
 
@@ -44,7 +41,7 @@ def _check_xbps():
     '''
     Looks to see if xbps-install is present on the system, return full path
     '''
-    return salt.utils.path.which('xbps-install')
+    return salt.utils.which('xbps-install')
 
 
 @decorators.memoize
@@ -52,9 +49,10 @@ def _get_version():
     '''
     Get the xbps version
     '''
+    xpath = _check_xbps()
     version_string = __salt__['cmd.run'](
-        [_check_xbps(), '--version'],
-        output_loglevel='trace')
+        '{0} --version'.format(xpath), output_loglevel='trace'
+    )
     if version_string is None:
         # Dunno why it would, but...
         return False
@@ -90,9 +88,9 @@ def list_pkgs(versions_as_list=False, **kwargs):
 
         salt '*' pkg.list_pkgs
     '''
-    versions_as_list = salt.utils.data.is_true(versions_as_list)
+    versions_as_list = salt.utils.is_true(versions_as_list)
     # not yet implemented or not applicable
-    if any([salt.utils.data.is_true(kwargs.get(x)) for x in ('removed', 'purge_desired')]):
+    if any([salt.utils.is_true(kwargs.get(x)) for x in ('removed', 'purge_desired')]):
         return {}
 
     cmd = 'xbps-query -l'
@@ -108,10 +106,8 @@ def list_pkgs(versions_as_list=False, **kwargs):
             # XXX handle package status (like 'ii') ?
             pkg, ver = line.split(None)[1].rsplit('-', 1)
         except ValueError:
-            log.error(
-                'xbps-query: Unexpected formatting in line: "%s"',
-                line
-            )
+            log.error('xbps-query: Unexpected formatting in '
+                      'line: "{0}"'.format(line))
 
         __salt__['pkg_resource.add_pkg'](ret, pkg, ver)
 
@@ -136,7 +132,7 @@ def list_upgrades(refresh=True):
     #     fuse-2.9.4_4 update i686 http://repo.voidlinux.eu/current 298133 91688
     #     xtools-0.34_1 update noarch http://repo.voidlinux.eu/current 21424 10752
 
-    refresh = salt.utils.data.is_true(refresh)
+    refresh = salt.utils.is_true(refresh)
 
     # Refresh repo index before checking for latest version available
     if refresh:
@@ -155,13 +151,11 @@ def list_upgrades(refresh=True):
         try:
             pkg, ver = line.split()[0].rsplit('-', 1)
         except (ValueError, IndexError):
-            log.error(
-                'xbps-query: Unexpected formatting in line: "%s"',
-                line
-            )
+            log.error('xbps-query: Unexpected formatting in '
+                      'line: "{0}"'.format(line))
             continue
 
-        log.trace('pkg=%s version=%s', pkg, ver)
+        log.trace('pkg={0} version={1}'.format(pkg, ver))
         ret[pkg] = ver
 
     return ret
@@ -199,7 +193,7 @@ def latest_version(*names, **kwargs):
     #     xtools-0.34_1 update noarch http://repo.voidlinux.eu/current 21424 10752
     #     Package 'vim' is up to date.
 
-    refresh = salt.utils.data.is_true(kwargs.pop('refresh', True))
+    refresh = salt.utils.is_true(kwargs.pop('refresh', True))
 
     if len(names) == 0:
         return ''
@@ -215,9 +209,9 @@ def latest_version(*names, **kwargs):
 
     # retrieve list of updatable packages
     # ignore return code since 'is up to date' case produces retcode==17 (xbps 0.51)
-    cmd = ['xbps-install', '-un']
-    cmd.extend(names)
-    out = __salt__['cmd.run'](cmd, ignore_retcode=True, output_loglevel='trace')
+    cmd = '{0} {1}'.format('xbps-install -un', ' '.join(names))
+    out = __salt__['cmd.run'](cmd, ignore_retcode=True,
+                                   output_loglevel='trace')
     for line in out.splitlines():
         if not line:
             continue
@@ -227,13 +221,11 @@ def latest_version(*names, **kwargs):
         try:
             pkg, ver = line.split()[0].rsplit('-', 1)
         except (ValueError, IndexError):
-            log.error(
-                'xbps-query: Unexpected formatting in line: "%s"',
-                line
-            )
+            log.error('xbps-query: Unexpected formatting in '
+                      'line: "{0}"'.format(line))
             continue
 
-        log.trace('pkg=%s version=%s', pkg, ver)
+        log.trace('pkg={0} version={1}'.format(pkg, ver))
         if pkg in names:
             ret[pkg] = ver
 
@@ -279,7 +271,7 @@ def refresh_db():
         if 'stderr' in call:
             comment += call['stderr']
 
-        raise CommandExecutionError(comment)
+        raise CommandExecutionError('{0}'.format(comment))
 
     return True
 
@@ -335,7 +327,7 @@ def upgrade(refresh=True):
                                      python_shell=False)
     __context__.pop('pkg.list_pkgs', None)
     new = list_pkgs()
-    ret = salt.utils.data.compare_dicts(old, new)
+    ret = salt.utils.compare_dicts(old, new)
 
     if result['retcode'] != 0:
         raise CommandExecutionError(
@@ -409,25 +401,28 @@ def install(name=None, refresh=False, fromrepo=None,
         return {}
 
     if pkg_type != 'repository':
-        log.error('xbps: pkg_type "%s" not supported.', pkg_type)
+        log.error('xbps: pkg_type "{0}" not supported.'.format(pkg_type))
         return {}
 
-    cmd = ['xbps-install']
+    args = []
 
     if refresh:
-        cmd.append('-S')  # update repo db
+        args.append('-S')  # update repo db
     if fromrepo:
-        cmd.append('--repository={0}'.format(fromrepo))
-    cmd.append('-y')      # assume yes when asked
-    cmd.extend(pkg_params)
+        args.append('--repository={0}'.format(fromrepo))
+    args.append('-y')      # assume yes when asked
+    args.extend(pkg_params)
 
     old = list_pkgs()
-    __salt__['cmd.run'](cmd, output_loglevel='trace')
+    __salt__['cmd.run'](
+        '{0} {1}'.format('xbps-install', ' '.join(args)),
+        output_loglevel='trace'
+    )
     __context__.pop('pkg.list_pkgs', None)
     new = list_pkgs()
 
     _rehash()
-    return salt.utils.data.compare_dicts(old, new)
+    return salt.utils.compare_dicts(old, new)
 
 
 def remove(name=None, pkgs=None, recursive=True, **kwargs):
@@ -481,7 +476,7 @@ def remove(name=None, pkgs=None, recursive=True, **kwargs):
     __context__.pop('pkg.list_pkgs', None)
     new = list_pkgs()
 
-    return salt.utils.data.compare_dicts(old, new)
+    return salt.utils.compare_dicts(old, new)
 
 
 def list_repos():
@@ -503,10 +498,8 @@ def list_repos():
         try:
             nb, url, rsa = line.strip().split(' ', 2)
         except ValueError:
-            log.error(
-                'Problem parsing xbps-query: '
-                'Unexpected formatting in line: "%s"', line
-            )
+            log.error('Problem parsing xbps-query: Unexpected formatting in '
+                      'line: "{0}"'.format(line))
         repo['nbpkg'] = int(nb) if nb.isdigit() else 0
         repo['url'] = url
         repo['rsasigned'] = True if rsa == '(RSA signed)' else False
@@ -559,16 +552,16 @@ def _locate_repo_files(repo, rewrite=False):
 
     for filename in files:
         write_buff = []
-        with salt.utils.files.fopen(filename, 'r') as cur_file:
+        with salt.utils.fopen(filename, 'r') as cur_file:
             for line in cur_file:
-                if regex.match(salt.utils.stringutils.to_unicode(line)):
+                if regex.match(line):
                     ret_val.append(filename)
                 else:
                     write_buff.append(line)
         if rewrite and filename in ret_val:
             if len(write_buff) > 0:
-                with salt.utils.files.fopen(filename, 'w') as rewrite_file:
-                    rewrite_file.writelines(write_buff)
+                with salt.utils.fopen(filename, 'w') as rewrite_file:
+                    rewrite_file.write("".join(write_buff))
             else:  # Prune empty files
                 os.remove(filename)
 
@@ -595,12 +588,8 @@ def add_repo(repo, conffile='/usr/share/xbps.d/15-saltstack.conf'):
 
     if len(_locate_repo_files(repo)) == 0:
         try:
-            with salt.utils.files.fopen(conffile, 'a+') as conf_file:
-                conf_file.write(
-                    salt.utils.stringutils.to_str(
-                        'repository={0}\n'.format(repo)
-                    )
-                )
+            with salt.utils.fopen(conffile, 'a+') as conf_file:
+                conf_file.write('repository='+repo+'\n')
         except IOError:
             return False
 

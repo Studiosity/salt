@@ -100,17 +100,13 @@ Detailed Function Documentation
 -------------------------------
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 import inspect
 import logging
 import os
 import re
-
-import salt.utils.files
-import salt.utils.stringutils
-
-from salt.ext import six
+import salt.utils
 
 from operator import attrgetter
 try:
@@ -134,12 +130,12 @@ log = logging.getLogger(__name__)
 debug = False
 
 __virtualname__ = 'dockercompose'
-DEFAULT_DC_FILENAMES = ('docker-compose.yml', 'docker-compose.yaml')
+dc_filename = 'docker-compose.yml'
 
 
 def __virtual__():
     if HAS_DOCKERCOMPOSE:
-        match = re.match(VERSION_RE, six.text_type(compose.__version__))
+        match = re.match(VERSION_RE, str(compose.__version__))
         if match:
             version = tuple([int(x) for x in match.group(1).split('.')])
             if version >= MIN_DOCKERCOMPOSE:
@@ -172,45 +168,27 @@ def __standardize_result(status, message, data=None, debug_msg=None):
     return result
 
 
-def __get_docker_file_path(path):
+def __read_docker_compose(path):
     '''
-    Determines the filepath to use
+    Read the docker-compose.yml file if it exists in the directory
 
     :param path:
     :return:
     '''
-    if os.path.isfile(path):
-        return path
-    for dc_filename in DEFAULT_DC_FILENAMES:
-        file_path = os.path.join(path, dc_filename)
-        if os.path.isfile(file_path):
-            return file_path
-    # implicitly return None
-
-
-def __read_docker_compose_file(file_path):
-    '''
-    Read the compose file if it exists in the directory
-
-    :param file_path:
-    :return:
-    '''
-    if not os.path.isfile(file_path):
+    if os.path.isfile(os.path.join(path, dc_filename)) is False:
         return __standardize_result(False,
-                                    'Path {} is not present'.format(file_path),
+                                    'Path does not exist or docker-compose.yml is not present',
                                     None, None)
-    try:
-        with salt.utils.files.fopen(file_path, 'r') as fl:
-            file_name = os.path.basename(file_path)
-            result = {file_name: ''}
-            for line in fl:
-                result[file_name] += salt.utils.stringutils.to_unicode(line)
-    except EnvironmentError:
-        return __standardize_result(False,
-                                    'Could not read {0}'.format(file_path),
+    f = salt.utils.fopen(os.path.join(path, dc_filename), 'r')  # pylint: disable=resource-leakage
+    result = {'docker-compose.yml': ''}
+    if f:
+        for line in f:
+            result['docker-compose.yml'] += line
+        f.close()
+    else:
+        return __standardize_result(False, 'Could not read docker-compose.yml file.',
                                     None, None)
-    return __standardize_result(True,
-                                'Reading content of {0}'.format(file_path),
+    return __standardize_result(True, 'Reading content of docker-compose.yml file',
                                 result, None)
 
 
@@ -226,26 +204,22 @@ def __write_docker_compose(path, docker_compose):
 
     :return:
     '''
-    if path.lower().endswith(('.yml', '.yaml')):
-        file_path = path
-        dir_name = os.path.dirname(path)
+
+    if os.path.isdir(path) is False:
+        os.mkdir(path)
+    f = salt.utils.fopen(os.path.join(path, dc_filename), 'w')  # pylint: disable=resource-leakage
+    if f:
+        f.write(docker_compose)
+        f.close()
     else:
-        dir_name = path
-        file_path = os.path.join(dir_name, DEFAULT_DC_FILENAMES[0])
-    if os.path.isdir(dir_name) is False:
-        os.mkdir(dir_name)
-    try:
-        with salt.utils.files.fopen(file_path, 'w') as fl:
-            fl.write(salt.utils.stringutils.to_str(docker_compose))
-    except EnvironmentError:
         return __standardize_result(False,
-                                    'Could not write {0}'.format(file_path),
+                                    'Could not write docker-compose file in {0}'.format(path),
                                     None, None)
-    project = __load_project_from_file_path(file_path)
+    project = __load_project(path)
     if isinstance(project, dict):
-        os.remove(file_path)
+        os.remove(os.path.join(path, dc_filename))
         return project
-    return file_path
+    return path
 
 
 def __load_project(path):
@@ -255,25 +229,8 @@ def __load_project(path):
     :param path:
     :return:
     '''
-    file_path = __get_docker_file_path(path)
-    if file_path is None:
-        msg = 'Could not find docker-compose file at {0}'.format(path)
-        return __standardize_result(False,
-                                    msg,
-                                    None, None)
-    return __load_project_from_file_path(file_path)
-
-
-def __load_project_from_file_path(file_path):
-    '''
-    Load a docker-compose project from file path
-
-    :param path:
-    :return:
-    '''
     try:
-        project = get_project(project_dir=os.path.dirname(file_path),
-                              config_path=[os.path.basename(file_path)])
+        project = get_project(path)
     except Exception as inst:
         return __handle_except(inst)
     return project
@@ -329,12 +286,8 @@ def get(path):
 
         salt myminion dockercompose.get /path/where/docker-compose/stored
     '''
-    file_path = __get_docker_file_path(path)
-    if file_path is None:
-        return __standardize_result(False,
-                                    'Path {} is not present'.format(path),
-                                    None, None)
-    salt_result = __read_docker_compose_file(file_path)
+
+    salt_result = __read_docker_compose(path)
     if not salt_result['status']:
         return salt_result
     project = __load_project(path)
@@ -369,10 +322,7 @@ def create(path, docker_compose):
         return __standardize_result(False,
                                     'Creating a docker-compose project failed, you must send a valid docker-compose file',
                                     None, None)
-    return __standardize_result(True,
-                                'Successfully created the docker-compose file',
-                                {'compose.base_dir': path},
-                                None)
+    return __standardize_result(True, 'Successfully created the docker-compose file', {'compose.base_dir': path}, None)
 
 
 def pull(path, service_names=None):
@@ -736,7 +686,7 @@ def ps(path):
 
 def up(path, service_names=None):
     '''
-    Create and start containers defined in the docker-compose.yml file
+    Create and start containers defined in the the docker-compose.yml file
     located in path, service_names is a python list, if omitted create and
     start all containers
 

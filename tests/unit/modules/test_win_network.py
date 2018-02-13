@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -18,7 +18,7 @@ from tests.support.mock import (
 )
 
 # Import Salt Libs
-import salt.utils.network
+import salt.utils
 import salt.modules.win_network as win_network
 
 try:

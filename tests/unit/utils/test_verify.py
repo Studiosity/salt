@@ -4,7 +4,7 @@ Test the verification routines
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import getpass
 import os
 import sys
@@ -34,7 +34,7 @@ from tests.support.mock import (
 )
 
 # Import salt libs
-import salt.utils.files
+import salt.utils
 from salt.utils.verify import (
     check_user,
     verify_env,
@@ -47,7 +47,6 @@ from salt.utils.verify import (
 )
 
 # Import 3rd-party libs
-from salt.ext import six
 from salt.ext.six.moves import range  # pylint: disable=import-error,redefined-builtin
 
 
@@ -112,21 +111,13 @@ class TestVerify(TestCase):
     def test_verify_env(self):
         root_dir = tempfile.mkdtemp(dir=TMP)
         var_dir = os.path.join(root_dir, 'var', 'log', 'salt')
-        key_dir = os.path.join(root_dir, 'key_dir')
-        verify_env([var_dir, key_dir], getpass.getuser(), root_dir=root_dir, sensitive_dirs=[key_dir])
+        verify_env([var_dir], getpass.getuser(), root_dir=root_dir)
         self.assertTrue(os.path.exists(var_dir))
-        self.assertTrue(os.path.exists(key_dir))
-
-        var_dir_stat = os.stat(var_dir)
-        self.assertEqual(var_dir_stat.st_uid, os.getuid())
-        self.assertEqual(var_dir_stat.st_mode & stat.S_IRWXU, stat.S_IRWXU)
-        self.assertEqual(var_dir_stat.st_mode & stat.S_IRWXG, 40)
-        self.assertEqual(var_dir_stat.st_mode & stat.S_IRWXO, 5)
-
-        key_dir_stat = os.stat(key_dir)
-        self.assertEqual(key_dir_stat.st_mode & stat.S_IRWXU, stat.S_IRWXU)
-        self.assertEqual(key_dir_stat.st_mode & stat.S_IRWXG, 0)
-        self.assertEqual(key_dir_stat.st_mode & stat.S_IRWXO, 0)
+        dir_stat = os.stat(var_dir)
+        self.assertEqual(dir_stat.st_uid, os.getuid())
+        self.assertEqual(dir_stat.st_mode & stat.S_IRWXU, stat.S_IRWXU)
+        self.assertEqual(dir_stat.st_mode & stat.S_IRWXG, 40)
+        self.assertEqual(dir_stat.st_mode & stat.S_IRWXO, 5)
 
     @requires_network(only_local_network=True)
     def test_verify_socket(self):
@@ -197,9 +188,9 @@ class TestVerify(TestCase):
                                       (127, 'WARNING'), (196, 'CRITICAL')):
 
                     for n in range(prev, newmax):
-                        kpath = os.path.join(keys_dir, six.text_type(n))
-                        with salt.utils.files.fopen(kpath, 'w') as fp_:
-                            fp_.write(str(n))  # future lint: disable=blacklisted-function
+                        kpath = os.path.join(keys_dir, str(n))
+                        with salt.utils.fopen(kpath, 'w') as fp_:
+                            fp_.write(str(n))
 
                     opts = {
                         'max_open_files': newmax,
@@ -232,9 +223,9 @@ class TestVerify(TestCase):
 
                 newmax = mof_test
                 for n in range(prev, newmax):
-                    kpath = os.path.join(keys_dir, six.text_type(n))
-                    with salt.utils.files.fopen(kpath, 'w') as fp_:
-                        fp_.write(str(n))  # future lint: disable=blacklisted-function
+                    kpath = os.path.join(keys_dir, str(n))
+                    with salt.utils.fopen(kpath, 'w') as fp_:
+                        fp_.write(str(n))
 
                 opts = {
                     'max_open_files': newmax,
@@ -259,11 +250,11 @@ class TestVerify(TestCase):
                     self.skipTest('We\'ve hit the max open files setting')
                 raise
             finally:
+                shutil.rmtree(tempdir)
                 if sys.platform.startswith('win'):
                     win32file._setmaxstdio(mof_h)
                 else:
                     resource.setrlimit(resource.RLIMIT_NOFILE, (mof_s, mof_h))
-                shutil.rmtree(tempdir)
 
     @skipIf(NO_MOCK, NO_MOCK_REASON)
     def test_verify_log(self):

@@ -4,15 +4,14 @@ Connection library for GitHub
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
+import json
+import salt.utils.http
 import logging
 
-# Import Salt libs
-import salt.utils.json
-import salt.utils.http
-
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
+
 
 log = logging.getLogger(__name__)
 
@@ -58,12 +57,12 @@ def get_user_pubkeys(users):
             text=True,
         )
 
-        keys = salt.utils.json.loads(result['text'])
+        keys = json.loads(result['text'])
 
         ret[user] = {}
         for key in keys:
             if len(key_ids) > 0:
-                if six.text_type(key['id']) in key_ids:
+                if str(key['id']) in key_ids:
                     ret[user][key['id']] = key['key']
             else:
                 ret[user][key['id']] = key['key']

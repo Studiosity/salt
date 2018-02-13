@@ -1,3 +1,0 @@
-pillars:
-  motd:
-    text: "Welcome to {{ __grains__['id'] }} system located in ${default:network:sub}"

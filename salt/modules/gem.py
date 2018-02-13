@@ -2,16 +2,18 @@
 '''
 Manage ruby gems.
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import re
 import logging
 
-# Import Salt libs
+# Import salt libs
 import salt.utils.itertools
-import salt.utils.platform
 from salt.exceptions import CommandExecutionError
+
+# Import salt libs
+import salt.utils
 
 __func_alias__ = {
     'list_': 'list'
@@ -47,7 +49,7 @@ def _gem(command, ruby=None, runas=None, gem_bin=None):
         if __salt__['rvm.is_installed'](runas=runas):
             return __salt__['rvm.do'](ruby, cmdline, runas=runas)
 
-        if not salt.utils.platform.is_windows() \
+        if not salt.utils.is_windows() \
                 and __salt__['rbenv.is_installed'](runas=runas):
             if ruby is None:
                 return __salt__['rbenv.do'](cmdline, runas=runas)
@@ -293,7 +295,7 @@ def list_upgrades(ruby=None,
         if match:
             name, version = match.groups()
         else:
-            log.error('Can\'t parse line \'%s\'', line)
+            log.error('Can\'t parse line \'{0}\''.format(line))
             continue
         ret[name] = version
     return ret

@@ -2,9 +2,9 @@
 '''
 Support for Layman
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-import salt.utils.path
+import salt.utils
 import salt.exceptions
 
 
@@ -12,7 +12,7 @@ def __virtual__():
     '''
     Only work on Gentoo systems with layman installed
     '''
-    if __grains__['os'] == 'Gentoo' and salt.utils.path.which('layman'):
+    if __grains__['os'] == 'Gentoo' and salt.utils.which('layman'):
         return 'layman'
     return (False, 'layman execution module cannot be loaded: only available on Gentoo with layman installed.')
 

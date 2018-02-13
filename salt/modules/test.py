@@ -2,7 +2,7 @@
 '''
 Module for running arbitrary tests
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
@@ -13,14 +13,11 @@ import traceback
 import random
 
 # Import Salt libs
-import salt.utils.args
-import salt.utils.functools
-import salt.utils.hashutils
-import salt.utils.platform
-import salt.utils.versions
+import salt
+import salt.utils
 import salt.version
 import salt.loader
-from salt.ext import six
+import salt.ext.six as six
 from salt.utils.decorators import depends
 
 __proxyenabled__ = ['*']
@@ -28,8 +25,7 @@ __proxyenabled__ = ['*']
 # Don't shadow built-in's.
 __func_alias__ = {
     'true_': 'true',
-    'false_': 'false',
-    'try_': 'try',
+    'false_': 'false'
 }
 
 log = logging.getLogger(__name__)
@@ -118,7 +114,7 @@ def ping():
         salt '*' test.ping
     '''
 
-    if not salt.utils.platform.is_proxy():
+    if not salt.utils.is_proxy():
         log.debug('test.ping received for minion \'%s\'', __opts__.get('id'))
         return True
     else:
@@ -198,7 +194,7 @@ def versions_report():
     return '\n'.join(salt.version.versions_report())
 
 
-versions = salt.utils.functools.alias_function(versions_report, 'versions')
+versions = salt.utils.alias_function(versions_report, 'versions')
 
 
 def conf_test():
@@ -290,11 +286,11 @@ def arg_type(*args, **kwargs):
     ret = {'args': [], 'kwargs': {}}
     # all the args
     for argument in args:
-        ret['args'].append(six.text_type(type(argument)))
+        ret['args'].append(str(type(argument)))
 
     # all the kwargs
     for key, val in six.iteritems(kwargs):
-        ret['kwargs'][key] = six.text_type(type(val))
+        ret['kwargs'][key] = str(type(val))
 
     return ret
 
@@ -324,7 +320,7 @@ def arg_clean(*args, **kwargs):
 
         salt '*' test.arg_clean 1 "two" 3.1 txt="hello" wow='{a: 1, b: "hello"}'
     '''
-    return dict(args=args, kwargs=salt.utils.args.clean_kwargs(**kwargs))
+    return dict(args=args, kwargs=salt.utils.clean_kwargs(**kwargs))
 
 
 def fib(num):
@@ -346,15 +342,16 @@ def fib(num):
     start = time.time()
     if num < 2:
         return num, time.time() - start
+    return _fib(num-1) + _fib(num-2), time.time() - start
 
-    prev = 0
-    curr = 1
-    i = 1
-    while i < num:
-        prev, curr = curr, prev + curr
-        i += 1
 
-    return curr, time.time() - start
+def _fib(num):
+    '''
+    Helper method for test.fib, doesn't calculate the time.
+    '''
+    if num < 2:
+        return num
+    return _fib(num-1) + _fib(num-2)
 
 
 def collatz(start):
@@ -495,34 +492,25 @@ def opts_pkg():
 
 
 def rand_str(size=9999999999, hash_type=None):
-    salt.utils.versions.warn_until(
-        'Neon',
-        'test.rand_str has been renamed to test.random_hash'
-    )
-    return random_hash(size=size, hash_type=hash_type)
-
-
-def random_hash(size=9999999999, hash_type=None):
     '''
-    .. versionadded:: 2015.5.2
-    .. versionchanged:: Oxygen
-        Function has been renamed from ``test.rand_str`` to
-        ``test.random_hash``
+    Return a random string
 
-    Generates a random number between 1 and ``size``, then returns a hash of
-    that number. If no ``hash_type`` is passed, the hash_type specified by the
-    minion's :conf_minion:`hash_type` config option is used.
+        size
+            size of the string to generate
+        hash_type
+            hash type to use
+
+            .. versionadded:: 2015.5.2
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt '*' test.random_hash
-        salt '*' test.random_hash hash_type=sha512
+        salt '*' test.rand_str
     '''
     if not hash_type:
         hash_type = __opts__.get('hash_type', 'md5')
-    return salt.utils.hashutils.random_hash(size=size, hash_type=hash_type)
+    return salt.utils.rand_str(hash_type=hash_type, size=size)
 
 
 def exception(message='Test Exception'):

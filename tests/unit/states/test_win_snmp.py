@@ -7,11 +7,11 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Libs
 import salt.states.win_snmp as win_snmp
-from salt.ext import six
+import salt.ext.six as six
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin

@@ -126,21 +126,22 @@ To override individual configuration items, append --return_kwargs '{"key:": "va
     salt '*' test.ping --return postgres --return_kwargs '{"db": "another-salt"}'
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+# Let's not allow PyLint complain about string substitution
+# pylint: disable=W1321,E1321
 
 # Import python libs
+import json
 import sys
 import logging
 from contextlib import contextmanager
 
 # Import Salt libs
 import salt.utils.jid
-import salt.utils.json
 import salt.returners
 import salt.exceptions
 
 # Import third party libs
-from salt.ext import six
 try:
     import psycopg2
     HAS_POSTGRES = True
@@ -208,7 +209,7 @@ def _get_serv(ret=None, commit=False):
         yield cursor
     except psycopg2.DatabaseError as err:
         error = err.args
-        sys.stderr.write(six.text_type(error))
+        sys.stderr.write(str(error))
         cursor.execute("ROLLBACK")
         raise err
     else:
@@ -233,10 +234,10 @@ def returner(ret):
                 sql, (
                     ret['fun'],
                     ret['jid'],
-                    salt.utils.json.dumps(ret['return']),
+                    json.dumps(ret['return']),
                     ret['id'],
                     ret.get('success', False),
-                    salt.utils.json.dumps(ret)))
+                    json.dumps(ret)))
     except salt.exceptions.SaltMasterError:
         log.critical('Could not store return with postgres returner. PostgreSQL server unavailable.')
 
@@ -255,7 +256,7 @@ def event_return(events):
             sql = '''INSERT INTO salt_events (tag, data, master_id)
                      VALUES (%s, %s, %s)'''
             cur.execute(sql, (tag,
-                              salt.utils.json.dumps(data),
+                              json.dumps(data),
                               __opts__['id']))
 
 
@@ -271,7 +272,7 @@ def save_load(jid, load, minions=None):  # pylint: disable=unused-argument
 
         try:
             cur.execute(sql, (jid,
-                              salt.utils.json.dumps(load)))
+                              json.dumps(load)))
         except psycopg2.IntegrityError:
             # https://github.com/saltstack/salt/issues/22171
             # Without this try:except: we get tons of duplicate entry errors
@@ -295,7 +296,7 @@ def get_load(jid):
         cur.execute(sql, (jid,))
         data = cur.fetchone()
         if data:
-            return salt.utils.json.loads(data[0])
+            return json.loads(data[0])
         return {}
 
 
@@ -313,7 +314,7 @@ def get_jid(jid):
         ret = {}
         if data:
             for minion, full_ret in data:
-                ret[minion] = salt.utils.json.loads(full_ret)
+                ret[minion] = json.loads(full_ret)
         return ret
 
 
@@ -337,7 +338,7 @@ def get_fun(fun):
         ret = {}
         if data:
             for minion, _, full_ret in data:
-                ret[minion] = salt.utils.json.loads(full_ret)
+                ret[minion] = json.loads(full_ret)
         return ret
 
 
@@ -355,7 +356,7 @@ def get_jids():
         ret = {}
         for jid, load in data:
             ret[jid] = salt.utils.jid.format_jid_instance(jid,
-                                                          salt.utils.json.loads(load))
+                                                          json.loads(load))
         return ret
 
 
@@ -380,4 +381,4 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
     '''
     Do any work necessary to prepare a JID, including sending a custom id
     '''
-    return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid(__opts__)
+    return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid()

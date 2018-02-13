@@ -5,6 +5,7 @@
 '''
 # Import python libs
 from __future__ import absolute_import
+import json
 import tornado.stack_context
 import tornado.gen
 from tornado.testing import AsyncTestCase, gen_test
@@ -16,7 +17,6 @@ from tests.support.unit import TestCase
 from salt.ext.six.moves import range
 
 # Import Salt libs
-import salt.utils.json
 from salt.utils.context import ContextDict, NamespacedDictWrapper
 
 
@@ -188,9 +188,9 @@ class NamespacedDictWrapperTests(TestCase):
     def test_json_dumps_single_key(self):
         self._dict['prefix'] = {'foo': {'bar': 'baz'}}
         w = NamespacedDictWrapper(self._dict, 'prefix')
-        self.assertEqual(salt.utils.json.dumps(w), '{"foo": {"bar": "baz"}}')
+        self.assertEqual(json.dumps(w), '{"foo": {"bar": "baz"}}')
 
     def test_json_dumps_multiple_key(self):
         self._dict['prefix'] = {'foo': {'bar': 'baz'}}
         w = NamespacedDictWrapper(self._dict, ('prefix', 'foo'))
-        self.assertEqual(salt.utils.json.dumps(w), '{"bar": "baz"}')
+        self.assertEqual(json.dumps(w), '{"bar": "baz"}')

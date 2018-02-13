@@ -49,7 +49,7 @@ This driver requires Packet's client library: https://pypi.python.org/pypi/packe
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import pprint
 import time
@@ -75,7 +75,7 @@ from salt.exceptions import (
 import salt.utils.cloud
 
 from salt.cloud.libcloudfuncs import get_size, get_image, script, show_instance
-from salt.utils.functools import namespaced_function
+from salt.utils import namespaced_function
 
 get_size = namespaced_function(get_size, globals())
 get_image = namespaced_function(get_image, globals())
@@ -255,11 +255,18 @@ def _wait_for_status(status_type, object_id, status=None, timeout=500, quiet=Tru
             return obj
 
         time.sleep(interval)
-        log.log(
-            logging.INFO if not quiet else logging.DEBUG,
-            'Status for Packet %s is \'%s\', waiting for \'%s\'.',
-            object_id, obj.state, status
-        )
+        if quiet:
+            log.info('Status for Packet {0} is \'{1}\', waiting for \'{2}\'.'.format(
+                object_id,
+                obj.state,
+                status)
+            )
+        else:
+            log.debug('Status for Packet {0} is \'{1}\', waiting for \'{2}\'.'.format(
+                object_id,
+                obj.state,
+                status)
+            )
 
     return obj
 
@@ -283,9 +290,8 @@ def is_profile_configured(vm_):
             for key in required_keys:
                 if profile_data.get(key) is None:
                     log.error(
-                        'both storage_size and storage_tier required for '
-                        'profile %s. Please check your profile configuration',
-                        vm_['profile']
+                        'both storage_size and storage_tier required for profile {profile}. '
+                        'Please check your profile configuration'.format(profile=vm_['profile'])
                     )
                     return False
 
@@ -295,10 +301,10 @@ def is_profile_configured(vm_):
                 if location['code'] == profile_data['location']:
                     if 'storage' not in location['features']:
                         log.error(
-                            'Chosen location %s for profile %s does not '
-                            'support storage feature. Please check your '
-                            'profile configuration',
-                            location['code'], vm_['profile']
+                            'Choosen location {location} for profile {profile} does not support storage feature. '
+                            'Please check your profile configuration'.format(
+                                location=location['code'], profile=vm_['profile']
+                            )
                         )
                         return False
 
@@ -308,10 +314,8 @@ def is_profile_configured(vm_):
             for key in required_keys:
                 if profile_data.get(key) is None:
                     log.error(
-                        'both storage_snapshot_count and '
-                        'storage_snapshot_frequency required for profile '
-                        '%s. Please check your profile configuration',
-                        vm_['profile']
+                        'both storage_snapshot_count and storage_snapshot_frequency required for profile {profile}. '
+                        'Please check your profile configuration'.format(profile=vm_['profile'])
                     )
                     return False
 
@@ -339,7 +343,7 @@ def create(vm_):
         transport=__opts__['transport']
     )
 
-    log.info('Creating Packet VM %s', name)
+    log.info('Creating Packet VM {0}'.format(name))
 
     manager = packet.Manager(auth_token=vm_['token'])
 
@@ -361,9 +365,9 @@ def create(vm_):
 
     if device.state != "active":
         log.error(
-            'Error creating %s on PACKET\n\n'
-            'while waiting for initial ready status',
-            name, exc_info_on_loglevel=logging.DEBUG
+            'Error creating {0} on PACKET\n\n'
+            'while waiting for initial ready status'.format(name),
+            exc_info_on_loglevel=logging.DEBUG
         )
 
     # Define which ssh_interface to use
@@ -408,18 +412,19 @@ def create(vm_):
 
         if volume.state != "active":
             log.error(
-                'Error creating %s on PACKET\n\n'
-                'while waiting for initial ready status',
-                name, exc_info_on_loglevel=logging.DEBUG
+                'Error creating {0} on PACKET\n\n'
+                'while waiting for initial ready status'.format(name),
+                exc_info_on_loglevel=logging.DEBUG
             )
 
         ret.update({'volume': volume.__dict__})
 
-    log.info('Created Cloud VM \'%s\'', name)
+    log.info('Created Cloud VM \'{0}\''.format(name))
 
     log.debug(
-        '\'%s\' VM creation details:\n%s',
-        name, pprint.pformat(device.__dict__)
+        '\'{0}\' VM creation details:\n{1}'.format(
+            name, pprint.pformat(device.__dict__)
+        )
     )
 
     __utils__['cloud.fire_event'](

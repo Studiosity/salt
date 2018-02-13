@@ -7,7 +7,7 @@
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import time
 import tempfile
@@ -19,7 +19,7 @@ from tests.support.unit import TestCase
 # Import salt libs
 import salt.config
 import salt.loader
-import salt.utils.cache as cache
+from salt.utils import cache
 
 
 class CacheDictTestCase(TestCase):

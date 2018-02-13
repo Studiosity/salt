@@ -2,7 +2,7 @@
 '''
 Print a stacktrace when sent a SIGUSR1 for debugging
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import os
@@ -14,8 +14,7 @@ import traceback
 import inspect
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.stringutils
+import salt.utils
 
 
 def _makepretty(printout, stack):
@@ -40,8 +39,8 @@ def _handle_sigusr1(sig, stack):
     else:
         filename = 'salt-debug-{0}.log'.format(int(time.time()))
         destfile = os.path.join(tempfile.gettempdir(), filename)
-        with salt.utils.files.fopen(destfile, 'w') as output:
-            _makepretty(output, salt.utils.stringutils.to_str(stack))
+        with salt.utils.fopen(destfile, 'w') as output:
+            _makepretty(output, stack)
 
 
 def _handle_sigusr2(sig, stack):

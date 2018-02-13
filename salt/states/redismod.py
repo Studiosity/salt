@@ -28,7 +28,7 @@ overridden in states using the following arguments: ``host``, ``post``, ``db``,
         - db: 0
         - password: somuchkittycat
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import copy
 
 __virtualname__ = 'redis'

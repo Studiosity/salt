@@ -45,14 +45,14 @@ The above essentially is the same as a top.sls containing the following:
         - basepackages
         - database
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-# Import Python libs
+# Import python libs
 import logging
 import subprocess
 
-# Import Salt libs
-import salt.utils.yaml
+# Import third party libs
+import yaml
 
 log = logging.getLogger(__name__)
 
@@ -76,12 +76,12 @@ def top(**kwargs):
             __opts__['master_tops']['ext_nodes'],
             kwargs['opts']['id']
             )
-    ndata = salt.utils.yaml.safe_load(
-        subprocess.Popen(
-            cmd,
-            shell=True,
-            stdout=subprocess.PIPE.communicate()[0])
-    )
+    ndata = yaml.safe_load(
+            subprocess.Popen(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE
+                ).communicate()[0])
     if not ndata:
         log.info('master_tops ext_nodes call did not return any data')
     ret = {}

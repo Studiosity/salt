@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Namecheap dns management
+ Namecheap management
 
 .. versionadded:: 2017.7.0
 
@@ -17,7 +17,6 @@ Namecheap dns management
    the namecheap API:
 
         * ``requests``
-
         .. code-block:: bash
 
             pip install requests
@@ -41,13 +40,7 @@ Namecheap dns management
         #namecheap.url: https://api.sandbox.namecheap.xml.response
 
 '''
-
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-
-# Import Salt libs
-from salt.ext import six
-
+from __future__ import absolute_import
 CAN_USE_NAMECHEAP = True
 
 
@@ -164,7 +157,7 @@ def set_hosts(sld, tld, hosts):
     opts['TLD'] = tld
     i = 1
     for hostrecord in hosts:
-        str_i = six.text_type(i)
+        str_i = str(i)
         opts['HostName' + str_i] = hostrecord['hostname']
         opts['RecordType' + str_i] = hostrecord['recordtype']
         opts['Address' + str_i] = hostrecord['address']

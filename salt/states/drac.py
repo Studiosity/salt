@@ -36,17 +36,16 @@ Ensure DRAC network is in a consistent state
         - gateway: 10.225.108.1
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 import salt.exceptions
-import salt.utils.path
 
 
 def __virtual__():
     '''
     Ensure the racadm command is installed
     '''
-    if salt.utils.path.which('racadm'):
+    if salt.utils.which('racadm'):
         return True
 
     return False

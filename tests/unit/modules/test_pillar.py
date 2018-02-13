@@ -14,7 +14,7 @@ from tests.support.mock import (
 )
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.utils.odict import OrderedDict
 import salt.modules.pillar as pillarmod
 

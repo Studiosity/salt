@@ -8,10 +8,10 @@ runner.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 def output(data, **kwargs):  # pylint: disable=unused-argument

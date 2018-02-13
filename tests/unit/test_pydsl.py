@@ -16,14 +16,13 @@ from tests.support.paths import TMP
 # Import Salt libs
 import salt.loader
 import salt.config
-import salt.utils.files
-import salt.utils.versions
+import salt.utils
 from salt.state import HighState
 from salt.utils.pydsl import PyDslError
 
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import StringIO
 
 
@@ -91,7 +90,12 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
 
     def render_sls(self, content, sls='', saltenv='base', **kws):
         if 'env' in kws:
-            # "env" is not supported; Use "saltenv".
+            salt.utils.warn_until(
+                'Oxygen',
+                'Parameter \'env\' has been detected in the argument list.  This '
+                'parameter is no longer used and has been replaced by \'saltenv\' '
+                'as of Salt 2016.11.0.  This warning will be removed in Salt Oxygen.'
+                )
             kws.pop('env')
 
         return self.HIGHSTATE.state.rend['pydsl'](
@@ -242,8 +246,8 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
 
     def test_load_highstate(self):
         result = self.render_sls(textwrap.dedent('''
-            import salt.utils.yaml
-            __pydsl__.load_highstate(salt.utils.yaml.safe_load("""
+            import yaml
+            __pydsl__.load_highstate(yaml.load("""
             A:
               cmd.run:
                 - name: echo hello
@@ -344,7 +348,7 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
                 '''.format(output.replace('\\', '/'))))
 
             self.state_highstate({'base': ['aaa']}, dirpath)
-            with salt.utils.files.fopen(output, 'r') as f:
+            with salt.utils.fopen(output, 'r') as f:
                 self.assertEqual(''.join(f.read().split()), "XYZABCDEF")
 
         finally:
@@ -380,9 +384,9 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
                 A()
                 '''.format(dirpath.replace('\\', '/'))))
             self.state_highstate({'base': ['aaa']}, dirpath)
-            with salt.utils.files.fopen(os.path.join(dirpath, 'yyy.txt'), 'rt') as f:
+            with salt.utils.fopen(os.path.join(dirpath, 'yyy.txt'), 'rt') as f:
                 self.assertEqual(f.read(), 'hehe' + os.linesep + 'hoho' + os.linesep)
-            with salt.utils.files.fopen(os.path.join(dirpath, 'xxx.txt'), 'rt') as f:
+            with salt.utils.fopen(os.path.join(dirpath, 'xxx.txt'), 'rt') as f:
                 self.assertEqual(f.read(), 'hehe' + os.linesep)
         finally:
             shutil.rmtree(dirpath, ignore_errors=True)
@@ -455,5 +459,5 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
 
 
 def write_to(fpath, content):
-    with salt.utils.files.fopen(fpath, 'w') as f:
+    with salt.utils.fopen(fpath, 'w') as f:
         f.write(content)

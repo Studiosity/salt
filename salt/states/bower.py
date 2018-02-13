@@ -30,13 +30,13 @@ Example:
           - npm: bower
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
 from salt.exceptions import CommandExecutionError, CommandNotFoundError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 def __virtual__():

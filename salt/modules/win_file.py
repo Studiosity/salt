@@ -8,7 +8,7 @@ data, modify the ACL of files/directories
             - win32con
             - salt.utils.win_dacl
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import os
@@ -42,9 +42,8 @@ from salt.exceptions import CommandExecutionError, SaltInvocationError
 # pylint: enable=W0611
 
 # Import salt libs
+import salt.utils
 import salt.utils.path
-import salt.utils.platform
-import salt.utils.user
 from salt.modules.file import (check_hash,  # pylint: disable=W0611
         directory_exists, get_managed,
         check_managed, check_managed_changes, source_list,
@@ -62,11 +61,11 @@ from salt.modules.file import (check_hash,  # pylint: disable=W0611
         list_backups_dir, _assert_occurrence, _starts_till)
 from salt.modules.file import normpath as normpath_
 
-from salt.utils.functools import namespaced_function as _namespaced_function
+from salt.utils import namespaced_function as _namespaced_function
 
 HAS_WINDOWS_MODULES = False
 try:
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         import win32api
         import win32file
         import win32con
@@ -84,7 +83,7 @@ except ImportError:
 
 HAS_WIN_DACL = False
 try:
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         import salt.utils.win_dacl
         HAS_WIN_DACL = True
 except ImportError:
@@ -100,7 +99,7 @@ def __virtual__():
     '''
     Only works on Windows systems
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         if HAS_WINDOWS_MODULES:
             # Load functions from file.py
             global get_managed, manage_file
@@ -253,8 +252,8 @@ def gid_to_group(gid):
     '''
     func_name = '{0}.gid_to_group'.format(__virtualname__)
     if __opts__.get('fun', '') == func_name:
-        log.info('The function %s should not be used on Windows systems; '
-                 'see function docs for details.', func_name)
+        log.info('The function {0} should not be used on Windows systems; '
+                 'see function docs for details.'.format(func_name))
 
     return uid_to_user(gid)
 
@@ -285,8 +284,8 @@ def group_to_gid(group):
     '''
     func_name = '{0}.group_to_gid'.format(__virtualname__)
     if __opts__.get('fun', '') == func_name:
-        log.info('The function %s should not be used on Windows systems; '
-                 'see function docs for details.', func_name)
+        log.info('The function {0} should not be used on Windows systems; '
+                 'see function docs for details.'.format(func_name))
 
     if group is None:
         return ''
@@ -408,9 +407,9 @@ def get_gid(path, follow_symlinks=True):
     '''
     func_name = '{0}.get_gid'.format(__virtualname__)
     if __opts__.get('fun', '') == func_name:
-        log.info('The function %s should not be used on Windows systems; '
+        log.info('The function {0} should not be used on Windows systems; '
                  'see function docs for details. The value returned is the '
-                 'uid.', func_name)
+                 'uid.'.format(func_name))
 
     return get_uid(path, follow_symlinks)
 
@@ -452,9 +451,9 @@ def get_group(path, follow_symlinks=True):
     '''
     func_name = '{0}.get_group'.format(__virtualname__)
     if __opts__.get('fun', '') == func_name:
-        log.info('The function %s should not be used on Windows systems; '
+        log.info('The function {0} should not be used on Windows systems; '
                  'see function docs for details. The value returned is the '
-                 'user (owner).', func_name)
+                 'user (owner).'.format(func_name))
 
     return get_user(path, follow_symlinks)
 
@@ -498,7 +497,7 @@ def user_to_uid(user):
         salt '*' file.user_to_uid myusername
     '''
     if user is None:
-        user = salt.utils.user.get_user()
+        user = salt.utils.get_user()
 
     return salt.utils.win_dacl.get_sid_string(user)
 
@@ -606,9 +605,9 @@ def get_mode(path):
 
     func_name = '{0}.get_mode'.format(__virtualname__)
     if __opts__.get('fun', '') == func_name:
-        log.info('The function %s should not be used on Windows systems; '
+        log.info('The function {0} should not be used on Windows systems; '
                  'see function docs for details. The value returned is '
-                 'always None.', func_name)
+                 'always None.'.format(func_name))
 
     return None
 
@@ -652,11 +651,11 @@ def lchown(path, user, group=None, pgroup=None):
     if group:
         func_name = '{0}.lchown'.format(__virtualname__)
         if __opts__.get('fun', '') == func_name:
-            log.info('The group parameter has no effect when using %s on '
-                     'Windows systems; see function docs for details.',
-                     func_name)
-        log.debug('win_file.py %s Ignoring the group parameter for %s',
-                  func_name, path)
+            log.info('The group parameter has no effect when using {0} on '
+                     'Windows systems; see function docs for details.'
+                     ''.format(func_name))
+        log.debug('win_file.py {0} Ignoring the group parameter for {1}'
+                  ''.format(func_name, path))
         group = None
 
     return chown(path, user, group, pgroup, follow_symlinks=False)
@@ -700,11 +699,11 @@ def chown(path, user, group=None, pgroup=None, follow_symlinks=True):
     if group is not None:
         func_name = '{0}.chown'.format(__virtualname__)
         if __opts__.get('fun', '') == func_name:
-            log.info('The group parameter has no effect when using %s on '
-                     'Windows systems; see function docs for details.',
-                     func_name)
-        log.debug('win_file.py %s Ignoring the group parameter for %s',
-                  func_name, path)
+            log.info('The group parameter has no effect when using {0} on '
+                     'Windows systems; see function docs for details.'
+                     ''.format(func_name))
+        log.debug('win_file.py {0} Ignoring the group parameter for {1}'
+                  ''.format(func_name, path))
 
     if follow_symlinks and sys.getwindowsversion().major >= 6:
         path = _resolve_symlink(path)
@@ -783,9 +782,9 @@ def chgrp(path, group):
     '''
     func_name = '{0}.chgrp'.format(__virtualname__)
     if __opts__.get('fun', '') == func_name:
-        log.info('The function %s should not be used on Windows systems; see '
-                 'function docs for details.', func_name)
-    log.debug('win_file.py %s Doing nothing for %s', func_name, path)
+        log.info('The function {0} should not be used on Windows systems; see '
+                 'function docs for details.'.format(func_name))
+    log.debug('win_file.py {0} Doing nothing for {1}'.format(func_name, path))
 
     return None
 
@@ -845,7 +844,7 @@ def stats(path, hash_type='sha256', follow_symlinks=True):
     ret['mtime'] = pstat.st_mtime
     ret['ctime'] = pstat.st_ctime
     ret['size'] = pstat.st_size
-    ret['mode'] = six.text_type(oct(stat.S_IMODE(pstat.st_mode)))
+    ret['mode'] = str(oct(stat.S_IMODE(pstat.st_mode)))
     if hash_type:
         ret['sum'] = get_sum(path, hash_type)
     ret['type'] = 'file'
@@ -1029,9 +1028,9 @@ def set_mode(path, mode):
     '''
     func_name = '{0}.set_mode'.format(__virtualname__)
     if __opts__.get('fun', '') == func_name:
-        log.info('The function %s should not be used on Windows systems; '
+        log.info('The function {0} should not be used on Windows systems; '
                  'see function docs for details. The value returned is '
-                 'always None. Use set_perms instead.', func_name)
+                 'always None. Use set_perms instead.'.format(func_name))
 
     return get_mode(path)
 
@@ -1222,15 +1221,13 @@ def mkdir(path,
           owner=None,
           grant_perms=None,
           deny_perms=None,
-          inheritance=True,
-          reset=False):
+          inheritance=True):
     '''
     Ensure that the directory is available and permissions are set.
 
     Args:
 
-        path (str):
-            The full path to the directory.
+        path (str): The full path to the directory.
 
         owner (str):
             The owner of the directory. If not passed, it will be the account
@@ -1247,8 +1244,7 @@ def mkdir(path,
 
                 {'user': {'perms': 'full_control', 'applies_to': 'this_folder'}}
 
-            To set advanced permissions use a list for the ``perms`` parameter,
-            ie:
+            To set advanced permissions use a list for the ``perms`` parameter, ie:
 
             .. code-block:: yaml
 
@@ -1262,15 +1258,8 @@ def mkdir(path,
 
         inheritance (bool):
             If True the object will inherit permissions from the parent, if
-            ``False``, inheritance will be disabled. Inheritance setting will
-            not apply to parent directories if they must be created.
-
-        reset (bool):
-            If ``True`` the existing DACL will be cleared and replaced with the
-            settings defined in this function. If ``False``, new entries will be
-            appended to the existing DACL. Default is ``False``.
-
-            .. versionadded:: Oxygen
+            False, inheritance will be disabled. Inheritance setting will not
+            apply to parent directories if they must be created
 
     Returns:
         bool: True if successful
@@ -1307,16 +1296,10 @@ def mkdir(path,
 
             # Set owner
             if owner:
-                salt.utils.win_dacl.set_owner(obj_name=path, principal=owner)
+                salt.utils.win_dacl.set_owner(path, owner)
 
             # Set permissions
-            set_perms(
-                path=path,
-                grant_perms=grant_perms,
-                deny_perms=deny_perms,
-                inheritance=inheritance,
-                reset=reset)
-
+            set_perms(path, grant_perms, deny_perms, inheritance)
         except WindowsError as exc:
             raise CommandExecutionError(exc)
 
@@ -1327,28 +1310,17 @@ def makedirs_(path,
               owner=None,
               grant_perms=None,
               deny_perms=None,
-              inheritance=True,
-              reset=False):
+              inheritance=True):
     '''
     Ensure that the parent directory containing this path is available.
 
     Args:
 
-        path (str):
-            The full path to the directory.
-
-            .. note::
-
-                The path must end with a trailing slash otherwise the
-                directory(s) will be created up to the parent directory. For
-                example if path is ``C:\\temp\\test``, then it would be treated
-                as ``C:\\temp\\`` but if the path ends with a trailing slash
-                like ``C:\\temp\\test\\``, then it would be treated as
-                ``C:\\temp\\test\\``.
+        path (str): The full path to the directory.
 
         owner (str):
             The owner of the directory. If not passed, it will be the account
-            that created the directory, likely SYSTEM.
+            that created the directly, likely SYSTEM
 
         grant_perms (dict):
             A dictionary containing the user/group and the basic permissions to
@@ -1376,14 +1348,15 @@ def makedirs_(path,
         inheritance (bool):
             If True the object will inherit permissions from the parent, if
             False, inheritance will be disabled. Inheritance setting will not
-            apply to parent directories if they must be created.
+            apply to parent directories if they must be created
 
-        reset (bool):
-            If ``True`` the existing DACL will be cleared and replaced with the
-            settings defined in this function. If ``False``, new entries will be
-            appended to the existing DACL. Default is ``False``.
+    .. note::
 
-            .. versionadded:: Oxygen
+        The path must end with a trailing slash otherwise the directory(s) will
+        be created up to the parent directory. For example if path is
+        ``C:\\temp\\test``, then it would be treated as ``C:\\temp\\`` but if
+        the path ends with a trailing slash like ``C:\\temp\\test\\``, then it
+        would be treated as ``C:\\temp\\test\\``.
 
     Returns:
         bool: True if successful
@@ -1443,13 +1416,7 @@ def makedirs_(path,
     for directory_to_create in directories_to_create:
         # all directories have the user, group and mode set!!
         log.debug('Creating directory: %s', directory_to_create)
-        mkdir(
-            path=directory_to_create,
-            owner=owner,
-            grant_perms=grant_perms,
-            deny_perms=deny_perms,
-            inheritance=inheritance,
-            reset=reset)
+        mkdir(directory_to_create, owner, grant_perms, deny_perms, inheritance)
 
     return True
 
@@ -1458,19 +1425,17 @@ def makedirs_perms(path,
                    owner=None,
                    grant_perms=None,
                    deny_perms=None,
-                   inheritance=True,
-                   reset=True):
+                   inheritance=True):
     '''
     Set owner and permissions for each directory created.
 
     Args:
 
-        path (str):
-            The full path to the directory.
+        path (str): The full path to the directory.
 
         owner (str):
             The owner of the directory. If not passed, it will be the account
-            that created the directory, likely SYSTEM.
+            that created the directory, likely SYSTEM
 
         grant_perms (dict):
             A dictionary containing the user/group and the basic permissions to
@@ -1496,16 +1461,9 @@ def makedirs_perms(path,
             grant permissions.
 
         inheritance (bool):
-            If ``True`` the object will inherit permissions from the parent, if
-            ``False``, inheritance will be disabled. Inheritance setting will
-            not apply to parent directories if they must be created
-
-        reset (bool):
-            If ``True`` the existing DACL will be cleared and replaced with the
-            settings defined in this function. If ``False``, new entries will be
-            appended to the existing DACL. Default is ``False``.
-
-            .. versionadded:: Oxygen
+            If True the object will inherit permissions from the parent, if
+            False, inheritance will be disabled. Inheritance setting will not
+            apply to parent directories if they must be created
 
     Returns:
         bool: True if successful, otherwise raises an error
@@ -1539,15 +1497,8 @@ def makedirs_perms(path,
         try:
             # Create the directory here, set inherited True because this is a
             # parent directory, the inheritance setting will only apply to the
-            # target directory. Reset will be False as we only want to reset
-            # the permissions on the target directory
-            makedirs_perms(
-                path=head,
-                owner=owner,
-                grant_perms=grant_perms,
-                deny_perms=deny_perms,
-                inheritance=True,
-                reset=False)
+            # child directory
+            makedirs_perms(head, owner, grant_perms, deny_perms, True)
         except OSError as exc:
             # be happy if someone already created the path
             if exc.errno != errno.EEXIST:
@@ -1556,13 +1507,7 @@ def makedirs_perms(path,
             return {}
 
     # Make the directory
-    mkdir(
-        path=path,
-        owner=owner,
-        grant_perms=grant_perms,
-        deny_perms=deny_perms,
-        inheritance=inheritance,
-        reset=reset)
+    mkdir(path, owner, grant_perms, deny_perms, inheritance)
 
     return True
 
@@ -1572,57 +1517,69 @@ def check_perms(path,
                 owner=None,
                 grant_perms=None,
                 deny_perms=None,
-                inheritance=True,
-                reset=False):
+                inheritance=True):
     '''
-    Check owner and permissions for the passed directory. This function checks
-    the permissions and sets them, returning the changes made.
+    Set owner and permissions for each directory created. Used mostly by the
+    state system.
 
     Args:
 
-        path (str):
-            The full path to the directory.
+        path (str): The full path to the directory.
 
         ret (dict):
             A dictionary to append changes to and return. If not passed, will
             create a new dictionary to return.
 
         owner (str):
-            The owner to set for the directory.
+            The owner of the directory. If not passed, it will be the account
+            that created the directory, likely SYSTEM
 
         grant_perms (dict):
             A dictionary containing the user/group and the basic permissions to
-            check/grant, ie: ``{'user': {'perms': 'basic_permission'}}``.
-            Default is ``None``.
+            grant, ie: ``{'user': {'perms': 'basic_permission'}}``. You can also
+            set the ``applies_to`` setting here. The default is
+            ``this_folder_subfolders_files``. Specify another ``applies_to``
+            setting like this:
+
+            .. code-block:: yaml
+
+                {'user': {'perms': 'full_control', 'applies_to': 'this_folder'}}
+
+            To set advanced permissions use a list for the ``perms`` parameter, ie:
+
+            .. code-block:: yaml
+
+                {'user': {'perms': ['read_attributes', 'read_ea'], 'applies_to': 'this_folder'}}
 
         deny_perms (dict):
-            A dictionary containing the user/group and permissions to
-            check/deny. Default is ``None``.
+            A dictionary containing the user/group and permissions to deny along
+            with the ``applies_to`` setting. Use the same format used for the
+            ``grant_perms`` parameter. Remember, deny permissions supersede
+            grant permissions.
 
         inheritance (bool):
-            ``True will check if inheritance is enabled and enable it. ``False``
-            will check if inheritance is disabled and disable it. Defaultl is
-            ``True``.
-
-        reset (bool):
-            ``True`` wil show what permisisons will be removed by resetting the
-            DACL. ``False`` will do nothing. Default is ``False``.
+            If True the object will inherit permissions from the parent, if
+            False, inheritance will be disabled. Inheritance setting will not
+            apply to parent directories if they must be created
 
     Returns:
-        dict: A dictionary of changes that have been made
+        dict: A dictionary of changes made to the object
+
+    Raises:
+        CommandExecutionError: If the object does not exist
 
     CLI Example:
 
     .. code-block:: bash
 
-        # To see changes to ``C:\\Temp`` if the 'Users' group is given 'read & execute' permissions.
-        salt '*' file.check_perms C:\\Temp\\ {} Administrators "{'Users': {'perms': 'read_execute'}}"
+        # To grant the 'Users' group 'read & execute' permissions.
+        salt '*' file.check_perms C:\\Temp\\ Administrators "{'Users': {'perms': 'read_execute'}}"
 
         # Locally using salt call
-        salt-call file.check_perms C:\\Temp\\ {} Administrators "{'Users': {'perms': 'read_execute', 'applies_to': 'this_folder_only'}}"
+        salt-call file.check_perms C:\\Temp\\ Administrators "{'Users': {'perms': 'read_execute', 'applies_to': 'this_folder_only'}}"
 
         # Specify advanced attributes with a list
-        salt '*' file.check_perms C:\\Temp\\ {} Administrators "{'jsnuffy': {'perms': ['read_attributes', 'read_ea'], 'applies_to': 'files_only'}}"
+        salt '*' file.check_perms C:\\Temp\\ Administrators "{'jsnuffy': {'perms': ['read_attributes', 'read_ea'], 'applies_to': 'files_only'}}"
     '''
     if not os.path.exists(path):
         raise CommandExecutionError('Path not found: {0}'.format(path))
@@ -1632,7 +1589,6 @@ def check_perms(path,
     if not ret:
         ret = {'name': path,
                'changes': {},
-               'pchanges': {},
                'comment': [],
                'result': True}
         orig_comment = ''
@@ -1642,16 +1598,14 @@ def check_perms(path,
 
     # Check owner
     if owner:
-        owner = salt.utils.win_dacl.get_name(principal=owner)
-        current_owner = salt.utils.win_dacl.get_owner(obj_name=path)
+        owner = salt.utils.win_dacl.get_name(owner)
+        current_owner = salt.utils.win_dacl.get_owner(path)
         if owner != current_owner:
             if __opts__['test'] is True:
                 ret['pchanges']['owner'] = owner
             else:
                 try:
-                    salt.utils.win_dacl.set_owner(
-                        obj_name=path,
-                        principal=owner)
+                    salt.utils.win_dacl.set_owner(path, owner)
                     ret['changes']['owner'] = owner
                 except CommandExecutionError:
                     ret['result'] = False
@@ -1659,7 +1613,7 @@ def check_perms(path,
                         'Failed to change owner to "{0}"'.format(owner))
 
     # Check permissions
-    cur_perms = salt.utils.win_dacl.get_permissions(obj_name=path)
+    cur_perms = salt.utils.win_dacl.get_permissions(path)
 
     # Verify Deny Permissions
     changes = {}
@@ -1667,7 +1621,7 @@ def check_perms(path,
         for user in deny_perms:
             # Check that user exists:
             try:
-                user_name = salt.utils.win_dacl.get_name(principal=user)
+                user_name = salt.utils.win_dacl.get_name(user)
             except CommandExecutionError:
                 ret['comment'].append(
                     'Deny Perms: User "{0}" missing from Target System'.format(user))
@@ -1692,11 +1646,7 @@ def check_perms(path,
                 # Check Perms
                 if isinstance(deny_perms[user]['perms'], six.string_types):
                     if not salt.utils.win_dacl.has_permission(
-                            obj_name=path,
-                            principal=user,
-                            permission=deny_perms[user]['perms'],
-                            access_mode='deny',
-                            exact=False):
+                            path, user, deny_perms[user]['perms'], 'deny'):
                         changes[user] = {'perms': deny_perms[user]['perms']}
                 else:
                     for perm in deny_perms[user]['perms']:
@@ -1717,10 +1667,9 @@ def check_perms(path,
                             changes[user]['applies_to'] = applies_to
 
     if changes:
-        ret['pchanges']['deny_perms'] = {}
         ret['changes']['deny_perms'] = {}
         for user in changes:
-            user_name = salt.utils.win_dacl.get_name(principal=user)
+            user_name = salt.utils.win_dacl.get_name(user)
 
             if __opts__['test'] is True:
                 ret['pchanges']['deny_perms'][user] = changes[user]
@@ -1767,11 +1716,7 @@ def check_perms(path,
 
                 try:
                     salt.utils.win_dacl.set_permissions(
-                        obj_name=path,
-                        principal=user,
-                        permissions=perms,
-                        access_mode='deny',
-                        applies_to=applies_to)
+                        path, user, perms, 'deny', applies_to)
                     ret['changes']['deny_perms'][user] = changes[user]
                 except CommandExecutionError:
                     ret['result'] = False
@@ -1785,7 +1730,7 @@ def check_perms(path,
         for user in grant_perms:
             # Check that user exists:
             try:
-                user_name = salt.utils.win_dacl.get_name(principal=user)
+                user_name = salt.utils.win_dacl.get_name(user)
             except CommandExecutionError:
                 ret['comment'].append(
                     'Grant Perms: User "{0}" missing from Target System'.format(user))
@@ -1811,19 +1756,12 @@ def check_perms(path,
                 # Check Perms
                 if isinstance(grant_perms[user]['perms'], six.string_types):
                     if not salt.utils.win_dacl.has_permission(
-                            obj_name=path,
-                            principal=user,
-                            permission=grant_perms[user]['perms'],
-                            access_mode='grant'):
+                            path, user, grant_perms[user]['perms']):
                         changes[user] = {'perms': grant_perms[user]['perms']}
                 else:
                     for perm in grant_perms[user]['perms']:
                         if not salt.utils.win_dacl.has_permission(
-                                obj_name=path,
-                                principal=user,
-                                permission=perm,
-                                access_mode='grant',
-                                exact=False):
+                                path, user, perm, exact=False):
                             if user not in changes:
                                 changes[user] = {'perms': []}
                             changes[user]['perms'].append(grant_perms[user]['perms'])
@@ -1839,12 +1777,11 @@ def check_perms(path,
                             changes[user]['applies_to'] = applies_to
 
     if changes:
-        ret['pchanges']['grant_perms'] = {}
         ret['changes']['grant_perms'] = {}
         for user in changes:
-            user_name = salt.utils.win_dacl.get_name(principal=user)
+            user_name = salt.utils.win_dacl.get_name(user)
             if __opts__['test'] is True:
-                ret['pchanges']['grant_perms'][user] = changes[user]
+                ret['changes']['grant_perms'][user] = changes[user]
             else:
                 applies_to = None
                 if 'applies_to' not in changes[user]:
@@ -1886,11 +1823,7 @@ def check_perms(path,
 
                 try:
                     salt.utils.win_dacl.set_permissions(
-                        obj_name=path,
-                        principal=user,
-                        permissions=perms,
-                        access_mode='grant',
-                        applies_to=applies_to)
+                        path, user, perms, 'grant', applies_to)
                     ret['changes']['grant_perms'][user] = changes[user]
                 except CommandExecutionError:
                     ret['result'] = False
@@ -1900,59 +1833,18 @@ def check_perms(path,
 
     # Check inheritance
     if inheritance is not None:
-        if not inheritance == salt.utils.win_dacl.get_inheritance(obj_name=path):
+        if not inheritance == salt.utils.win_dacl.get_inheritance(path):
             if __opts__['test'] is True:
-                ret['pchanges']['inheritance'] = inheritance
+                ret['changes']['inheritance'] = inheritance
             else:
                 try:
-                    salt.utils.win_dacl.set_inheritance(
-                        obj_name=path,
-                        enabled=inheritance)
+                    salt.utils.win_dacl.set_inheritance(path, inheritance)
                     ret['changes']['inheritance'] = inheritance
                 except CommandExecutionError:
                     ret['result'] = False
                     ret['comment'].append(
                         'Failed to set inheritance for "{0}" to '
                         '{1}'.format(path, inheritance))
-
-    # Check reset
-    # If reset=True, which users will be removed as a result
-    if reset:
-        for user_name in cur_perms:
-            if user_name not in grant_perms:
-                if 'grant' in cur_perms[user_name] and not \
-                cur_perms[user_name]['grant']['inherited']:
-                    if __opts__['test'] is True:
-                        if 'remove_perms' not in ret['pchanges']:
-                            ret['pchanges']['remove_perms'] = {}
-                        ret['pchanges']['remove_perms'].update(
-                            {user_name: cur_perms[user_name]})
-                    else:
-                        if 'remove_perms' not in ret['changes']:
-                            ret['changes']['remove_perms'] = {}
-                        salt.utils.win_dacl.rm_permissions(
-                            obj_name=path,
-                            principal=user_name,
-                            ace_type='grant')
-                        ret['changes']['remove_perms'].update(
-                            {user_name: cur_perms[user_name]})
-            if user_name not in deny_perms:
-                if 'deny' in cur_perms[user_name] and not \
-                cur_perms[user_name]['deny']['inherited']:
-                    if __opts__['test'] is True:
-                        if 'remove_perms' not in ret['pchanges']:
-                            ret['pchanges']['remove_perms'] = {}
-                        ret['pchanges']['remove_perms'].update(
-                            {user_name: cur_perms[user_name]})
-                    else:
-                        if 'remove_perms' not in ret['changes']:
-                            ret['changes']['remove_perms'] = {}
-                        salt.utils.win_dacl.rm_permissions(
-                            obj_name=path,
-                            principal=user_name,
-                            ace_type='deny')
-                        ret['changes']['remove_perms'].update(
-                            {user_name: cur_perms[user_name]})
 
     # Re-add the Original Comment if defined
     if isinstance(orig_comment, six.string_types):
@@ -1965,30 +1857,25 @@ def check_perms(path,
     ret['comment'] = '\n'.join(ret['comment'])
 
     # Set result for test = True
-    if __opts__['test'] and (ret['changes'] or ret['pchanges']):
+    if __opts__['test'] is True and ret['changes']:
         ret['result'] = None
 
     return ret
 
 
-def set_perms(path,
-              grant_perms=None,
-              deny_perms=None,
-              inheritance=True,
-              reset=False):
+def set_perms(path, grant_perms=None, deny_perms=None, inheritance=True):
     '''
     Set permissions for the given path
 
     Args:
 
-        path (str):
-            The full path to the directory.
+        path (str): The full path to the directory.
 
         grant_perms (dict):
             A dictionary containing the user/group and the basic permissions to
             grant, ie: ``{'user': {'perms': 'basic_permission'}}``. You can also
-            set the ``applies_to`` setting here. The default for ``applise_to``
-            is ``this_folder_subfolders_files``. Specify another ``applies_to``
+            set the ``applies_to`` setting here. The default is
+            ``this_folder_subfolders_files``. Specify another ``applies_to``
             setting like this:
 
             .. code-block:: yaml
@@ -2003,10 +1890,7 @@ def set_perms(path,
                 {'user': {'perms': ['read_attributes', 'read_ea'], 'applies_to': 'this_folder'}}
 
             To see a list of available attributes and applies to settings see
-            the documentation for salt.utils.win_dacl.
-
-            A value of ``None`` will make no changes to the ``grant`` portion of
-            the DACL. Default is ``None``.
+            the documentation for salt.utils.win_dacl
 
         deny_perms (dict):
             A dictionary containing the user/group and permissions to deny along
@@ -2014,27 +1898,13 @@ def set_perms(path,
             ``grant_perms`` parameter. Remember, deny permissions supersede
             grant permissions.
 
-            A value of ``None`` will make no changes to the ``deny`` portion of
-            the DACL. Default is ``None``.
-
         inheritance (bool):
-            If ``True`` the object will inherit permissions from the parent, if
-            ``False``, inheritance will be disabled. Inheritance setting will
-            not apply to parent directories if they must be created. Default is
-            ``False``.
-
-        reset (bool):
-            If ``True`` the existing DCL will be cleared and replaced with the
-            settings defined in this function. If ``False``, new entries will be
-            appended to the existing DACL. Default is ``False``.
-
-            .. versionadded: Oxygen
+            If True the object will inherit permissions from the parent, if
+            False, inheritance will be disabled. Inheritance setting will not
+            apply to parent directories if they must be created
 
     Returns:
-        bool: True if successful
-
-    Raises:
-        CommandExecutionError: If unsuccessful
+        bool: True if successful, otherwise raise an error
 
     CLI Example:
 
@@ -2051,19 +1921,11 @@ def set_perms(path,
     '''
     ret = {}
 
-    if reset:
-        # Get an empty DACL
-        dacl = salt.utils.win_dacl.dacl()
+    # Get the DACL for the directory
+    dacl = salt.utils.win_dacl.dacl(path)
 
-        # Get an empty perms dict
-        cur_perms = {}
-
-    else:
-        # Get the DACL for the directory
-        dacl = salt.utils.win_dacl.dacl(path)
-
-        # Get current file/folder permissions
-        cur_perms = salt.utils.win_dacl.get_permissions(path)
+    # Get current file/folder permissions
+    cur_perms = salt.utils.win_dacl.get_permissions(path)
 
     # Set 'deny' perms if any
     if deny_perms is not None:
@@ -2073,8 +1935,7 @@ def set_perms(path,
             try:
                 user_name = salt.utils.win_dacl.get_name(user)
             except CommandExecutionError:
-                log.debug('Deny Perms: User "%s" missing from Target System',
-                          user)
+                log.debug('Deny Perms: User "{0}" missing from Target System'.format(user))
                 continue
 
             # Get applies_to
@@ -2107,8 +1968,7 @@ def set_perms(path,
             try:
                 user_name = salt.utils.win_dacl.get_name(user)
             except CommandExecutionError:
-                log.debug('Grant Perms: User "%s" missing from Target System',
-                          user)
+                log.debug('Grant Perms: User "{0}" missing from Target System'.format(user))
                 continue
 
             # Get applies_to

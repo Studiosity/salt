@@ -43,6 +43,7 @@ runner modules
     saltutil
     sdb
     smartos_vmadm
+    search
     spacewalk
     ssh
     state

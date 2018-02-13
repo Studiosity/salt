@@ -4,15 +4,13 @@ URL utils
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import re
 import sys
 
 # Import salt libs
 from salt.ext.six.moves.urllib.parse import urlparse, urlunparse  # pylint: disable=import-error,no-name-in-module
-import salt.utils.path
-import salt.utils.platform
-import salt.utils.versions
+import salt.utils
 from salt.utils.locales import sdecode
 
 
@@ -27,15 +25,20 @@ def parse(url):
     resource = url.split('salt://', 1)[-1]
 
     if '?env=' in resource:
-        # "env" is not supported; Use "saltenv".
+        salt.utils.warn_until(
+            'Oxygen',
+            'Parameter \'env\' has been detected in the salt:// URL.  This '
+            'parameter is no longer used and has been replaced by \'saltenv\' '
+            'as of Salt 2016.11.0.  This warning will be removed in Salt Oxygen.'
+            )
         path, saltenv = resource.split('?env=', 1)[0], None
     elif '?saltenv=' in resource:
         path, saltenv = resource.split('?saltenv=', 1)
     else:
         path, saltenv = resource, None
 
-    if salt.utils.platform.is_windows():
-        path = salt.utils.path.sanitize_win_path(path)
+    if salt.utils.is_windows():
+        path = salt.utils.sanitize_win_path_string(path)
 
     return path, saltenv
 
@@ -44,13 +47,13 @@ def create(path, saltenv=None):
     '''
     join `path` and `saltenv` into a 'salt://' URL.
     '''
-    if salt.utils.platform.is_windows():
-        path = salt.utils.path.sanitize_win_path(path)
+    if salt.utils.is_windows():
+        path = salt.utils.sanitize_win_path_string(path)
     path = sdecode(path)
 
-    query = 'saltenv={0}'.format(saltenv) if saltenv else ''
+    query = u'saltenv={0}'.format(saltenv) if saltenv else ''
     url = sdecode(urlunparse(('file', '', path, '', query, '')))
-    return 'salt://{0}'.format(url[len('file:///'):])
+    return u'salt://{0}'.format(url[len('file:///'):])
 
 
 def is_escaped(url):
@@ -62,7 +65,7 @@ def is_escaped(url):
         return url.startswith('|')
     elif scheme == 'salt':
         path, saltenv = parse(url)
-        if salt.utils.platform.is_windows() and '|' in url:
+        if salt.utils.is_windows() and '|' in url:
             return path.startswith('_')
         else:
             return path.startswith('|')
@@ -74,7 +77,7 @@ def escape(url):
     '''
     add escape character `|` to `url`
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return url
 
     scheme = urlparse(url).scheme
@@ -82,13 +85,13 @@ def escape(url):
         if url.startswith('|'):
             return url
         else:
-            return '|{0}'.format(url)
+            return u'|{0}'.format(url)
     elif scheme == 'salt':
         path, saltenv = parse(url)
         if path.startswith('|'):
             return create(path, saltenv)
         else:
-            return create('|{0}'.format(path), saltenv)
+            return create(u'|{0}'.format(path), saltenv)
     else:
         return url
 
@@ -102,7 +105,7 @@ def unescape(url):
         return url.lstrip('|')
     elif scheme == 'salt':
         path, saltenv = parse(url)
-        if salt.utils.platform.is_windows() and '|' in url:
+        if salt.utils.is_windows() and '|' in url:
             return create(path.lstrip('_'), saltenv)
         else:
             return create(path.lstrip('|'), saltenv)

@@ -4,10 +4,10 @@ Mako Renderer for Salt
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
-from salt.ext import six
+import salt.ext.six as six
 import salt.utils.templates
 from salt.exceptions import SaltRenderError
 

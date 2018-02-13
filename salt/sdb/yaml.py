@@ -33,22 +33,16 @@ Optional configuration:
       merge:
         strategy: smart
         merge_list: false
-      gpg: true
-
-Setting the ``gpg`` option to ``true`` (default is ``false``) will decrypt embedded
-GPG-encrypted data using the :py:mod:`GPG renderer <salt.renderers.gpg>`.
 '''
 
 # import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
 import salt.exceptions
 import salt.loader
-import salt.utils.data
-import salt.utils.files
+import salt.utils
 import salt.utils.dictupdate
-import salt.renderers.gpg
 
 log = logging.getLogger(__name__)
 
@@ -57,11 +51,7 @@ __func_alias__ = {
 }
 
 
-def __virtual__():
-    return True
-
-
-def set_(*args, **kwargs):  # pylint: disable=W0613
+def set_(*args, **kwargs):
     '''
     Setting a value is not supported; edit the YAML files directly
     '''
@@ -70,15 +60,10 @@ def set_(*args, **kwargs):  # pylint: disable=W0613
 
 def get(key, profile=None):  # pylint: disable=W0613
     '''
-    Get a value from the dictionary
+    Get a value from the REST interface
     '''
     data = _get_values(profile)
-
-    # Decrypt SDB data if specified in the profile
-    if profile and profile.get('gpg', False):
-        return salt.utils.data.traverse_dict_and_list(_decrypt(data), key, None)
-
-    return salt.utils.data.traverse_dict_and_list(data, key, None)
+    return salt.utils.traverse_dict_and_list(data, key, None)
 
 
 def _get_values(profile=None):
@@ -91,19 +76,12 @@ def _get_values(profile=None):
     ret = {}
     for fname in profile.get('files', []):
         try:
-            with salt.utils.files.flopen(fname) as yamlfile:
-                contents = serializers.yaml.deserialize(yamlfile)
-                ret = salt.utils.dictupdate.merge(
-                    ret, contents, **profile.get('merge', {}))
+            with salt.utils.flopen(fname) as f:
+                contents = serializers.yaml.deserialize(f)
+                ret = salt.utils.dictupdate.merge(ret, contents,
+                        **profile.get('merge', {}))
         except IOError:
-            log.error("File '%s' not found ", fname)
-        except TypeError as exc:
-            log.error("Error deserializing sdb file '%s': %s", fname, exc)
+            log.error("File not found '{0}'".format(fname))
+        except TypeError:
+            log.error("Error deserializing sdb file '{0}'".format(fname))
     return ret
-
-
-def _decrypt(data):
-    '''
-    Pass the dictionary through the GPG renderer to decrypt encrypted values.
-    '''
-    return salt.loader.render(__opts__, __salt__)['gpg'](data)

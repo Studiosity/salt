@@ -35,7 +35,7 @@ Available Functions
           - onlyif: /bin/test_else_installed
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging

@@ -3,7 +3,7 @@
     :codeauthor: :email:`Jayesh Kariya <jayeshk@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 
 # Import Salt Testing Libs
@@ -95,6 +95,7 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                               side_effect=[None, True]):
                 with patch.object(solr, '_check_for_cores',
                                   side_effect=[True, False]):
+
                     tempdict = {'success': 'success', 'errors': 'errors',
                                 'warnings': 'warnings',
                                 'data': {'lucene': {'solr-spec-version': 1}}}
@@ -103,13 +104,15 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                         with patch.dict(solr.__salt__,
                                         {'config.option':
                                          MagicMock(return_value=['A'])}):
-                            with patch.object(solr, '_http_request', return_value=tempdict):
+                            with patch.object(solr, '_http_request',
+                                              return_value=tempdict):
                                 with patch.object(solr, '_update_return_dict',
                                                   return_value={'A': 'a'}):
                                     self.assertDictEqual(solr.optimize(),
                                                          {'A': 'a'})
 
-                        with patch.object(solr, '_http_request', return_value='A'):
+                        with patch.object(solr, '_http_request',
+                                                return_value='A'):
                             self.assertEqual(solr.optimize(), 'A')
 
     def test_ping(self):
@@ -137,7 +140,7 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                                 self.assertDictEqual(solr.ping(), {'A': 'a'})
 
                     with patch.object(solr, '_get_admin_info',
-                                      return_value='A'):
+                                            return_value='A'):
                         self.assertEqual(solr.ping(), 'A')
 
     def test_is_replication_enabled(self):
@@ -148,11 +151,18 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
         error = 'Only "slave" minions can run "is_replication_enabled"'
         with patch.object(solr, '_get_return_dict', return_value={'A': 'a'}):
             with patch.object(solr, '_is_master', side_effect=[True, False]):
+
                 self.assertIsNone(solr.is_replication_enabled())
-                with patch.object(solr, '_get_none_or_value', return_value=None):
-                    with patch.object(solr, '_check_for_cores', return_value=True):
-                        with patch.dict(solr.__opts__, {'solr.cores': MagicMock(return_value='A')}):
-                            with patch.object(solr, '_replication_request', return_value='A'):
+
+                with patch.object(solr, '_get_none_or_value',
+                                  return_value=None):
+                    with patch.object(solr, '_check_for_cores',
+                                      return_value=True):
+                        with patch.dict(solr.__opts__,
+                                        {'solr.cores':
+                                         MagicMock(return_value='A')}):
+                            with patch.object(solr, '_replication_request',
+                                              return_value='A'):
                                 self.assertDictEqual(solr.is_replication_enabled
                                                      (), {'A': 'a',
                                                           'errors': [error],
@@ -214,9 +224,12 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                     'warnings': 'warnings', 'data': 'data'}
 
         with patch.object(solr, '_get_return_dict', return_value={'A': 'a'}):
-            with patch.dict(solr.__opts__, {'solr.backup_path': MagicMock(return_value='A'),
-                                            'solr.num_backups': MagicMock(return_value='B'),
-                                            'solr.cores': MagicMock(return_value=['A'])}):
+            with patch.dict(solr.__opts__, {'solr.backup_path':
+                                            MagicMock(return_value='A'),
+                                            'solr.num_backups':
+                                            MagicMock(return_value='B'),
+                                            'solr.cores':
+                                            MagicMock(return_value=['A'])}):
                 with patch.object(os.path, 'sep', return_value='B'):
                     with patch.object(solr, '_get_none_or_value',
                                       side_effect=[None, True]):
@@ -224,9 +237,16 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                                           side_effect=[True, False]):
                             with patch.object(solr, '_replication_request',
                                               return_value=tempdict):
-                                with patch.dict(solr.__opts__, {'solr.cores': MagicMock(return_value=['A'])}):
-                                    with patch.object(solr, '_update_return_dict', return_value='A'):
-                                        self.assertDictEqual(solr.backup(), {'A': 'a'})
+
+                                with patch.dict(solr.__opts__,
+                                                {'solr.cores':
+                                                 MagicMock
+                                                 (return_value=['A'])}):
+                                    with patch.object(solr,
+                                                      '_update_return_dict',
+                                                      return_value='A'):
+                                        self.assertDictEqual(solr.backup(),
+                                                             {'A': 'a'})
 
                                 self.assertDictEqual(solr.backup(), tempdict)
 
@@ -266,21 +286,31 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
         '''
         Test to sets the master to ignore poll requests from the slaves.
         '''
-        with patch.object(solr, '_is_master',
-                          side_effect=[False, True, True, True]):
+        with patch.object(solr, '_is_master', side_effect=[False, True, True,
+                                                           True]):
             with patch.object(solr, '_get_none_or_value',
                               side_effect=[None, None, True, True, True]):
-                with patch.object(solr, '_get_return_dict',
+                with patch.object(solr,
+                                  '_get_return_dict',
                                   side_effect=[{'A': 'a'}, {}]):
                     with patch.object(solr, '_replication_request',
                                       return_value='A'):
-                        self.assertDictEqual(solr.set_replication_enabled('s'), {'A': 'a'})
+
+                        self.assertDictEqual(solr.set_replication_enabled('s'),
+                                             {'A': 'a'})
+
                         with patch.object(solr, '_check_for_cores',
                                           return_value=True):
-                            with patch.dict(solr.__opts__, {'solr.cores': MagicMock(return_value='n')}):
-                                self.assertEqual(solr.set_replication_enabled('s'), {})
+                            with patch.dict(solr.__opts__,
+                                            {'solr.cores':
+                                             MagicMock(return_value='n')}):
+                                self.assertEqual(solr.set_replication_enabled
+                                                 ('s'), {})
+
                         self.assertEqual(solr.set_replication_enabled('s'), 'A')
-                        self.assertEqual(solr.set_replication_enabled(False), 'A')
+
+                        self.assertEqual(solr.set_replication_enabled(False),
+                                         'A')
 
     def test_signal(self):
         '''
@@ -306,11 +336,16 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                                       return_value='A'):
                         with patch.object(solr, '_http_request',
                                           return_value='A'):
-                            with patch.dict(solr.__opts__, {'solr.cores': MagicMock(return_value='n')}):
+                            with patch.dict(solr.__opts__,
+                                            {'solr.cores':
+                                             MagicMock(return_value='n')}):
+
                                 self.assertIsNone(solr.reload_core())
+
                                 self.assertDictEqual(solr.reload_core(),
                                                      {'A': 'a', 'errors': error,
                                                       'success': False})
+
                                 self.assertEqual(solr.reload_core(), 'A')
 
     def test_core_status(self):
@@ -330,8 +365,11 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                         with patch.object(solr, '_http_request',
                                           return_value='A'):
                             with patch.dict(solr.__opts__,
-                                            {'solr.cores': MagicMock(return_value='n')}):
+                                            {'solr.cores':
+                                             MagicMock(return_value='n')}):
+
                                 self.assertIsNone(solr.core_status())
+
                                 self.assertDictEqual(solr.core_status(),
                                                      {'A': 'a', 'errors': error,
                                                       'success': False})
@@ -353,9 +391,15 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                                           return_value='A'):
                             with patch.object(solr, '_http_request',
                                               return_value='A'):
-                                self.assertDictEqual(solr.reload_import_config('h'), {'A': 'a'})
-                                self.assertDictEqual(solr.reload_import_config('h'), {'A': 'a'})
-                                self.assertEqual(solr.reload_import_config('h'), 'A')
+
+                                self.assertDictEqual(solr.reload_import_config
+                                                     ('h'), {'A': 'a'})
+
+                                self.assertDictEqual(solr.reload_import_config
+                                                     ('h'), {'A': 'a'})
+
+                                self.assertEqual(solr.reload_import_config('h'),
+                                                 'A')
 
     def test_abort_import(self):
         '''
@@ -372,8 +416,13 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                                           return_value='A'):
                             with patch.object(solr, '_http_request',
                                               return_value='A'):
-                                self.assertDictEqual(solr.abort_import('h'), {'A': 'a'})
-                                self.assertDictEqual(solr.abort_import('h'), {'A': 'a'})
+
+                                self.assertDictEqual(solr.abort_import('h'),
+                                                     {'A': 'a'})
+
+                                self.assertDictEqual(solr.abort_import('h'),
+                                                     {'A': 'a'})
+
                                 self.assertEqual(solr.abort_import('h'), 'A')
 
     def test_full_import(self):
@@ -438,5 +487,7 @@ class SolrTestCase(TestCase, LoaderModuleMockMixin):
                                       return_value='A'):
                         with patch.object(solr, '_http_request',
                                           return_value='A'):
-                            self.assertDictEqual(solr.import_status('h'), {'A': 'a'})
+                            self.assertDictEqual(solr.import_status('h'),
+                                                 {'A': 'a'})
+
                             self.assertEqual(solr.import_status('h'), 'A')

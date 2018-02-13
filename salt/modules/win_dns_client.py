@@ -2,14 +2,13 @@
 '''
 Module for configuring DNS Client on Windows systems
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
-# Import Python libs
+# Import python libs
 import logging
 
-# Import Salt libs
-import salt.utils.platform
-
+# Import salt libs
+import salt.utils
 try:
     import wmi
 except ImportError:
@@ -22,7 +21,7 @@ def __virtual__():
     '''
     Only works on Windows systems
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return 'win_dns_client'
     return (False, "Module win_dns_client: module only works on Windows systems")
 
@@ -50,7 +49,7 @@ def get_dns_servers(interface='Local Area Connection'):
                     return list(iface_config.DNSServerSearchOrder)
                 except TypeError:
                     return []
-    log.debug('Interface "%s" not found', interface)
+    log.debug('Interface "{0}" not found'.format(interface))
     return False
 
 

@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -18,7 +18,6 @@ from tests.support.mock import (
 
 # Import Salt Libs
 import salt.modules.udev as udev
-from salt.ext import six
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
@@ -63,7 +62,7 @@ class UdevTestCase(TestCase, LoaderModuleMockMixin):
 
             assert ret['P'] == data['P']
             assert ret.get('N') == data.get('N')
-            for key, value in six.iteritems(data['E']):
+            for key, value in data['E'].items():
                 assert ret['E'][key] == value
 
     # 'exportdb' function tests: 1
@@ -162,7 +161,7 @@ E: XKBMODEL=pc105
             for d_idx, d_section in enumerate(data):
                 assert out[d_idx]['P'] == d_section['P']
                 assert out[d_idx].get('N') == d_section.get('N')
-                for key, value in six.iteritems(d_section['E']):
+                for key, value in d_section['E'].items():
                     assert out[d_idx]['E'][key] == value
 
     def test_normalize_info(self):

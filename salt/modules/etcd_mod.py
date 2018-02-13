@@ -36,9 +36,9 @@ or clusters are available.
     pillars.
 
 '''
+from __future__ import absolute_import
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
 import logging
 
 # Import third party libs
@@ -73,7 +73,7 @@ def __virtual__():
             'python etcd library not available.')
 
 
-def get_(key, recurse=False, profile=None, **kwargs):
+def get_(key, recurse=False, profile=None):
     '''
     .. versionadded:: 2014.7.0
 
@@ -86,16 +86,15 @@ def get_(key, recurse=False, profile=None, **kwargs):
         salt myminion etcd.get /path/to/key
         salt myminion etcd.get /path/to/key profile=my_etcd_config
         salt myminion etcd.get /path/to/key recurse=True profile=my_etcd_config
-        salt myminion etcd.get /path/to/key host=127.0.0.1 port=2379
     '''
-    client = __utils__['etcd_util.get_conn'](__opts__, profile, **kwargs)
+    client = __utils__['etcd_util.get_conn'](__opts__, profile)
     if recurse:
         return client.tree(key)
     else:
         return client.get(key, recurse=recurse)
 
 
-def set_(key, value, profile=None, ttl=None, directory=False, **kwargs):
+def set_(key, value, profile=None, ttl=None, directory=False):
     '''
     .. versionadded:: 2014.7.0
 
@@ -108,16 +107,15 @@ def set_(key, value, profile=None, ttl=None, directory=False, **kwargs):
 
         salt myminion etcd.set /path/to/key value
         salt myminion etcd.set /path/to/key value profile=my_etcd_config
-        salt myminion etcd.set /path/to/key value host=127.0.0.1 port=2379
         salt myminion etcd.set /path/to/dir '' directory=True
         salt myminion etcd.set /path/to/key value ttl=5
     '''
 
-    client = __utils__['etcd_util.get_conn'](__opts__, profile, **kwargs)
+    client = __utils__['etcd_util.get_conn'](__opts__, profile)
     return client.set(key, value, ttl=ttl, directory=directory)
 
 
-def update(fields, path='', profile=None, **kwargs):
+def update(fields, path='', profile=None):
     '''
     .. versionadded:: 2016.3.0
 
@@ -164,14 +162,13 @@ def update(fields, path='', profile=None, **kwargs):
 
         salt myminion etcd.update "{'/path/to/key': 'baz', '/another/key': 'bar'}"
         salt myminion etcd.update "{'/path/to/key': 'baz', '/another/key': 'bar'}" profile=my_etcd_config
-        salt myminion etcd.update "{'/path/to/key': 'baz', '/another/key': 'bar'}" host=127.0.0.1 port=2379
         salt myminion etcd.update "{'/path/to/key': 'baz', '/another/key': 'bar'}" path='/some/root'
     '''
-    client = __utils__['etcd_util.get_conn'](__opts__, profile, **kwargs)
+    client = __utils__['etcd_util.get_conn'](__opts__, profile)
     return client.update(fields, path)
 
 
-def watch(key, recurse=False, profile=None, timeout=0, index=None, **kwargs):
+def watch(key, recurse=False, profile=None, timeout=0, index=None):
     '''
     .. versionadded:: 2016.3.0
 
@@ -189,14 +186,13 @@ def watch(key, recurse=False, profile=None, timeout=0, index=None, **kwargs):
         salt myminion etcd.watch /path/to/key
         salt myminion etcd.watch /path/to/key timeout=10
         salt myminion etcd.watch /patch/to/key profile=my_etcd_config index=10
-        salt myminion etcd.watch /patch/to/key host=127.0.0.1 port=2379
     '''
 
-    client = __utils__['etcd_util.get_conn'](__opts__, profile, **kwargs)
+    client = __utils__['etcd_util.get_conn'](__opts__, profile)
     return client.watch(key, recurse=recurse, timeout=timeout, index=index)
 
 
-def ls_(path='/', profile=None, **kwargs):
+def ls_(path='/', profile=None):
     '''
     .. versionadded:: 2014.7.0
 
@@ -210,13 +206,12 @@ def ls_(path='/', profile=None, **kwargs):
 
         salt myminion etcd.ls /path/to/dir/
         salt myminion etcd.ls /path/to/dir/ profile=my_etcd_config
-        salt myminion etcd.ls /path/to/dir/ host=127.0.0.1 port=2379
     '''
-    client = __utils__['etcd_util.get_conn'](__opts__, profile, **kwargs)
+    client = __utils__['etcd_util.get_conn'](__opts__, profile)
     return client.ls(path)
 
 
-def rm_(key, recurse=False, profile=None, **kwargs):
+def rm_(key, recurse=False, profile=None):
     '''
     .. versionadded:: 2014.7.0
 
@@ -230,14 +225,13 @@ def rm_(key, recurse=False, profile=None, **kwargs):
 
         salt myminion etcd.rm /path/to/key
         salt myminion etcd.rm /path/to/key profile=my_etcd_config
-        salt myminion etcd.rm /path/to/key host=127.0.0.1 port=2379
         salt myminion etcd.rm /path/to/dir recurse=True profile=my_etcd_config
     '''
-    client = __utils__['etcd_util.get_conn'](__opts__, profile, **kwargs)
+    client = __utils__['etcd_util.get_conn'](__opts__, profile)
     return client.rm(key, recurse=recurse)
 
 
-def tree(path='/', profile=None, **kwargs):
+def tree(path='/', profile=None):
     '''
     .. versionadded:: 2014.7.0
 
@@ -250,8 +244,7 @@ def tree(path='/', profile=None, **kwargs):
 
         salt myminion etcd.tree
         salt myminion etcd.tree profile=my_etcd_config
-        salt myminion etcd.tree host=127.0.0.1 port=2379
         salt myminion etcd.tree /path/to/keys profile=my_etcd_config
     '''
-    client = __utils__['etcd_util.get_conn'](__opts__, profile, **kwargs)
+    client = __utils__['etcd_util.get_conn'](__opts__, profile)
     return client.tree(path)

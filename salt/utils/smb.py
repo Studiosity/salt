@@ -5,10 +5,10 @@ Utility functions for SMB connections
 :depends: impacket
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
-import salt.utils.files
+import salt.utils
 import logging
 
 log = logging.getLogger(__name__)
@@ -78,8 +78,8 @@ def mkdirs(path, share='C$', conn=None, host=None, username=None, password=None)
         cwd = '\\'.join(comps[0:pos])
         try:
             conn.listPath(share, cwd)
-        except (smbSessionError, smb3SessionError):
-            log.exception('Encountered error running conn.listPath')
+        except (smbSessionError, smb3SessionError) as exc:
+            log.debug('Exception: {0}'.format(exc))
             conn.createDirectory(share, cwd)
         pos += 1
 
@@ -116,5 +116,5 @@ def put_file(local_path, path, share='C$', conn=None, host=None, username=None, 
     if conn is False:
         return False
 
-    with salt.utils.files.fopen(local_path, 'rb') as fh_:
+    with salt.utils.fopen(local_path, 'rb') as fh_:
         conn.putFile(share, path, fh_.read)

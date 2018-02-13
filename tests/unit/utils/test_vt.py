@@ -9,8 +9,8 @@
     VirtualTerminal tests
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
+from __future__ import absolute_import
 import os
 import sys
 import random
@@ -20,9 +20,8 @@ import time
 # Import Salt Testing libs
 from tests.support.unit import TestCase, skipIf
 
-# Import Salt libs
-import salt.utils.files
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 import salt.utils.vt
 
 # Import 3rd-party libs
@@ -61,7 +60,7 @@ class VTTestCase(TestCase):
             # Get current number of PTY's
             try:
                 if os.path.exists('/proc/sys/kernel/pty/nr'):
-                    with salt.utils.files.fopen('/proc/sys/kernel/pty/nr') as fh_:
+                    with salt.utils.fopen('/proc/sys/kernel/pty/nr') as fh_:
                         return int(fh_.read().strip())
 
                 proc = subprocess.Popen(
@@ -72,7 +71,7 @@ class VTTestCase(TestCase):
                 stdout, _ = proc.communicate()
                 return int(stdout.strip())
             except (ValueError, OSError, IOError):
-                if salt.utils.platform.is_darwin():
+                if salt.utils.is_darwin():
                     # We're unable to findout how many PTY's are open
                     self.skipTest(
                         'Unable to find out how many PTY\'s are open on Darwin - '

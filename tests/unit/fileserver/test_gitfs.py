@@ -4,13 +4,11 @@
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import errno
+from __future__ import absolute_import
 import os
 import shutil
 import tempfile
 import textwrap
-import tornado.ioloop
 import logging
 import stat
 try:
@@ -19,6 +17,7 @@ except ImportError:
     pass
 
 # Import 3rd-party libs
+import yaml
 try:
     import git  # pylint: disable=unused-import
     HAS_GITPYTHON = True
@@ -30,85 +29,50 @@ except ImportError:
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.unit import TestCase, skipIf
-from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch
+from tests.support.mock import NO_MOCK, NO_MOCK_REASON
 from tests.support.paths import TMP, FILES
 
 # Import salt libs
-import salt.fileserver.gitfs as gitfs
-import salt.utils.files
 import salt.utils.gitfs
-import salt.utils.platform
-import salt.utils.win_functions
-import salt.utils.yaml
+import salt.fileserver.gitfs as gitfs
 
 log = logging.getLogger(__name__)
 
-TMP_SOCK_DIR = tempfile.mkdtemp(dir=TMP)
-TMP_REPO_DIR = os.path.join(TMP, 'gitfs_root')
-INTEGRATION_BASE_FILES = os.path.join(FILES, 'file', 'base')
-UNICODE_FILENAME = 'питон.txt'
-UNICODE_DIRNAME = UNICODE_ENVNAME = 'соль'
-
-
-def _rmtree_error(func, path, excinfo):
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
-
 
 @skipIf(not HAS_GITPYTHON, 'GitPython is not installed')
-class GitfsConfigTestCase(TestCase, LoaderModuleMockMixin):
+class GitfsConfigTestCase(TestCase):
 
-    def setup_loader_modules(self):
+    def setUp(self):
         self.tmp_cachedir = tempfile.mkdtemp(dir=TMP)
-        return {
-            gitfs: {
-                '__opts__': {
-                    'cachedir': self.tmp_cachedir,
-                    'sock_dir': TMP_SOCK_DIR,
-                    'gitfs_root': 'salt',
-                    'fileserver_backend': ['gitfs'],
-                    'gitfs_base': 'master',
-                    'fileserver_events': True,
-                    'transport': 'zeromq',
-                    'gitfs_mountpoint': '',
-                    'gitfs_saltenv': [],
-                    'gitfs_env_whitelist': [],
-                    'gitfs_env_blacklist': [],
-                    'gitfs_saltenv_whitelist': [],
-                    'gitfs_saltenv_blacklist': [],
-                    'gitfs_user': '',
-                    'gitfs_password': '',
-                    'gitfs_insecure_auth': False,
-                    'gitfs_privkey': '',
-                    'gitfs_pubkey': '',
-                    'gitfs_passphrase': '',
-                    'gitfs_refspecs': [
-                        '+refs/heads/*:refs/remotes/origin/*',
-                        '+refs/tags/*:refs/tags/*'
-                    ],
-                    'gitfs_ssl_verify': True,
-                    'gitfs_disable_saltenv_mapping': False,
-                    'gitfs_ref_types': ['branch', 'tag', 'sha'],
-                    'gitfs_update_interval': 60,
-                    '__role': 'master',
-                }
-            }
+        self.opts = {
+            '__role': 'master',
+            'cachedir': self.tmp_cachedir,
+            'fileserver_backend': ['git'],
+            'gitfs_provider': 'gitpython',
+            'gitfs_mountpoint': '',
+            'gitfs_root': 'salt',
+            'gitfs_base': 'master',
+            'gitfs_user': '',
+            'gitfs_password': '',
+            'gitfs_insecure_auth': False,
+            'gitfs_privkey': '',
+            'gitfs_pubkey': '',
+            'gitfs_passphrase': '',
+            'gitfs_env_whitelist': [],
+            'gitfs_env_blacklist': [],
+            'gitfs_global_lock': True,
+            'gitfs_ssl_verify': True,
+            'gitfs_saltenv': [],
+            'gitfs_refspecs': ['+refs/heads/*:refs/remotes/origin/*',
+                               '+refs/tags/*:refs/tags/*'],
         }
-
-    @classmethod
-    def setUpClass(cls):
-        # Clear the instance map so that we make sure to create a new instance
-        # for this test class.
-        try:
-            del salt.utils.gitfs.GitFS.instance_map[tornado.ioloop.IOLoop.current()]
-        except KeyError:
-            pass
 
     def tearDown(self):
         shutil.rmtree(self.tmp_cachedir)
+        del self.opts
 
     def test_per_saltenv_config(self):
-        opts_override = textwrap.dedent('''
+        opts = textwrap.dedent('''
             gitfs_saltenv:
               - baz:
                 # when loaded, the "salt://" prefix will be removed
@@ -130,12 +94,10 @@ class GitfsConfigTestCase(TestCase, LoaderModuleMockMixin):
                   - baz:
                     - mountpoint: abc
         ''')
-        with patch.dict(gitfs.__opts__, salt.utils.yaml.safe_load(opts_override)):
-            git_fs = salt.utils.gitfs.GitFS(
-                gitfs.__opts__,
-                gitfs.__opts__['gitfs_remotes'],
-                per_remote_overrides=gitfs.PER_REMOTE_OVERRIDES,
-                per_remote_only=gitfs.PER_REMOTE_ONLY)
+        self.opts.update(yaml.safe_load(opts))
+        git_fs = salt.utils.gitfs.GitFS(self.opts)
+        git_fs.init_remotes(self.opts['gitfs_remotes'],
+                            gitfs.PER_REMOTE_OVERRIDES, gitfs.PER_REMOTE_ONLY)
 
         # repo1 (branch: foo)
         # The mountpoint should take the default (from gitfs_mountpoint), while
@@ -192,66 +154,61 @@ class GitFSTest(TestCase, LoaderModuleMockMixin):
 
     def setup_loader_modules(self):
         self.tmp_cachedir = tempfile.mkdtemp(dir=TMP)
+        self.tmp_sock_dir = tempfile.mkdtemp(dir=TMP)
+        self.tmp_repo_dir = os.path.join(TMP, 'gitfs_root')
         return {
             gitfs: {
-                '__opts__': {
-                    'cachedir': self.tmp_cachedir,
-                    'sock_dir': TMP_SOCK_DIR,
-                    'gitfs_remotes': ['file://' + TMP_REPO_DIR],
-                    'gitfs_root': '',
-                    'fileserver_backend': ['gitfs'],
-                    'gitfs_base': 'master',
-                    'fileserver_events': True,
-                    'transport': 'zeromq',
-                    'gitfs_mountpoint': '',
-                    'gitfs_saltenv': [],
-                    'gitfs_env_whitelist': [],
-                    'gitfs_env_blacklist': [],
-                    'gitfs_saltenv_whitelist': [],
-                    'gitfs_saltenv_blacklist': [],
-                    'gitfs_user': '',
-                    'gitfs_password': '',
-                    'gitfs_insecure_auth': False,
-                    'gitfs_privkey': '',
-                    'gitfs_pubkey': '',
-                    'gitfs_passphrase': '',
-                    'gitfs_refspecs': [
-                        '+refs/heads/*:refs/remotes/origin/*',
-                        '+refs/tags/*:refs/tags/*'
-                    ],
-                    'gitfs_ssl_verify': True,
-                    'gitfs_disable_saltenv_mapping': False,
-                    'gitfs_ref_types': ['branch', 'tag', 'sha'],
-                    'gitfs_update_interval': 60,
-                    '__role': 'master',
+                '__opts__': {'cachedir': self.tmp_cachedir,
+                             'sock_dir': self.tmp_sock_dir,
+                             'gitfs_remotes': ['file://' + self.tmp_repo_dir],
+                             'gitfs_root': '',
+                             'fileserver_backend': ['git'],
+                             'gitfs_base': 'master',
+                             'fileserver_events': True,
+                             'transport': 'zeromq',
+                             'gitfs_mountpoint': '',
+                             'gitfs_env_whitelist': [],
+                             'gitfs_env_blacklist': [],
+                             'gitfs_user': '',
+                             'gitfs_password': '',
+                             'gitfs_insecure_auth': False,
+                             'gitfs_privkey': '',
+                             'gitfs_pubkey': '',
+                             'gitfs_passphrase': '',
+                             'gitfs_refspecs': ['+refs/heads/*:refs/remotes/origin/*',
+                                                '+refs/tags/*:refs/tags/*'],
+                             'gitfs_ssl_verify': True,
+                             '__role': 'master'
                 }
             }
         }
 
-    @classmethod
-    def setUpClass(cls):
-        # Clear the instance map so that we make sure to create a new instance
-        # for this test class.
-        try:
-            del salt.utils.gitfs.GitFS.instance_map[tornado.ioloop.IOLoop.current()]
-        except KeyError:
-            pass
+    def setUp(self):
+        '''
+        We don't want to check in another .git dir into GH because that just gets messy.
+        Instead, we'll create a temporary repo on the fly for the tests to examine.
+        '''
+        if not gitfs.__virtual__():
+            self.skipTest("GitFS could not be loaded. Skipping GitFS tests!")
+        self.integration_base_files = os.path.join(FILES, 'file', 'base')
 
         # Create the dir if it doesn't already exist
         try:
-            shutil.copytree(INTEGRATION_BASE_FILES, TMP_REPO_DIR + '/')
+            shutil.copytree(self.integration_base_files, self.tmp_repo_dir + '/')
         except OSError:
             # We probably caught an error because files already exist. Ignore
             pass
 
         try:
-            repo = git.Repo(TMP_REPO_DIR)
+            repo = git.Repo(self.tmp_repo_dir)
         except git.exc.InvalidGitRepositoryError:
-            repo = git.Repo.init(TMP_REPO_DIR)
+            repo = git.Repo.init(self.tmp_repo_dir)
 
         if 'USERNAME' not in os.environ:
             try:
-                if salt.utils.platform.is_windows():
+                import salt.utils
+                if salt.utils.is_windows():
+                    import salt.utils.win_functions
                     os.environ['USERNAME'] = salt.utils.win_functions.get_current_user()
                 else:
                     os.environ['USERNAME'] = pwd.getpwuid(os.geteuid()).pw_name
@@ -260,22 +217,9 @@ class GitFSTest(TestCase, LoaderModuleMockMixin):
                           '\'root\'.')
                 os.environ['USERNAME'] = 'root'
 
-        repo.index.add([x for x in os.listdir(TMP_REPO_DIR)
+        repo.index.add([x for x in os.listdir(self.tmp_repo_dir)
                         if x != '.git'])
         repo.index.commit('Test')
-
-        # Add another branch with unicode characters in the name
-        repo.create_head(UNICODE_ENVNAME, 'HEAD')
-
-    def setUp(self):
-        '''
-        We don't want to check in another .git dir into GH because that just
-        gets messy. Instead, we'll create a temporary repo on the fly for the
-        tests to examine.
-        '''
-        if not gitfs.__virtual__():
-            self.skipTest("GitFS could not be loaded. Skipping GitFS tests!")
-        self.tmp_cachedir = tempfile.mkdtemp(dir=TMP)
         gitfs.update()
 
     def tearDown(self):
@@ -283,26 +227,26 @@ class GitFSTest(TestCase, LoaderModuleMockMixin):
         Remove the temporary git repository and gitfs cache directory to ensure
         a clean environment for each test.
         '''
-        try:
-            shutil.rmtree(self.tmp_cachedir, onerror=_rmtree_error)
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                raise
+        shutil.rmtree(self.tmp_repo_dir, onerror=self._rmtree_error)
+        shutil.rmtree(self.tmp_cachedir, onerror=self._rmtree_error)
+        shutil.rmtree(self.tmp_sock_dir, onerror=self._rmtree_error)
+        del self.tmp_repo_dir
+        del self.tmp_cachedir
+        del self.tmp_sock_dir
+        del self.integration_base_files
+
+    def _rmtree_error(self, func, path, excinfo):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
 
     def test_file_list(self):
         ret = gitfs.file_list(LOAD)
         self.assertIn('testfile', ret)
-        self.assertIn(UNICODE_FILENAME, ret)
-        # This function does not use os.sep, the Salt fileserver uses the
-        # forward slash, hence it being explicitly used to join here.
-        self.assertIn('/'.join((UNICODE_DIRNAME, 'foo.txt')), ret)
 
     def test_dir_list(self):
         ret = gitfs.dir_list(LOAD)
         self.assertIn('grail', ret)
-        self.assertIn(UNICODE_DIRNAME, ret)
 
     def test_envs(self):
-        ret = gitfs.envs(ignore_cache=True)
+        ret = gitfs.envs()
         self.assertIn('base', ret)
-        self.assertIn(UNICODE_ENVNAME, ret)

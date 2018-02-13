@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Namecheap domains management
+ Namecheap management
 
  .. versionadded:: 2017.7.0
 
@@ -40,8 +40,7 @@ Namecheap domains management
         #namecheap.url: https://api.sandbox.namecheap.xml.response
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
-
+from __future__ import absolute_import
 CAN_USE_NAMECHEAP = True
 
 try:
@@ -50,7 +49,7 @@ except ImportError:
     CAN_USE_NAMECHEAP = False
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 def __virtual__():
@@ -74,7 +73,7 @@ def reactivate(domain_name):
 
     CLI Example:
 
-    .. code-block:: bash
+    .. code-block::
 
         salt 'my-minion' namecheap_domains.reactivate my-domain-name
 
@@ -270,7 +269,7 @@ def create(domain_name, years, **kwargs):
                     'TechFirstName', 'TechLastName', 'TechPhone', 'TechPostalCode', 'TechStateProvince', 'Years']
     opts = salt.utils.namecheap.get_opts('namecheap.domains.create')
     opts['DomainName'] = domain_name
-    opts['Years'] = six.text_type(years)
+    opts['Years'] = str(years)
 
     def add_to_opts(opts_dict, kwargs, value, suffix, prefices):
         for prefix in prefices:

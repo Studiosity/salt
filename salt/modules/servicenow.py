@@ -20,11 +20,10 @@ Module for execution of ServiceNow CI (configuration items)
           password: ''
 '''
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import logging
 
 # Import third party libs
-from salt.ext import six
 HAS_LIBS = False
 try:
     from servicenow_rest.api import Client
@@ -132,7 +131,7 @@ def non_structured_query(table, query=None, **kwargs):
     client = _get_client()
     client.table = table
     # underlying lib doesn't use six or past.basestring,
-    # does isinstance(x, str)
+    # does isinstance(x,str)
     # http://bit.ly/1VkMmpE
     if query is None:
         # try and assemble a query by keyword
@@ -140,7 +139,7 @@ def non_structured_query(table, query=None, **kwargs):
         for key, value in kwargs.items():
             query_parts.append('{0}={1}'.format(key, value))
         query = '^'.join(query_parts)
-    query = six.text_type(query)
+    query = str(query)
     response = client.get(query)
     return response
 

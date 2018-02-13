@@ -4,7 +4,8 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+import json
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -17,8 +18,7 @@ from tests.support.mock import (
 )
 
 # Import Salt Libs
-import salt.utils.json
-import salt.utils.pagerduty
+import salt.utils
 import salt.modules.pagerduty as pagerduty
 
 
@@ -82,7 +82,7 @@ class PagerdutyTestCase(TestCase, LoaderModuleMockMixin):
         '''
         Test for Create an event in PagerDuty. Designed for use in states.
         '''
-        with patch.object(salt.utils.json, 'loads', return_value=['A']):
+        with patch.object(json, 'loads', return_value=['A']):
             with patch.object(salt.utils.pagerduty, 'query',
                               return_value='A'):
                 self.assertListEqual(pagerduty.create_event(), ['A'])

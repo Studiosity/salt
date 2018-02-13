@@ -3,12 +3,9 @@
 Support for Wireless Tools for Linux
 '''
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
-
-# Import Salt libs
-import salt.utils.path
+import salt.utils
 from salt.exceptions import SaltInvocationError
 
 
@@ -19,7 +16,7 @@ def __virtual__():
     '''
     Only load the module if iwconfig is installed
     '''
-    if salt.utils.path.which('iwconfig'):
+    if salt.utils.which('iwconfig'):
         return True
     return (False, 'The iwtools execution module cannot be loaded: '
             'iwconfig is not installed.')

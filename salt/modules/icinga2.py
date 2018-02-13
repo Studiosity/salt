@@ -8,13 +8,12 @@ Module to provide icinga2 compatibility to salt.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import subprocess
 
 # Import Salt libs
-import salt.utils.path
-import salt.utils.platform
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -24,10 +23,10 @@ def __virtual__():
     Only load this module if the mysql libraries exist
     '''
     # TODO: This could work on windows with some love
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return (False, 'The module cannot be loaded on windows.')
 
-    if salt.utils.path.which('icinga2'):
+    if salt.utils.which('icinga2'):
         return True
     return (False, 'Icinga2 not installed.')
 

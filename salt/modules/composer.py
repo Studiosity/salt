@@ -2,15 +2,14 @@
 '''
 Use composer to install PHP dependencies for a directory
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
 import os.path
 
 # Import salt libs
-import salt.utils.args
-import salt.utils.path
+import salt.utils
 from salt.exceptions import (
     CommandExecutionError,
     CommandNotFoundError,
@@ -36,7 +35,7 @@ def _valid_composer(composer):
     '''
     Validate the composer file is indeed there.
     '''
-    if salt.utils.path.which(composer):
+    if salt.utils.which(composer):
         return True
     return False
 
@@ -153,7 +152,7 @@ def _run_composer(action,
     cmd = [composer, action, '--no-interaction', '--no-ansi']
 
     if extra_flags is not None:
-        cmd.extend(salt.utils.args.shlex_split(extra_flags))
+        cmd.extend(salt.utils.shlex_split(extra_flags))
 
     # If php is set, prepend it
     if php is not None:

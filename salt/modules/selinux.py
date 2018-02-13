@@ -12,19 +12,17 @@ Execute calls on selinux
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import os
 import re
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.path
-import salt.utils.stringutils
+import salt.utils
 import salt.utils.decorators as decorators
 from salt.exceptions import CommandExecutionError, SaltInvocationError
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 _SELINUX_FILETYPES = {
@@ -48,7 +46,7 @@ def __virtual__():
     # Iterate over all of the commands this module uses and make sure
     # each of them are available in the standard PATH to prevent breakage
     for cmd in required_cmds:
-        if not salt.utils.path.which(cmd):
+        if not salt.utils.which(cmd):
             return (False, cmd + ' is not in the path')
     # SELinux only makes sense on Linux *obviously*
     if __grains__['kernel'] == 'Linux':
@@ -96,8 +94,8 @@ def getenforce():
         return 'Disabled'
     try:
         enforce = os.path.join(_selinux_fs_path, 'enforce')
-        with salt.utils.files.fopen(enforce, 'r') as _fp:
-            if salt.utils.stringutils.to_unicode(_fp.readline()).strip() == '0':
+        with salt.utils.fopen(enforce, 'r') as _fp:
+            if _fp.readline().strip() == '0':
                 return 'Permissive'
             else:
                 return 'Enforcing'
@@ -117,9 +115,8 @@ def getconfig():
     '''
     try:
         config = '/etc/selinux/config'
-        with salt.utils.files.fopen(config, 'r') as _fp:
+        with salt.utils.fopen(config, 'r') as _fp:
             for line in _fp:
-                line = salt.utils.stringutils.to_unicode(line)
                 if line.strip().startswith('SELINUX='):
                     return line.split('=')[1].capitalize().strip()
     except (IOError, OSError, AttributeError):
@@ -161,26 +158,26 @@ def setenforce(mode):
     if getenforce() != 'Disabled':
         enforce = os.path.join(selinux_fs_path(), 'enforce')
         try:
-            with salt.utils.files.fopen(enforce, 'w') as _fp:
-                _fp.write(salt.utils.stringutils.to_str(mode))
+            with salt.utils.fopen(enforce, 'w') as _fp:
+                _fp.write(mode)
         except (IOError, OSError) as exc:
             msg = 'Could not write SELinux enforce file: {0}'
-            raise CommandExecutionError(msg.format(exc))
+            raise CommandExecutionError(msg.format(str(exc)))
 
     config = '/etc/selinux/config'
     try:
-        with salt.utils.files.fopen(config, 'r') as _cf:
+        with salt.utils.fopen(config, 'r') as _cf:
             conf = _cf.read()
         try:
-            with salt.utils.files.fopen(config, 'w') as _cf:
+            with salt.utils.fopen(config, 'w') as _cf:
                 conf = re.sub(r"\nSELINUX=.*\n", "\nSELINUX=" + modestring + "\n", conf)
-                _cf.write(salt.utils.stringutils.to_str(conf))
+                _cf.write(conf)
         except (IOError, OSError) as exc:
             msg = 'Could not write SELinux config file: {0}'
-            raise CommandExecutionError(msg.format(exc))
+            raise CommandExecutionError(msg.format(str(exc)))
     except (IOError, OSError) as exc:
         msg = 'Could not read SELinux config file: {0}'
-        raise CommandExecutionError(msg.format(exc))
+        raise CommandExecutionError(msg.format(str(exc)))
 
     return getenforce()
 

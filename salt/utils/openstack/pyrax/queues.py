@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
@@ -28,15 +28,14 @@ class RackspaceQueues(object):
         '''
         try:
             if self.exists(qname):
-                log.error('Queues "%s" already exists. Nothing done.', qname)
+                log.error('Queues "{0}" already exists. Nothing done.'.format(qname))
                 return True
 
             self.conn.create(qname)
 
             return True
         except pyrax.exceptions as err_msg:
-            log.error('RackSpace API got some problems during creation: %s',
-                      err_msg)
+            log.error('RackSpace API got some problems during creation: {0}'.format(err_msg))
         return False
 
     def delete(self, qname):
@@ -51,8 +50,7 @@ class RackspaceQueues(object):
             if queue:
                 queue.delete()
         except pyrax.exceptions as err_msg:
-            log.error('RackSpace API got some problems during deletion: %s',
-                      err_msg)
+            log.error('RackSpace API got some problems during deletion: {0}'.format(err_msg))
             return False
 
         return True
@@ -67,9 +65,7 @@ class RackspaceQueues(object):
                 return True
             return False
         except pyrax.exceptions as err_msg:
-            log.error('RackSpace API got some problems during '
-                      'existing queue check: %s',
-                      err_msg)
+            log.error('RackSpace API got some problems during existing queue check: {0}'.format(err_msg))
         return False
 
     def show(self, qname):
@@ -85,6 +81,5 @@ class RackspaceQueues(object):
                 if queue.name == qname:
                     return queue
         except pyrax.exceptions as err_msg:
-            log.error('RackSpace API got some problems during existing'
-                      ' queue check: %s', err_msg)
+            log.error('RackSpace API got some problems during existing queue check: {0}'.format(err_msg))
         return {}

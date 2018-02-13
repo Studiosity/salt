@@ -3,20 +3,17 @@
 Concurrency controls in zookeeper
 =========================================================================
 
-:depends: kazoo
-:configuration: See :py:mod:`salt.modules.zookeeper` for setup instructions.
-
 This module allows you to acquire and release a slot. This is primarily useful
 for ensureing that no more than N hosts take a specific action at once. This can
 also be used to coordinate between masters.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 import logging
 import sys
 
 try:
-    import kazoo.client
+    from kazoo.client import KazooClient
 
     from kazoo.retry import (
         ForceRetryError
@@ -93,6 +90,8 @@ try:
 except ImportError:
     HAS_DEPS = False
 
+ZK_CONNECTION = None
+SEMAPHORE_MAP = {}
 
 __virtualname__ = 'zk_concurrency'
 
@@ -101,67 +100,33 @@ def __virtual__():
     if not HAS_DEPS:
         return (False, "Module zk_concurrency: dependencies failed")
 
-    __context__['semaphore_map'] = {}
-
     return __virtualname__
 
 
-def _get_zk_conn(profile=None, **connection_args):
-    if profile:
-        prefix = 'zookeeper:' + profile
-    else:
-        prefix = 'zookeeper'
+def _get_zk_conn(hosts):
+    global ZK_CONNECTION
+    if ZK_CONNECTION is None:
+        ZK_CONNECTION = KazooClient(hosts=hosts)
+        ZK_CONNECTION.start()
 
-    def get(key, default=None):
-        '''
-        look in connection_args first, then default to config file
-        '''
-        return connection_args.get(key) or __salt__['config.get'](':'.join([prefix, key]), default)
+    return ZK_CONNECTION
 
-    hosts = get('hosts', '127.0.0.1:2181')
-    scheme = get('scheme', None)
-    username = get('username', None)
-    password = get('password', None)
-    default_acl = get('default_acl', None)
 
-    if isinstance(hosts, list):
-        hosts = ','.join(hosts)
+def _close_zk_conn():
+    global ZK_CONNECTION
+    if ZK_CONNECTION is None:
+        return
 
-    if username is not None and password is not None and scheme is None:
-        scheme = 'digest'
-
-    auth_data = None
-    if scheme and username and password:
-        auth_data = [(scheme, ':'.join([username, password]))]
-
-    if default_acl is not None:
-        if isinstance(default_acl, list):
-            default_acl = [__salt__['zookeeper.make_digest_acl'](**acl) for acl in default_acl]
-        else:
-            default_acl = [__salt__['zookeeper.make_digest_acl'](**default_acl)]
-
-    __context__.setdefault('zkconnection', {}).setdefault(profile or hosts,
-                                                          kazoo.client.KazooClient(hosts=hosts,
-                                                                                   default_acl=default_acl,
-                                                                                   auth_data=auth_data))
-
-    if not __context__['zkconnection'][profile or hosts].connected:
-        __context__['zkconnection'][profile or hosts].start()
-
-    return __context__['zkconnection'][profile or hosts]
+    ZK_CONNECTION.stop()
+    ZK_CONNECTION = None
 
 
 def lock_holders(path,
-                 zk_hosts=None,
+                 zk_hosts,
                  identifier=None,
                  max_concurrency=1,
                  timeout=None,
-                 ephemeral_lease=False,
-                 profile=None,
-                 scheme=None,
-                 username=None,
-                 password=None,
-                 default_acl=None):
+                 ephemeral_lease=False):
     '''
     Return an un-ordered list of lock holders
 
@@ -185,31 +150,28 @@ def lock_holders(path,
 
     Example:
 
-    .. code-block: bash
+    ... code-block: bash
 
         salt minion zk_concurrency.lock_holders /lock/path host1:1234,host2:1234
     '''
-    zk = _get_zk_conn(profile=profile, hosts=zk_hosts, scheme=scheme,
-                      username=username, password=password, default_acl=default_acl)
-    if path not in __context__['semaphore_map']:
-        __context__['semaphore_map'][path] = _Semaphore(zk, path, identifier,
-                                                        max_leases=max_concurrency,
-                                                        ephemeral_lease=ephemeral_lease)
-    return __context__['semaphore_map'][path].lease_holders()
+
+    zk = _get_zk_conn(zk_hosts)
+    if path not in SEMAPHORE_MAP:
+        SEMAPHORE_MAP[path] = _Semaphore(zk,
+                                        path,
+                                        identifier,
+                                        max_leases=max_concurrency,
+                                        ephemeral_lease=ephemeral_lease)
+    return SEMAPHORE_MAP[path].lease_holders()
 
 
 def lock(path,
-         zk_hosts=None,
+         zk_hosts,
          identifier=None,
          max_concurrency=1,
          timeout=None,
          ephemeral_lease=False,
          force=False,  # foricble get the lock regardless of open slots
-         profile=None,
-         scheme=None,
-         username=None,
-         password=None,
-         default_acl=None,
          ):
     '''
     Get lock (with optional timeout)
@@ -237,43 +199,39 @@ def lock(path,
 
     Example:
 
-    .. code-block: bash
+    ... code-block: bash
 
         salt minion zk_concurrency.lock /lock/path host1:1234,host2:1234
     '''
-    zk = _get_zk_conn(profile=profile, hosts=zk_hosts, scheme=scheme,
-                      username=username, password=password, default_acl=default_acl)
-    if path not in __context__['semaphore_map']:
-        __context__['semaphore_map'][path] = _Semaphore(zk, path, identifier,
-                                                        max_leases=max_concurrency,
-                                                        ephemeral_lease=ephemeral_lease)
+    zk = _get_zk_conn(zk_hosts)
+    if path not in SEMAPHORE_MAP:
+        SEMAPHORE_MAP[path] = _Semaphore(zk,
+                                        path,
+                                        identifier,
+                                        max_leases=max_concurrency,
+                                        ephemeral_lease=ephemeral_lease)
 
     # forcibly get the lock regardless of max_concurrency
     if force:
-        __context__['semaphore_map'][path].assured_path = True
-        __context__['semaphore_map'][path].max_leases = sys.maxint
+        SEMAPHORE_MAP[path].assured_path = True
+        SEMAPHORE_MAP[path].max_leases = sys.maxint
 
     # block waiting for lock acquisition
     if timeout:
-        logging.info('Acquiring lock %s with timeout=%s', path, timeout)
-        __context__['semaphore_map'][path].acquire(timeout=timeout)
+        logging.info('Acquiring lock {0} with timeout={1}'.format(path, timeout))
+        SEMAPHORE_MAP[path].acquire(timeout=timeout)
     else:
-        logging.info('Acquiring lock %s with no timeout', path)
-        __context__['semaphore_map'][path].acquire()
+        logging.info('Acquiring lock {0} with no timeout'.format(path))
+        SEMAPHORE_MAP[path].acquire()
 
-    return __context__['semaphore_map'][path].is_acquired
+    return SEMAPHORE_MAP[path].is_acquired
 
 
 def unlock(path,
            zk_hosts=None,  # in case you need to unlock without having run lock (failed execution for example)
            identifier=None,
            max_concurrency=1,
-           ephemeral_lease=False,
-           scheme=None,
-           profile=None,
-           username=None,
-           password=None,
-           default_acl=None
+           ephemeral_lease=False
            ):
     '''
     Remove lease from semaphore
@@ -298,37 +256,33 @@ def unlock(path,
 
     Example:
 
-    .. code-block: bash
+    ... code-block: bash
 
         salt minion zk_concurrency.unlock /lock/path host1:1234,host2:1234
     '''
-    # if someone passed in zk_hosts, and the path isn't in __context__['semaphore_map'], lets
+    # if someone passed in zk_hosts, and the path isn't in SEMAPHORE_MAP, lets
     # see if we can find it
-    zk = _get_zk_conn(profile=profile, hosts=zk_hosts, scheme=scheme,
-                      username=username, password=password, default_acl=default_acl)
-    if path not in __context__['semaphore_map']:
-        __context__['semaphore_map'][path] = _Semaphore(zk, path, identifier,
-                                                        max_leases=max_concurrency,
-                                                        ephemeral_lease=ephemeral_lease)
+    if zk_hosts is not None and path not in SEMAPHORE_MAP:
+        zk = _get_zk_conn(zk_hosts)
+        SEMAPHORE_MAP[path] = _Semaphore(zk,
+                                        path,
+                                        identifier,
+                                        max_leases=max_concurrency,
+                                        ephemeral_lease=ephemeral_lease)
 
-    if path in __context__['semaphore_map']:
-        __context__['semaphore_map'][path].release()
-        del __context__['semaphore_map'][path]
+    if path in SEMAPHORE_MAP:
+        SEMAPHORE_MAP[path].release()
+        del SEMAPHORE_MAP[path]
         return True
     else:
-        logging.error('Unable to find lease for path %s', path)
+        logging.error('Unable to find lease for path {0}'.format(path))
         return False
 
 
 def party_members(path,
-                  zk_hosts=None,
+                  zk_hosts,
                   min_nodes=1,
-                  blocking=False,
-                  profile=None,
-                  scheme=None,
-                  username=None,
-                  password=None,
-                  default_acl=None,
+                  blocking=False
                   ):
     '''
     Get the List of identifiers in a particular party, optionally waiting for the
@@ -348,13 +302,12 @@ def party_members(path,
 
     Example:
 
-    .. code-block: bash
+    ... code-block: bash
 
         salt minion zk_concurrency.party_members /lock/path host1:1234,host2:1234
         salt minion zk_concurrency.party_members /lock/path host1:1234,host2:1234 min_nodes=3 blocking=True
     '''
-    zk = _get_zk_conn(profile=profile, hosts=zk_hosts, scheme=scheme,
-                      username=username, password=password, default_acl=default_acl)
+    zk = _get_zk_conn(zk_hosts)
     party = kazoo.recipe.party.ShallowParty(zk, path)
     if blocking:
         barrier = kazoo.recipe.barrier.DoubleBarrier(zk, path, min_nodes)

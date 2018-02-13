@@ -128,13 +128,13 @@ should match what you see when you look at the properties for an object.
 
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import Salt libs
 from salt.exceptions import CommandExecutionError, SaltInvocationError
 from salt.ext.six.moves import range
-from salt.ext import six
+import salt.ext.six as six
 
 # Import 3rd-party libs
 HAS_WIN32 = False
@@ -602,7 +602,7 @@ def dacl(obj_name=None, obj_type='file'):
                     raise SaltInvocationError(
                         'Invalid access mode: {0}'.format(access_mode))
             except Exception as exc:
-                return False, 'Error: {0}'.format(exc)
+                return False, 'Error: {0}'.format(str(exc))
 
             return True
 
@@ -1285,8 +1285,9 @@ def set_owner(obj_name, principal, obj_type='file'):
             sid,
             None, None, None)
     except pywintypes.error as exc:
-        log.debug('Failed to make %s the owner: %s', principal, exc)
-        raise CommandExecutionError('Failed to set owner: {0}'.format(exc))
+        log.debug('Failed to make {0} the owner: {1}'.format(principal, exc.strerror))
+        raise CommandExecutionError(
+            'Failed to set owner: {0}'.format(exc.strerror))
 
     return True
 
@@ -1357,8 +1358,11 @@ def set_primary_group(obj_name, principal, obj_type='file'):
             obj_flags.element['group'],
             None, gid, None, None)
     except pywintypes.error as exc:
-        log.debug('Failed to make %s the primary group: %s', principal, exc)
-        raise CommandExecutionError('Failed to set primary group: {0}'.format(exc))
+        log.debug(
+            'Failed to make {0} the primary group: {1}'
+            ''.format(principal, exc.strerror))
+        raise CommandExecutionError(
+            'Failed to set primary group: {0}'.format(exc.strerror))
 
     return True
 

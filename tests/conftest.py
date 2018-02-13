@@ -46,11 +46,10 @@ from _pytest.terminal import TerminalReporter
 
 # Import 3rd-party libs
 import psutil
-from salt.ext import six
+import salt.ext.six as six
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.path
+import salt.utils
 import salt.log.setup
 from salt.utils.odict import OrderedDict
 
@@ -282,14 +281,14 @@ def pytest_runtest_setup(item):
         message = skip_if_binaries_missing_marker.kwargs.get('message', None)
         if check_all:
             for binary in binaries:
-                if salt.utils.path.which(binary) is None:
+                if salt.utils.which(binary) is None:
                     pytest.skip(
                         '{0}The "{1}" binary was not found'.format(
                             message and '{0}. '.format(message) or '',
                             binary
                         )
                     )
-        elif salt.utils.path.which_bin(binaries) is None:
+        elif salt.utils.which_bin(binaries) is None:
             pytest.skip(
                 '{0}None of the following binaries was found: {1}'.format(
                     message and '{0}. '.format(message) or '',
@@ -593,7 +592,7 @@ def cli_bin_dir(tempdir,
         if not os.path.isfile(script_path):
             log.info('Generating {0}'.format(script_path))
 
-            with salt.utils.files.fopen(script_path, 'w') as sfh:
+            with salt.utils.fopen(script_path, 'w') as sfh:
                 script_template = script_templates.get(original_script_name, None)
                 if script_template is None:
                     script_template = script_templates.get('common', None)

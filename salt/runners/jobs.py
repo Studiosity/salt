@@ -4,7 +4,7 @@ A convenience system to manage jobs, both active and already run
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import fnmatch
 import logging
 import os
@@ -12,14 +12,13 @@ import os
 # Import salt libs
 import salt.client
 import salt.payload
-import salt.utils.args
-import salt.utils.files
+import salt.utils
 import salt.utils.jid
 import salt.minion
 import salt.returners
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 from salt.exceptions import SaltClientError
 
 try:
@@ -326,14 +325,14 @@ def list_jobs(ext_source=None,
                 if isinstance(targets, six.string_types):
                     targets = [targets]
                 for target in targets:
-                    for key in salt.utils.args.split_input(search_target):
+                    for key in salt.utils.split_input(search_target):
                         if fnmatch.fnmatch(target, key):
                             _match = True
 
         if search_function and _match:
             _match = False
             if 'Function' in ret[item]:
-                for key in salt.utils.args.split_input(search_function):
+                for key in salt.utils.split_input(search_function):
                     if fnmatch.fnmatch(ret[item]['Function'], key):
                         _match = True
 
@@ -466,9 +465,7 @@ def exit_success(jid, ext_source=None):
         The external job cache to use. Default: `None`.
 
     CLI Example:
-
     .. code-block:: bash
-
         salt-run jobs.exit_success 20160520145827701627
     '''
     ret = dict()
@@ -519,12 +516,8 @@ def last_run(ext_source=None,
             log.info('The metadata parameter must be specified as a dictionary')
             return False
 
-    _all_jobs = list_jobs(ext_source=ext_source,
-                          outputter=outputter,
-                          search_metadata=metadata,
-                          search_function=function,
-                          search_target=target,
-                          display_progress=display_progress)
+    _all_jobs = list_jobs(ext_source, outputter, metadata,
+                          function, target, display_progress)
     if _all_jobs:
         last_job = sorted(_all_jobs)[-1]
         return print_job(last_job, ext_source)
@@ -584,13 +577,13 @@ def _walk_through(job_dir, display_progress=False):
 
         for final in os.listdir(t_path):
             load_path = os.path.join(t_path, final, '.load.p')
-            with salt.utils.files.fopen(load_path, 'rb') as rfh:
+            with salt.utils.fopen(load_path, 'rb') as rfh:
                 job = serial.load(rfh)
 
             if not os.path.isfile(load_path):
                 continue
 
-            with salt.utils.files.fopen(load_path, 'rb') as rfh:
+            with salt.utils.fopen(load_path, 'rb') as rfh:
                 job = serial.load(rfh)
             jid = job['jid']
             if display_progress:

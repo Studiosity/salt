@@ -2,7 +2,7 @@
 '''
 Salt module to manage RAID arrays with mdadm
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import os
@@ -10,11 +10,8 @@ import logging
 import re
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 from salt.exceptions import CommandExecutionError, SaltInvocationError
-
-# Import 3rd-party libs
-from salt.ext import six
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -35,7 +32,7 @@ def __virtual__():
     '''
     if __grains__['kernel'] != 'Linux':
         return (False, 'The mdadm execution module cannot be loaded: only available on Linux.')
-    if not salt.utils.path.which('mdadm'):
+    if not salt.utils.which('mdadm'):
         return (False, 'The mdadm execution module cannot be loaded: the mdadm binary is not in the path.')
     return __virtualname__
 
@@ -237,19 +234,17 @@ def create(name,
         if not key.startswith('__'):
             opts.append('--{0}'.format(key))
             if kwargs[key] is not True:
-                opts.append(six.text_type(kwargs[key]))
+                opts.append(str(kwargs[key]))
         if key == 'spare-devices':
             raid_devices -= int(kwargs[key])
 
     cmd = ['mdadm',
            '-C', name,
            '-R',
-           '-v',
-           '-l', six.text_type(level),
-           ] + opts + [
+           '-v'] + opts + [
+           '-l', str(level),
            '-e', metadata,
-           '-n', six.text_type(raid_devices),
-           ] + devices
+           '-n', str(raid_devices)] + devices
 
     cmd_str = ' '.join(cmd)
 
@@ -349,7 +344,7 @@ def assemble(name,
                 opts.append(kwargs[key])
 
     # Devices may have been written with a blob:
-    if isinstance(devices, six.string_types):
+    if isinstance(devices, str):
         devices = devices.split(',')
 
     cmd = ['mdadm', '-A', name, '-v'] + opts + devices
@@ -358,40 +353,3 @@ def assemble(name,
         return cmd
     elif test_mode is False:
         return __salt__['cmd.run'](cmd, python_shell=False)
-
-
-def examine(device):
-    '''
-    Show detail for a specified RAID component device
-
-    CLI Example:
-
-    .. code-block:: bash
-
-        salt '*' raid.examine '/dev/sda1'
-    '''
-    res = __salt__['cmd.run_stdout']('mdadm -Y -E {0}'.format(device), output_loglevel='trace', python_shell=False)
-    ret = {}
-
-    for line in res.splitlines():
-        name, var = line.partition("=")[::2]
-        ret[name] = var
-    return ret
-
-
-def add(name, device):
-    '''
-    Add new device to RAID array.
-
-    CLI Example:
-
-    .. code-block:: bash
-
-        salt '*' raid.add /dev/md0 /dev/sda1
-
-    '''
-
-    cmd = 'mdadm --manage {0} --add {1}'.format(name, device)
-    if __salt__['cmd.retcode'](cmd) == 0:
-        return True
-    return False

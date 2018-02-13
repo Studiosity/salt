@@ -8,13 +8,11 @@ The service module for NetBSD
     *'service.start' is not available*), see :ref:`here
     <module-provider-override>`.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import os
 import glob
-import fnmatch
-import re
 
 __func_alias__ = {
     'reload_': 'reload'
@@ -105,42 +103,19 @@ def force_reload(name):
 
 def status(name, sig=None):
     '''
-    Return the status for a service.
-    If the name contains globbing, a dict mapping service name to True/False
-    values is returned.
-
-    .. versionchanged:: Oxygen
-        The service name can now be a glob (e.g. ``salt*``)
-
-    Args:
-        name (str): The name of the service to check
-        sig (str): Signature to use to find the service via ps
-
-    Returns:
-        bool: True if running, False otherwise
-        dict: Maps service name to True if running, False otherwise
+    Return the status for a service, returns a bool whether the service is
+    running.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt '*' service.status <service name> [service signature]
+        salt '*' service.status <service name>
     '''
     if sig:
         return bool(__salt__['status.pid'](sig))
-
-    contains_globbing = bool(re.search(r'\*|\?|\[.+\]', name))
-    if contains_globbing:
-        services = fnmatch.filter(get_all(), name)
-    else:
-        services = [name]
-    results = {}
-    for service in services:
-        cmd = '/etc/rc.d/{0} onestatus'.format(service)
-        results[service] = not __salt__['cmd.retcode'](cmd, ignore_retcode=True)
-    if contains_globbing:
-        return results
-    return results[name]
+    cmd = '/etc/rc.d/{0} onestatus'.format(name)
+    return not __salt__['cmd.retcode'](cmd, ignore_retcode=True)
 
 
 def _get_svc(rcd, service_status):

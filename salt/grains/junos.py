@@ -7,11 +7,11 @@ from the minion (PYTHONPATH), but others don't (ip_interfaces)
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 
 __proxyenabled__ = ['junos']
 __virtualname__ = 'junos'

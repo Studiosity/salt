@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-'''
+r'''
 Management of user groups
 =========================
 
@@ -8,8 +8,8 @@ either present or absent. User/Group names can be passed to the ``adduser``,
 ``deluser``, and ``members`` parameters. ``adduser`` and ``deluser`` can be used
 together but not with ``members``.
 
-In Windows, if no domain is specified in the user or group name (i.e.
-``DOMAIN\\username``) the module will assume a local user or group.
+In Windows, if no domain is specified in the user or group name (ie:
+`DOMAIN\username``) the module will assume a local user or group.
 
 .. code-block:: yaml
 
@@ -35,14 +35,14 @@ In Windows, if no domain is specified in the user or group name (i.e.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import sys
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # Import Salt libs
-import salt.utils.platform
+import salt.utils
 import salt.utils.win_functions
 
 
@@ -61,7 +61,7 @@ def _changes(name,
 
     # User and Domain names are not case sensitive in Windows. Let's make them
     # all lower case so we can compare properly
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         if lgrp['members']:
             lgrp['members'] = [user.lower() for user in lgrp['members']]
         if members:

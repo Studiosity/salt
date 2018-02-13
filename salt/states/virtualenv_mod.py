@@ -4,22 +4,19 @@ Setup of Python virtualenv sandboxes.
 
 .. versionadded:: 0.17.0
 '''
+from __future__ import absolute_import
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
 import logging
 import os
 
-# Import Salt libs
+# Import salt libs
 import salt.version
-import salt.utils.functools
-import salt.utils.platform
-import salt.utils.versions
+import salt.utils
+
 from salt.exceptions import CommandExecutionError, CommandNotFoundError
 
-# Import 3rd-party libs
 from salt.ext import six
-
 log = logging.getLogger(__name__)
 
 # Define the module's virtual name
@@ -66,10 +63,6 @@ def managed(name,
 
     name
         Path to the virtualenv.
-
-    venv_bin: virtualenv
-        The name (and optionally path) of the virtualenv command. This can also
-        be set globally in the minion config file as ``virtualenv.venv_bin``.
 
     requirements: None
         Path to a pip requirements file. If the path begins with ``salt://``
@@ -141,7 +134,7 @@ def managed(name,
         ret['comment'] = 'Virtualenv was not detected on this system'
         return ret
 
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         venv_py = os.path.join(name, 'Scripts', 'python.exe')
     else:
         venv_py = os.path.join(name, 'bin', 'python')
@@ -232,7 +225,7 @@ def managed(name,
     if use_wheel:
         min_version = '1.4'
         cur_version = __salt__['pip.version'](bin_env=name)
-        if not salt.utils.versions.compare(ver1=cur_version, oper='>=',
+        if not salt.utils.compare_versions(ver1=cur_version, oper='>=',
                                            ver2=min_version):
             ret['result'] = False
             ret['comment'] = ('The \'use_wheel\' option is only supported in '
@@ -243,7 +236,7 @@ def managed(name,
     if no_use_wheel:
         min_version = '1.4'
         cur_version = __salt__['pip.version'](bin_env=name)
-        if not salt.utils.versions.compare(ver1=cur_version, oper='>=',
+        if not salt.utils.compare_versions(ver1=cur_version, oper='>=',
                                            ver2=min_version):
             ret['result'] = False
             ret['comment'] = ('The \'no_use_wheel\' option is only supported '
@@ -317,4 +310,4 @@ def managed(name,
                 'old': old if old else ''}
     return ret
 
-manage = salt.utils.functools.alias_function(managed, 'manage')
+manage = salt.utils.alias_function(managed, 'manage')

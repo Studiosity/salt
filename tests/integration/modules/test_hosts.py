@@ -3,7 +3,7 @@
 Test the hosts module
 '''
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import shutil
 
@@ -11,9 +11,8 @@ import shutil
 from tests.support.case import ModuleCase
 from tests.support.paths import FILES, TMP
 
-# Import Salt libs
-import salt.utils.files
-import salt.utils.stringutils
+# Import salt libs
+import salt.utils
 
 HFN = os.path.join(TMP, 'hosts')
 
@@ -168,7 +167,7 @@ class HostsModuleTest(ModuleCase):
         # use an empty one so we can prove the syntax of the entries
         # being added by the hosts module
         self.__clear_hosts()
-        with salt.utils.files.fopen(HFN, 'w'):
+        with salt.utils.fopen(HFN, 'w'):
             pass
 
         self.assertTrue(
@@ -207,8 +206,8 @@ class HostsModuleTest(ModuleCase):
         )
 
         # now read the lines and ensure they're formatted correctly
-        with salt.utils.files.fopen(HFN, 'r') as fp_:
-            lines = salt.utils.stringutils.to_unicode(fp_.read()).splitlines()
+        with salt.utils.fopen(HFN, 'r') as fp_:
+            lines = fp_.read().splitlines()
         self.assertEqual(lines, [
             '192.168.1.3\t\thost3.fqdn.com',
             '192.168.1.1\t\thost1.fqdn.com host1 host1-reorder',

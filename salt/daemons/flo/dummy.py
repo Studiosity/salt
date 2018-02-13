@@ -15,12 +15,11 @@ without the need for a swarm of real minions.
 # pylint: disable=3rd-party-module-not-gated
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import salt libs
 import ioflo.base.deeding
-import salt.utils.stringutils
 
 log = logging.getLogger(__name__)
 
@@ -31,16 +30,16 @@ class SaltDummyPublisher(ioflo.base.deeding.Deed):
     a translation system to have them mocked up and sent back into a router
     '''
     Ioinits = {
-            'opts': salt.utils.stringutils.to_str('.salt.opts'),
-            'publish': salt.utils.stringutils.to_str('.salt.var.publish'),
-            'lane_stack': salt.utils.stringutils.to_str('.salt.lane.manor.stack'),
-            'workers': salt.utils.stringutils.to_str('.salt.track.workers'),
+            'opts': '.salt.opts',
+            'publish': '.salt.var.publish',
+            'lane_stack': '.salt.lane.manor.stack',
+            'workers': '.salt.track.workers',
             }
 
     def action(self):
         while self.publish.value:
             pub = self.publish.value.popleft()
-            log.debug('Dummy publisher publishing: %s', pub)
+            log.debug('Dummy publisher publishing: {0}'.format(pub))
             msg = self._fill_tmpl(pub)
             self.lane_stack.value.transmit(msg, self.lane_stack.value.fetchUidByName(next(self.workers.value)))
 
@@ -56,14 +55,14 @@ class SaltDummyPublisher(ioflo.base.deeding.Deed):
                     'retcode': 0,
                     'success': True,
                     'cmd': '_return',
-                    'fun': 'test.ping',
+                    'fun': u'test.ping',
                     'id': 'silver'
                },
                'route': {
-                    'src': ('silver_minion', 'jobber50e73ccefd052167c7', 'jid_ret'),
-                    'dst': ('silver_master_master', None, 'remote_cmd')
+                    'src': (u'silver_minion', u'jobber50e73ccefd052167c7', 'jid_ret'),
+                    'dst': (u'silver_master_master', None, 'remote_cmd')
                 }
                }
 
-        log.debug('Dummy publisher faking return with: %s', msg)
+        log.debug('Dummy publisher faking return with: {0}'.format(msg))
         return msg

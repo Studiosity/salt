@@ -19,10 +19,8 @@ import functools
 import inspect
 import logging
 import os
-import random
 import signal
 import socket
-import string
 import sys
 import threading
 import time
@@ -32,7 +30,7 @@ import types
 
 # Import 3rd-party libs
 import psutil  # pylint: disable=3rd-party-module-not-gated
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import range, builtins  # pylint: disable=import-error,redefined-builtin
 try:
     from pytestsalt.utils import get_unused_localhost_port  # pylint: disable=unused-import
@@ -218,11 +216,11 @@ class RedirectStdStreams(object):
 
     def __init__(self, stdout=None, stderr=None):
         # Late import
-        import salt.utils.files
+        import salt.utils
         if stdout is None:
-            stdout = salt.utils.files.fopen(os.devnull, 'w')  # pylint: disable=resource-leakage
+            stdout = salt.utils.fopen(os.devnull, 'w')  # pylint: disable=resource-leakage
         if stderr is None:
-            stderr = salt.utils.files.fopen(os.devnull, 'w')  # pylint: disable=resource-leakage
+            stderr = salt.utils.fopen(os.devnull, 'w')  # pylint: disable=resource-leakage
 
         self.__stdout = stdout
         self.__stderr = stderr
@@ -428,7 +426,6 @@ class ForceImportErrorOn(object):
                 self.__module_names[modname] = set(entry[1:])
             else:
                 self.__module_names[entry] = None
-        self.__original_import = builtins.__import__
         self.patcher = patch.object(builtins, '__import__', self.__fake_import__)
 
     def patch_import_function(self):
@@ -437,12 +434,7 @@ class ForceImportErrorOn(object):
     def restore_import_funtion(self):
         self.patcher.stop()
 
-    def __fake_import__(self,
-                        name,
-                        globals_={} if six.PY2 else None,
-                        locals_={} if six.PY2 else None,
-                        fromlist=[] if six.PY2 else (),
-                        level=-1 if six.PY2 else 0):
+    def __fake_import__(self, name, globals_, locals_, fromlist, level=-1):
         if name in self.__module_names:
             importerror_fromlist = self.__module_names.get(name)
             if importerror_fromlist is None:
@@ -458,6 +450,7 @@ class ForceImportErrorOn(object):
                         )
                     )
                 )
+
         return self.__original_import(name, globals_, locals_, fromlist, level)
 
     def __enter__(self):
@@ -1030,7 +1023,6 @@ def requires_salt_modules(*names):
 
 def skip_if_binaries_missing(*binaries, **kwargs):
     import salt.utils
-    import salt.utils.path
     if len(binaries) == 1:
         if isinstance(binaries[0], (list, tuple, set, frozenset)):
             binaries = binaries[0]
@@ -1045,14 +1037,14 @@ def skip_if_binaries_missing(*binaries, **kwargs):
         )
     if check_all:
         for binary in binaries:
-            if salt.utils.path.which(binary) is None:
+            if salt.utils.which(binary) is None:
                 return skip(
                     '{0}The {1!r} binary was not found'.format(
                         message and '{0}. '.format(message) or '',
                         binary
                     )
                 )
-    elif salt.utils.path.which_bin(binaries) is None:
+    elif salt.utils.which_bin(binaries) is None:
         return skip(
             '{0}None of the following binaries was found: {1}'.format(
                 message and '{0}. '.format(message) or '',
@@ -1337,25 +1329,6 @@ def http_basic_auth(login_cb=lambda username, password: False):
         handler_class._execute = wrap_execute(handler_class._execute)
         return handler_class
     return wrapper
-
-
-def generate_random_name(prefix, size=6):
-    '''
-    Generates a random name by combining the provided prefix with a randomly generated
-    ascii string.
-
-    .. versionadded:: Oxygen
-
-    prefix
-        The string to prefix onto the randomly generated ascii string.
-
-    size
-        The number of characters to generate. Default: 6.
-    '''
-    return prefix + ''.join(
-        random.choice(string.ascii_uppercase + string.digits)
-        for x in range(size)
-    )
 
 
 class Webserver(object):

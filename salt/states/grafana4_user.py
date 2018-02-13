@@ -4,28 +4,26 @@ Manage Grafana v4.0 users
 
 .. versionadded:: 2017.7.0
 
-:configuration: This state requires a configuration profile to be configured
-    in the minion config, minion pillar, or master config. The module will use
-    the 'grafana' key by default, if defined.
+Token auth setup
 
-    Example configuration using basic authentication:
+.. code-block:: yaml
 
-    .. code-block:: yaml
+    grafana_version: 4
+    grafana:
+      grafana_timeout: 5
+      grafana_token: qwertyuiop
+      grafana_url: 'https://url.com'
 
-        grafana:
-          grafana_url: http://grafana.localhost
-          grafana_user: admin
-          grafana_password: admin
-          grafana_timeout: 3
+Basic auth setup
 
-    Example configuration using token based authentication:
+.. code-block:: yaml
 
-    .. code-block:: yaml
-
-        grafana:
-          grafana_url: http://grafana.localhost
-          grafana_token: token
-          grafana_timeout: 3
+    grafana_version: 4
+    grafana:
+      grafana_timeout: 5
+      grafana_user: grafana
+      grafana_password: qwertyuiop
+      grafana_url: 'https://url.com'
 
 .. code-block:: yaml
 
@@ -37,13 +35,11 @@ Manage Grafana v4.0 users
         - fullname: Foo Bar
         - is_admin: true
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-import salt.utils.dictupdate as dictupdate
-from salt.utils.dictdiffer import deep_diff
-
-# Import 3rd-party libs
 from salt.ext.six import string_types
+from salt.utils import dictupdate
+from salt.utils.dictdiffer import deep_diff
 
 
 def __virtual__():

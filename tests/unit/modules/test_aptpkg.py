@@ -7,7 +7,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import copy
 
 # Import Salt Testing Libs
@@ -16,7 +16,6 @@ from tests.support.unit import TestCase, skipIf
 from tests.support.mock import MagicMock, patch, NO_MOCK, NO_MOCK_REASON
 
 # Import Salt Libs
-from salt.ext import six
 from salt.exceptions import CommandExecutionError, SaltInvocationError
 import salt.modules.aptpkg as aptpkg
 
@@ -127,7 +126,7 @@ Reading state information...
 
 UNINSTALL = {
     'tmux': {
-        'new': six.text_type(),
+        'new': str(),
         'old': '1.8-5'
     }
 }

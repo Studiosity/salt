@@ -5,7 +5,7 @@ A dead simple module wrapping calls to the Chocolatey package manager
 
 .. versionadded:: 2014.1.0
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
@@ -14,8 +14,7 @@ import re
 import tempfile
 
 # Import salt libs
-import salt.utils.data
-import salt.utils.platform
+import salt.utils
 from salt.utils.versions import LooseVersion as _LooseVersion
 from salt.exceptions import CommandExecutionError, CommandNotFoundError, \
     SaltInvocationError
@@ -37,7 +36,7 @@ def __virtual__():
     for simulating UAC forces a GUI prompt, and is not compatible with
     salt-minion running as SYSTEM.
     '''
-    if not salt.utils.platform.is_windows():
+    if not salt.utils.is_windows():
         return (False, 'Cannot load module chocolatey: Chocolatey requires '
                        'Windows')
 
@@ -68,22 +67,6 @@ def _yes(context):
     else:
         answer = []
     context['chocolatey._yes'] = answer
-    return answer
-
-
-def _no_progress(context):
-    '''
-    Returns ['--no-progress'] if on v0.10.4 or later, otherwise returns an
-    empty list
-    '''
-    if 'chocolatey._no_progress' in __context__:
-        return context['chocolatey._no_progress']
-    if _LooseVersion(chocolatey_version()) >= _LooseVersion('0.10.4'):
-        answer = ['--no-progress']
-    else:
-        log.warning('--no-progress unsupported in choco < 0.10.4')
-        answer = []
-    context['chocolatey._no_progress'] = answer
     return answer
 
 
@@ -219,9 +202,8 @@ def bootstrap(force=False):
     result = __salt__['cmd.run_all'](cmd, python_shell=True)
 
     if result['retcode'] != 0:
-        raise CommandExecutionError(
-            'Bootstrapping Chocolatey failed: {0}'.format(result['stderr'])
-        )
+        err = 'Bootstrapping Chocolatey failed: {0}'.format(result['stderr'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -275,9 +257,9 @@ def list_(narrow=None,
     cmd = [choc_path, 'list']
     if narrow:
         cmd.append(narrow)
-    if salt.utils.data.is_true(all_versions):
+    if salt.utils.is_true(all_versions):
         cmd.append('--allversions')
-    if salt.utils.data.is_true(pre_versions):
+    if salt.utils.is_true(pre_versions):
         cmd.append('--prerelease')
     if source:
         cmd.extend(['--source', source])
@@ -292,9 +274,8 @@ def list_(narrow=None,
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] != 0:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     ret = {}
     pkg_re = re.compile(r'(\S+)\|(\S+)')
@@ -330,9 +311,8 @@ def list_webpi():
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] != 0:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -356,9 +336,8 @@ def list_windowsfeatures():
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] != 0:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -372,8 +351,7 @@ def install(name,
             override_args=False,
             force_x86=False,
             package_args=None,
-            allow_multiple=False,
-            execution_timeout=None):
+            allow_multiple=False):
     '''
     Instructs Chocolatey to install a package.
 
@@ -429,11 +407,6 @@ def install(name,
 
             .. versionadded:: 2017.7.0
 
-        execution_timeout (str):
-        Chocolatey execution timeout value you want to pass to the installation process. Default is None.
-
-            .. versionadded:: Oxygen
-
     Returns:
         str: The output of the ``chocolatey`` command
 
@@ -458,9 +431,9 @@ def install(name,
         cmd.extend(['--version', version])
     if source:
         cmd.extend(['--source', source])
-    if salt.utils.data.is_true(force):
+    if salt.utils.is_true(force):
         cmd.append('--force')
-    if salt.utils.data.is_true(pre_versions):
+    if salt.utils.is_true(pre_versions):
         cmd.append('--prerelease')
     if install_args:
         cmd.extend(['--installarguments', install_args])
@@ -472,19 +445,12 @@ def install(name,
         cmd.extend(['--packageparameters', package_args])
     if allow_multiple:
         cmd.append('--allow-multiple')
-    if execution_timeout:
-        cmd.extend(['--execution-timeout', execution_timeout])
-
-    # Salt doesn't need to see the progress
-    cmd.extend(_no_progress(__context__))
     cmd.extend(_yes(__context__))
-
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] not in [0, 1641, 3010]:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     if name == 'chocolatey':
         _clear_context(__context__)
@@ -603,9 +569,8 @@ def install_missing(name, version=None, source=None):
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] != 0:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -736,9 +701,8 @@ def uninstall(name, version=None, uninstall_args=None, override_args=False):
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] not in [0, 1605, 1614, 1641]:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -756,7 +720,7 @@ def upgrade(name,
     .. versionadded:: 2016.3.4
 
     Instructs Chocolatey to upgrade packages on the system. (update is being
-    deprecated). This command will install the package if not installed.
+    deprecated)
 
     Args:
 
@@ -808,12 +772,12 @@ def upgrade(name,
     choc_path = _find_chocolatey(__context__, __salt__)
     cmd = [choc_path, 'upgrade', name]
     if version:
-        cmd.extend(['--version', version])
+        cmd.extend(['-version', version])
     if source:
         cmd.extend(['--source', source])
-    if salt.utils.data.is_true(force):
+    if salt.utils.is_true(force):
         cmd.append('--force')
-    if salt.utils.data.is_true(pre_versions):
+    if salt.utils.is_true(pre_versions):
         cmd.append('--prerelease')
     if install_args:
         cmd.extend(['--installarguments', install_args])
@@ -823,17 +787,13 @@ def upgrade(name,
         cmd.append('--forcex86')
     if package_args:
         cmd.extend(['--packageparameters', package_args])
-
-    # Salt doesn't need to see the progress
-    cmd.extend(_no_progress(__context__))
     cmd.extend(_yes(__context__))
 
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] not in [0, 1641, 3010]:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -869,19 +829,14 @@ def update(name, source=None, pre_versions=False):
     cmd = [choc_path, 'update', name]
     if source:
         cmd.extend(['--source', source])
-    if salt.utils.data.is_true(pre_versions):
+    if salt.utils.is_true(pre_versions):
         cmd.append('--prerelease')
-
-    # Salt doesn't need to see the progress
-    cmd.extend(_no_progress(__context__))
     cmd.extend(_yes(__context__))
-
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] not in [0, 1641, 3010]:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -971,9 +926,8 @@ def add_source(name, source_location, username=None, password=None):
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] != 0:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 
@@ -994,9 +948,8 @@ def _change_source_state(name, state):
     result = __salt__['cmd.run_all'](cmd, python_shell=False)
 
     if result['retcode'] != 0:
-        raise CommandExecutionError(
-            'Running chocolatey failed: {0}'.format(result['stdout'])
-        )
+        err = 'Running chocolatey failed: {0}'.format(result['stdout'])
+        raise CommandExecutionError(err)
 
     return result['stdout']
 

@@ -2,7 +2,6 @@
 '''
 Send a message card to Microsoft Teams
 =======================
-
 This state is useful for sending messages to Teams during state runs.
 .. versionadded:: 2017.7.0
 .. code-block:: yaml
@@ -17,7 +16,7 @@ The hook_url can be specified in the master or minion configuration like below:
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt libs
 from salt.exceptions import SaltInvocationError

@@ -2,13 +2,13 @@
 '''
 The rcctl service module for OpenBSD
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import os
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 import salt.utils.decorators as decorators
 from salt.exceptions import CommandNotFoundError
 
@@ -35,7 +35,7 @@ def _cmd():
     '''
     Return the full path to the rcctl(8) command.
     '''
-    rcctl = salt.utils.path.which('rcctl')
+    rcctl = salt.utils.which('rcctl')
     if not rcctl:
         raise CommandNotFoundError
     return rcctl

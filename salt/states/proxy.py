@@ -14,15 +14,13 @@ Setup proxy settings on minions
             - localhost
             - 127.0.0.1
 '''
-# Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+
+# Import python libs
+from __future__ import absolute_import
 import logging
 
-# Import Salt libs
-import salt.utils.platform
-
-# Import 3rd part libs
-from salt.ext import six
+# Import salt libs
+import salt.utils
 
 log = logging.getLogger(__name__)
 __virtualname__ = 'proxy'
@@ -32,7 +30,7 @@ def __virtual__():
     '''
     Only work on Mac OS and Windows
     '''
-    if salt.utils.platform.is_darwin() or salt.utils.platform.is_windows():
+    if salt.utils.is_darwin() or salt.utils.is_windows():
         return True
     return False
 
@@ -81,7 +79,7 @@ def managed(name, port, services=None, user=None, password=None, bypass_domains=
         for service in services:
             current_settings = __salt__['proxy.get_{0}_proxy'.format(service)]()
 
-            if current_settings.get('server') == name and current_settings.get('port') == six.text_type(port):
+            if current_settings.get('server') == name and current_settings.get('port') == str(port):
                 ret['comment'] += '{0} proxy settings already set.\n'.format(service)
             elif __salt__['proxy.set_{0}_proxy'.format(service)](name, port, user, password, network_service):
                 ret['comment'] += '{0} proxy settings updated correctly\n'.format(service)
@@ -121,7 +119,7 @@ def managed(name, port, services=None, user=None, password=None, bypass_domains=
                     changes_needed = True
                     break
 
-                if current_settings[service]['server'] != name or current_settings[service]['port'] != six.text_type(port):
+                if current_settings[service]['server'] != name or current_settings[service]['port'] != str(port):
                     changes_needed = True
                     break
         else:

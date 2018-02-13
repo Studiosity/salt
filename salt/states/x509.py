@@ -155,7 +155,7 @@ This state creates a private key then requests a certificate signed by ca accord
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import datetime
 import os
 import re
@@ -163,9 +163,10 @@ import copy
 
 # Import Salt Libs
 import salt.exceptions
+import salt.utils
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 try:
     from M2Crypto.RSA import RSAError

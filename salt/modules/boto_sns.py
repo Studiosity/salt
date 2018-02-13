@@ -42,12 +42,9 @@ Connection module for Amazon SNS
 # keep lint from choking on _get_conn and _cache_id
 #pylint: disable=E0602
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import logging
+from __future__ import absolute_import
 
-# Import Salt libs
-import salt.utils.versions
+import logging
 
 log = logging.getLogger(__name__)
 
@@ -67,12 +64,10 @@ def __virtual__():
     '''
     Only load if boto libraries exist.
     '''
-    has_boto_reqs = salt.utils.versions.check_boto_reqs(
-        check_boto3=False
-    )
-    if has_boto_reqs is True:
-        __utils__['boto.assign_funcs'](__name__, 'sns', pack=__salt__)
-    return has_boto_reqs
+    if not HAS_BOTO:
+        return (False, 'The boto_sns module could not be loaded: boto libraries not found')
+    __utils__['boto.assign_funcs'](__name__, 'sns', pack=__salt__)
+    return True
 
 
 def get_all_topics(region=None, key=None, keyid=None, profile=None):
@@ -125,7 +120,7 @@ def create(name, region=None, key=None, keyid=None, profile=None):
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
     conn.create_topic(name)
-    log.info('Created SNS topic %s', name)
+    log.info('Created SNS topic {0}'.format(name))
     _invalidate_cache()
     return True
 
@@ -140,7 +135,7 @@ def delete(name, region=None, key=None, keyid=None, profile=None):
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
     conn.delete_topic(get_arn(name, region, key, keyid, profile))
-    log.info('Deleted SNS topic %s', name)
+    log.info('Deleted SNS topic {0}'.format(name))
     _invalidate_cache()
     return True
 
@@ -175,7 +170,7 @@ def subscribe(topic, protocol, endpoint, region=None, key=None, keyid=None, prof
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
     conn.subscribe(get_arn(topic, region, key, keyid, profile), protocol, endpoint)
-    log.info('Subscribe %s %s to %s topic', protocol, endpoint, topic)
+    log.info('Subscribe {0} {1} to {2} topic'.format(protocol, endpoint, topic))
     try:
         del __context__[_subscriptions_cache_key(topic)]
     except KeyError:
@@ -202,9 +197,9 @@ def unsubscribe(topic, subscription_arn, region=None, key=None, keyid=None, prof
 
     try:
         conn.unsubscribe(subscription_arn)
-        log.info('Unsubscribe %s to %s topic', subscription_arn, topic)
+        log.info('Unsubscribe {0} to {1} topic'.format(subscription_arn, topic))
     except Exception as e:
-        log.error('Unsubscribe Error', exc_info=True)
+        log.error('Unsubscribe Error: {0}'.format(e))
         return False
     else:
         __context__.pop(_subscriptions_cache_key(topic), None)

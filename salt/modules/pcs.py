@@ -10,18 +10,18 @@ Pacemaker/Cororsync conifguration system (PCS)
 
 .. versionadded:: 2016.3.0
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
-import salt.utils.path
-from salt.ext import six
+import salt.utils
+import salt.ext.six as six
 
 
 def __virtual__():
     '''
     Only load if pcs package is installed
     '''
-    if salt.utils.path.which('pcs'):
+    if salt.utils.which('pcs'):
         return 'pcs'
     return False
 

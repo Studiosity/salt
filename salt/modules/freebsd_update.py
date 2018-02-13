@@ -9,15 +9,15 @@ Support for freebsd-update utility on FreeBSD.
 :platform:      FreeBSD
 '''
 
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 
 # Import python libs
 import logging
 
 # Import salt libs
-import salt.utils.path
-from salt.ext import six
+import salt
+import salt.ext.six as six
 from salt.exceptions import CommandNotFoundError
 
 log = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def _cmd(**kwargs):
     executed. It checks if any arguments are given to freebsd-update and appends
     them accordingly.
     '''
-    update_cmd = salt.utils.path.which('freebsd-update')
+    update_cmd = salt.utils.which('freebsd-update')
     if not update_cmd:
         raise CommandNotFoundError('"freebsd-update" command not found')
 

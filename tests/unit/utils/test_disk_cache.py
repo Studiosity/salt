@@ -7,7 +7,7 @@
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os.path
 import shutil
 import tempfile
@@ -17,7 +17,7 @@ import time
 from tests.support.unit import TestCase
 
 # Import salt libs
-import salt.utils.cache as cache
+from salt.utils import cache
 
 
 class CacheDiskTestCase(TestCase):

@@ -3,7 +3,7 @@
     :codeauthor: :email:`Jayesh Kariya <jayeshk@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import copy
 
 # Import Salt Testing Libs
@@ -142,7 +142,7 @@ class BotoElbTestCase(TestCase, LoaderModuleMockMixin):
         instances = ['instance-id1', 'instance-id2']
 
         ret = {'name': name,
-               'result': False,
+               'result': None,
                'changes': {},
                'comment': ''}
 
@@ -174,5 +174,5 @@ class BotoElbTestCase(TestCase, LoaderModuleMockMixin):
 
             with patch.dict(boto_elb.__opts__, {'test': True}):
                 comt = ('ELB {0} is set to be removed.'.format(name))
-                ret.update({'comment': comt, 'result': None})
+                ret.update({'comment': comt, 'result': True})
                 self.assertDictEqual(boto_elb.absent(name), ret)

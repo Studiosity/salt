@@ -36,13 +36,12 @@ better to always use a named configuration profile, as shown above.
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import salt libs
 from salt.exceptions import CommandExecutionError, SaltInvocationError
 from salt.ext.six import integer_types
-from salt.ext import six
 
 # Import third party libs
 try:
@@ -95,7 +94,7 @@ def get_conn(opts, profile=None, host=None, port=None):
         host = conf.get('memcached.host', DEFAULT_HOST)
         port = conf.get('memcached.port', DEFAULT_PORT)
 
-    if not six.text_type(port).isdigit():
+    if not str(port).isdigit():
         raise SaltInvocationError('port must be an integer')
 
     if HAS_LIBS:

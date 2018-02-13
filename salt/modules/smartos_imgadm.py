@@ -2,15 +2,14 @@
 '''
 Module for running imgadm command on SmartOS
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
+import json
 
 # Import Salt libs
-import salt.utils.json
-import salt.utils.path
-import salt.utils.platform
+import salt.utils
 import salt.utils.decorators as decorators
 
 log = logging.getLogger(__name__)
@@ -31,7 +30,7 @@ def _check_imgadm():
     '''
     Looks to see if imgadm is present on the system
     '''
-    return salt.utils.path.which('imgadm')
+    return salt.utils.which('imgadm')
 
 
 def _exit_status(retcode):
@@ -70,7 +69,7 @@ def __virtual__():
     '''
     Provides imgadm only on SmartOS
     '''
-    if salt.utils.platform.is_smartos_globalzone() and _check_imgadm():
+    if salt.utils.is_smartos_globalzone() and _check_imgadm():
         return __virtualname__
     return (
         False,
@@ -144,7 +143,7 @@ def avail(search=None, verbose=False):
         ret['Error'] = _exit_status(retcode)
         return ret
 
-    for image in salt.utils.json.loads(res['stdout']):
+    for image in json.loads(res['stdout']):
         if image['manifest']['disabled'] or not image['manifest']['public']:
             continue
         if search and search not in image['manifest']['name']:
@@ -178,7 +177,7 @@ def list_installed(verbose=False):
         ret['Error'] = _exit_status(retcode)
         return ret
 
-    for image in salt.utils.json.loads(res['stdout']):
+    for image in json.loads(res['stdout']):
         result[image['manifest']['uuid']] = _parse_image_meta(image, verbose)
 
     return result
@@ -205,7 +204,7 @@ def show(uuid):
     if retcode != 0:
         ret['Error'] = _exit_status(retcode)
         return ret
-    ret = salt.utils.json.loads(res['stdout'])
+    ret = json.loads(res['stdout'])
     return ret
 
 
@@ -230,7 +229,7 @@ def get(uuid):
     if retcode != 0:
         ret['Error'] = _exit_status(retcode)
         return ret
-    ret = salt.utils.json.loads(res['stdout'])
+    ret = json.loads(res['stdout'])
     return ret
 
 

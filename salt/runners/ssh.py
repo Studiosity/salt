@@ -6,11 +6,10 @@ This allows for programmatic use from salt-api, the Reactor, Orchestrate, etc.
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Libs
 import salt.client.ssh.client
-import salt.utils.versions
 
 
 def cmd(tgt,
@@ -35,7 +34,7 @@ def cmd(tgt,
     # remember to remove the expr_form argument from this function when
     # performing the cleanup on this deprecation.
     if expr_form is not None:
-        salt.utils.versions.warn_until(
+        salt.utils.warn_until(
             'Fluorine',
             'the target type should be passed using the \'tgt_type\' '
             'argument instead of \'expr_form\'. Support for using '

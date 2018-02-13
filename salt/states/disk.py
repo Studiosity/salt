@@ -43,7 +43,7 @@ specify the ``absolute`` flag:
         - maximum: 1048576 KB
         - absolute: True
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
 from salt.ext.six import string_types

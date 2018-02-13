@@ -36,7 +36,7 @@ Additional contributions to build true map-reduce functionality into this module
 would be welcome.
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Python libraries
 import logging

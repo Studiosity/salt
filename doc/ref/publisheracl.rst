@@ -10,10 +10,9 @@ to have access to execute select salt commands on minions from the master.
 The publisher ACL system is configured in the master configuration file via the
 ``publisher_acl`` configuration option. Under the ``publisher_acl``
 configuration option the users open to send commands are specified and then a
-list of the minion functions which will be made available to specified user.
-Both users and functions could be specified by exact match, shell glob or
-regular expression. This configuration is much like the :ref:`external_auth
-<acl-eauth>` configuration:
+list of regular expressions which specify the minion functions which will be
+made available to specified user. This configuration is much like the ``peer``
+configuration:
 
 .. code-block:: yaml
 
@@ -26,19 +25,9 @@ regular expression. This configuration is much like the :ref:`external_auth
         - web*:
           - test.*
           - pkg.*
-      # Allow admin and managers to use saltutil module functions
-      admin|manager_.*:
+      # Allow managers to use saltutil module functions
+      manager_.*:
         - saltutil.*
-      # Allow users to use only my_mod functions on "web*" minions with specific arguments.
-      user_.*:
-        - web*:
-          - 'my_mod.*':
-              args:
-                - 'a.*'
-                - 'b.*'
-              kwargs:
-                'kwa': 'kwa.*'
-                'kwb': 'kwb'
 
 Permission Issues
 -----------------

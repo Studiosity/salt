@@ -6,15 +6,14 @@ Installer is the native .pkg/.mpkg package manager for macOS.
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os.path
 
 # Import 3rd-party libs
 from salt.ext.six.moves import urllib  # pylint: disable=import-error
 
-# Import Salt libs
-import salt.utils.path
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 import salt.utils.itertools
 import salt.utils.mac_utils
 from salt.exceptions import SaltInvocationError
@@ -27,10 +26,10 @@ __virtualname__ = 'pkgutil'
 
 
 def __virtual__():
-    if not salt.utils.platform.is_darwin():
+    if not salt.utils.is_darwin():
         return (False, 'Only available on Mac OS systems')
 
-    if not salt.utils.path.which('pkgutil'):
+    if not salt.utils.which('pkgutil'):
         return (False, 'Missing pkgutil binary')
 
     return __virtualname__

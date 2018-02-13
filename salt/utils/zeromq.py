@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-'''
-ZMQ-specific functions
-'''
+
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt libs
 from salt.exceptions import SaltSystemExit
@@ -32,13 +30,3 @@ def check_ipc_path_max_len(uri):
                 uri, ipc_path_max_len
             )
         )
-
-
-def ip_bracket(addr):
-    '''
-    Convert IP address representation to ZMQ (URL) format. ZMQ expects
-    brackets around IPv6 literals, since they are used in URLs.
-    '''
-    if addr and ':' in addr and not addr.startswith('['):
-        return '[{0}]'.format(addr)
-    return addr

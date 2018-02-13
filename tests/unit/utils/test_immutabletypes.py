@@ -10,13 +10,13 @@
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.unit import TestCase
 
 # Import salt libs
-import salt.utils.immutabletypes as immutabletypes
+from salt.utils import immutabletypes
 
 
 class ImmutableTypesTestCase(TestCase):

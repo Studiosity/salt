@@ -4,18 +4,16 @@ mac_utils tests
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.unit import TestCase, skipIf
 from tests.support.mock import MagicMock, patch, NO_MOCK, NO_MOCK_REASON
-
-# Import Salt libs
-import salt.utils.mac_utils as mac_utils
-from salt.exceptions import SaltInvocationError, CommandExecutionError
-
-# Import 3rd-party libs
 from salt.ext.six.moves import range
+
+# Import Salt Libs
+from salt.utils import mac_utils
+from salt.exceptions import SaltInvocationError, CommandExecutionError
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)

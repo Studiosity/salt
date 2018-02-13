@@ -24,11 +24,6 @@ booleans can be set.
     Use of these states require that the :mod:`selinux <salt.modules.selinux>`
     execution module is available.
 '''
-# Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
-
-# Import 3rd party libs
-from salt.ext import six
 
 
 def __virtual__():
@@ -42,7 +37,7 @@ def _refine_mode(mode):
     '''
     Return a mode value that is predictable
     '''
-    mode = six.text_type(mode).lower()
+    mode = str(mode).lower()
     if any([mode.startswith('e'),
             mode == '1',
             mode == 'on']):
@@ -60,7 +55,7 @@ def _refine_value(value):
     '''
     Return a yes/no value, or None if the input is invalid
     '''
-    value = six.text_type(value).lower()
+    value = str(value).lower()
     if value in ('1', 'on', 'yes', 'true'):
         return 'on'
     if value in ('0', 'off', 'no', 'false'):
@@ -73,7 +68,7 @@ def _refine_module_state(module_state):
     Return a predictable value, or allow us to error out
     .. versionadded:: 2016.3.0
     '''
-    module_state = six.text_type(module_state).lower()
+    module_state = str(module_state).lower()
     if module_state in ('1', 'on', 'yes', 'true', 'enabled'):
         return 'enabled'
     if module_state in ('0', 'off', 'no', 'false', 'disabled'):

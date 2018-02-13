@@ -8,10 +8,14 @@ Modify, retrieve, or delete values from OpenStack configuration files.
 :platform: linux
 
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import shlex
+from __future__ import absolute_import
+# Import Salt libs
+import salt.utils
+import salt.exceptions
 
+from salt.utils.decorators import which as _which
+
+import shlex
 try:
     import pipes
     HAS_DEPS = True
@@ -24,11 +28,6 @@ elif HAS_DEPS and hasattr(pipes, 'quote'):
     _quote = pipes.quote
 else:
     _quote = None
-
-# Import Salt libs
-from salt.ext import six
-import salt.utils.decorators.path
-import salt.exceptions
 
 # Don't shadow built-in's.
 __func_alias__ = {
@@ -46,7 +45,7 @@ def _fallback(*args, **kw):
     return 'The "openstack-config" command needs to be installed for this function to work.  Typically this is included in the "openstack-utils" package.'
 
 
-@salt.utils.decorators.path.which('openstack-config')
+@_which('openstack-config')
 def set_(filename, section, parameter, value):
     '''
     Set a value in an OpenStack configuration file.
@@ -73,7 +72,7 @@ def set_(filename, section, parameter, value):
     filename = _quote(filename)
     section = _quote(section)
     parameter = _quote(parameter)
-    value = _quote(six.text_type(value))
+    value = _quote(str(value))
 
     result = __salt__['cmd.run_all'](
             'openstack-config --set {0} {1} {2} {3}'.format(
@@ -88,7 +87,7 @@ def set_(filename, section, parameter, value):
         raise salt.exceptions.CommandExecutionError(result['stderr'])
 
 
-@salt.utils.decorators.path.which('openstack-config')
+@_which('openstack-config')
 def get(filename, section, parameter):
     '''
     Get a value from an OpenStack configuration file.
@@ -127,7 +126,7 @@ def get(filename, section, parameter):
         raise salt.exceptions.CommandExecutionError(result['stderr'])
 
 
-@salt.utils.decorators.path.which('openstack-config')
+@_which('openstack-config')
 def delete(filename, section, parameter):
     '''
     Delete a value from an OpenStack configuration file.

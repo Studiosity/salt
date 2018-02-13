@@ -2,23 +2,26 @@
 '''
 Module for gathering and managing network information
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
-# Import Python libs
+# Import python libs
 import re
+
+# Import salt libs
+import salt.utils
 import hashlib
 import datetime
 import socket
 
-# Import Salt libs
+# Import salt libs
+import salt.utils
 import salt.utils.network
-import salt.utils.platform
 import salt.utils.validate.net
 from salt.modules.network import (wol, get_hostname, interface, interface_ip,
                                   subnets6, ip_in_subnet, convert_cidr,
                                   calc_net, get_fqdn, ifacestartswith,
                                   iphexval)
-from salt.utils.functools import namespaced_function as _namespaced_function
+from salt.utils import namespaced_function as _namespaced_function
 
 try:
     import salt.utils.winapi
@@ -41,7 +44,7 @@ def __virtual__():
     '''
     Only works on Windows systems
     '''
-    if not salt.utils.platform.is_windows():
+    if not salt.utils.is_windows():
         return False, "Module win_network: Only available on Windows"
 
     if not HAS_DEPENDENCIES:
@@ -93,7 +96,7 @@ def ping(host, timeout=False, return_boolean=False):
         # Windows ping differs by having timeout be for individual echo requests.'
         # Divide timeout by tries to mimic BSD behaviour.
         timeout = int(timeout) * 1000 // 4
-        cmd = ['ping', '-n', '4', '-w', six.text_type(timeout), salt.utils.network.sanitize_host(host)]
+        cmd = ['ping', '-n', '4', '-w', str(timeout), salt.utils.network.sanitize_host(host)]
     else:
         cmd = ['ping', '-n', '4', salt.utils.network.sanitize_host(host)]
     if return_boolean:
@@ -315,7 +318,7 @@ def hw_addr(iface):
     return salt.utils.network.hw_addr(iface)
 
 # Alias hwaddr to preserve backward compat
-hwaddr = salt.utils.functools.alias_function(hw_addr, 'hwaddr')
+hwaddr = salt.utils.alias_function(hw_addr, 'hwaddr')
 
 
 def subnets():
@@ -359,7 +362,7 @@ def ip_addrs(interface=None, include_loopback=False):
     return salt.utils.network.ip_addrs(interface=interface,
                                        include_loopback=include_loopback)
 
-ipaddrs = salt.utils.functools.alias_function(ip_addrs, 'ipaddrs')
+ipaddrs = salt.utils.alias_function(ip_addrs, 'ipaddrs')
 
 
 def ip_addrs6(interface=None, include_loopback=False):
@@ -377,7 +380,7 @@ def ip_addrs6(interface=None, include_loopback=False):
     return salt.utils.network.ip_addrs6(interface=interface,
                                         include_loopback=include_loopback)
 
-ipaddrs6 = salt.utils.functools.alias_function(ip_addrs6, 'ipaddrs6')
+ipaddrs6 = salt.utils.alias_function(ip_addrs6, 'ipaddrs6')
 
 
 def connect(host, port=None, **kwargs):

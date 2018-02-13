@@ -11,7 +11,7 @@ This module implements the pkgbuild interface
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 import errno
 import logging
 import os
@@ -23,15 +23,9 @@ import traceback
 import functools
 
 # Import salt libs
-from salt.exceptions import SaltInvocationError
-import salt.utils.files
-import salt.utils.path
-import salt.utils.user
-import salt.utils.vt
-
-# Import 3rd-party libs
-from salt.ext import six
 from salt.ext.six.moves.urllib.parse import urlparse as _urlparse  # pylint: disable=no-name-in-module,import-error
+from salt.exceptions import SaltInvocationError
+import salt.utils
 
 HAS_LIBS = False
 
@@ -54,7 +48,7 @@ def __virtual__():
     missing_util = False
     utils_reqd = ['gpg', 'rpm', 'rpmbuild', 'mock', 'createrepo']
     for named_util in utils_reqd:
-        if not salt.utils.path.which(named_util):
+        if not salt.utils.which(named_util):
             missing_util = True
             break
 
@@ -82,10 +76,8 @@ def _create_rpmmacros():
         os.makedirs(mockdir)
 
     rpmmacros = os.path.join(home, '.rpmmacros')
-    with salt.utils.files.fopen(rpmmacros, 'w') as afile:
-        afile.write(
-            salt.utils.stringutils.to_str('%_topdir {0}\n'.format(rpmbuilddir))
-        )
+    with salt.utils.fopen(rpmmacros, 'w') as afile:
+        afile.write('%_topdir {0}\n'.format(rpmbuilddir))
         afile.write('%signature gpg\n')
         afile.write('%_source_filedigest_algorithm 8\n')
         afile.write('%_binary_filedigest_algorithm 8\n')
@@ -194,7 +186,7 @@ def make_src_pkg(dest_dir, spec, sources, env=None, template=None, saltenv='base
     _create_rpmmacros()
     tree_base = _mk_tree()
     spec_path = _get_spec(tree_base, spec, template, saltenv)
-    if isinstance(sources, six.string_types):
+    if isinstance(sources, str):
         sources = sources.split(',')
     for src in sources:
         _get_src(tree_base, src, saltenv)
@@ -308,7 +300,7 @@ def build(runas,
                     shutil.copy(full, log_file)
                     ret.setdefault('Log Files', []).append(log_file)
         except Exception as exc:
-            log.error('Error building from %s: %s', srpm, exc)
+            log.error('Error building from {0}: {1}'.format(srpm, exc))
         finally:
             shutil.rmtree(results_dir)
     shutil.rmtree(deps_dir)
@@ -489,7 +481,7 @@ def make_repo(repodir,
                 times_looped = 0
                 error_msg = 'Failed to sign file {0}'.format(abs_file)
                 cmd = 'rpm {0} --addsign {1}'.format(define_gpg_name, abs_file)
-                preexec_fn = functools.partial(salt.utils.user.chugid_and_umask, runas, None)
+                preexec_fn = functools.partial(salt.utils.chugid_and_umask, runas, None)
                 try:
                     stdout, stderr = None, None
                     proc = salt.utils.vt.Terminal(

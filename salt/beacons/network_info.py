@@ -6,7 +6,7 @@ Beacon to monitor statistics from ethernet adapters
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import third party libs
@@ -16,9 +16,6 @@ try:
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
-
-from salt.ext.six.moves import map
-
 # pylint: enable=import-error
 
 log = logging.getLogger(__name__)
@@ -37,8 +34,8 @@ def _to_list(obj):
     ret = {}
 
     for attr in __attrs:
-        if hasattr(obj, attr):
-            ret[attr] = getattr(obj, attr)
+        # Better way to do this?
+        ret[attr] = obj.__dict__[attr]
     return ret
 
 
@@ -48,7 +45,7 @@ def __virtual__():
     return __virtualname__
 
 
-def validate(config):
+def __validate__(config):
     '''
     Validate the beacon configuration
     '''
@@ -60,19 +57,15 @@ def validate(config):
     ]
 
     # Configuration for load beacon should be a list of dicts
-    if not isinstance(config, list):
-        return False, ('Configuration for network_info beacon must be a list.')
+    if not isinstance(config, dict):
+        return False, ('Configuration for load beacon must be a dictionary.')
     else:
-
-        _config = {}
-        list(map(_config.update, config))
-
-        for item in _config.get('interfaces', {}):
-            if not isinstance(_config['interfaces'][item], dict):
-                return False, ('Configuration for network_info beacon must '
-                               'be a list of dictionaries.')
+        for item in config:
+            if not isinstance(config[item], dict):
+                return False, ('Configuration for load beacon must '
+                               'be a dictionary of dictionaries.')
             else:
-                if not any(j in VALID_ITEMS for j in _config['interfaces'][item]):
+                if not any(j in VALID_ITEMS for j in config[item]):
                     return False, ('Invalid configuration item in '
                                    'Beacon configuration.')
     return True, 'Valid beacon configuration'
@@ -93,17 +86,16 @@ def beacon(config):
 
         beacons:
           network_info:
-            - interfaces:
-                eth0:
-                  type: equal
-                  bytes_sent: 100000
-                  bytes_recv: 100000
-                  packets_sent: 100000
-                  packets_recv: 100000
-                  errin: 100
-                  errout: 100
-                  dropin: 100
-                  dropout: 100
+            eth0:
+                - type: equal
+                - bytes_sent: 100000
+                - bytes_recv: 100000
+                - packets_sent: 100000
+                - packets_recv: 100000
+                - errin: 100
+                - errout: 100
+                - dropin: 100
+                - dropout: 100
 
     Emit beacon when any values are greater
     than configured values.
@@ -112,53 +104,37 @@ def beacon(config):
 
         beacons:
           network_info:
-            - interfaces:
-                eth0:
-                  type: greater
-                  bytes_sent: 100000
-                  bytes_recv: 100000
-                  packets_sent: 100000
-                  packets_recv: 100000
-                  errin: 100
-                  errout: 100
-                  dropin: 100
-                  dropout: 100
+            eth0:
+                - type: greater
+                - bytes_sent: 100000
+                - bytes_recv: 100000
+                - packets_sent: 100000
+                - packets_recv: 100000
+                - errin: 100
+                - errout: 100
+                - dropin: 100
+                - dropout: 100
 
 
     '''
     ret = []
 
-    _config = {}
-    list(map(_config.update, config))
-
-    log.debug('psutil.net_io_counters %s', psutil.net_io_counters)
-
     _stats = psutil.net_io_counters(pernic=True)
 
-    log.debug('_stats %s', _stats)
-    for interface in _config.get('interfaces', {}):
+    for interface in config:
         if interface in _stats:
-            interface_config = _config['interfaces'][interface]
             _if_stats = _stats[interface]
             _diff = False
             for attr in __attrs:
-                if attr in interface_config:
-                    if 'type' in interface_config and \
-                            interface_config['type'] == 'equal':
-                        if getattr(_if_stats, attr, None) == \
-                                int(interface_config[attr]):
+                if attr in config[interface]:
+                    if 'type' in config[interface] and config[interface]['type'] == 'equal':
+                        if _if_stats.__dict__[attr] == int(config[interface][attr]):
                             _diff = True
-                    elif 'type' in interface_config and \
-                            interface_config['type'] == 'greater':
-                        if getattr(_if_stats, attr, None) > \
-                                int(interface_config[attr]):
+                    elif 'type' in config[interface] and config[interface]['type'] == 'greater':
+                        if _if_stats.__dict__[attr] > int(config[interface][attr]):
                             _diff = True
-                        else:
-                            log.debug('attr %s', getattr(_if_stats,
-                                                         attr, None))
                     else:
-                        if getattr(_if_stats, attr, None) == \
-                                int(interface_config[attr]):
+                        if _if_stats.__dict__[attr] == int(config[interface][attr]):
                             _diff = True
             if _diff:
                 ret.append({'interface': interface,

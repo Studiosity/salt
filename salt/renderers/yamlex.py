@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
@@ -24,10 +24,11 @@ def render(sls_data, saltenv='base', sls='', **kws):
 
         for item in warn_list:
             log.warning(
-                '%s found in %s saltenv=%s',
-                item.message, salt.utils.url.create(sls), saltenv
+                '{warn} found in {sls} saltenv={env}'.format(
+                    warn=item.message, sls=salt.utils.url.create(sls), env=saltenv
+                )
             )
 
-        log.debug('Results of SLS rendering: \n%s', data)
+        log.debug('Results of SLS rendering: \n{0}'.format(data))
 
     return data

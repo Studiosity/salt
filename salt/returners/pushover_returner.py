@@ -75,7 +75,7 @@ To override individual configuration items, append --return_kwargs '{"key:": "va
     salt '*' test.ping --return pushover --return_kwargs '{"title": "Salt is awesome!"}'
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Python libs
 import pprint
@@ -245,7 +245,7 @@ def returner(ret):
                            sound=sound,
                            token=token)
 
-    log.debug('pushover result %s', result)
+    log.debug('result {0}'.format(result))
     if not result['res']:
-        log.info('Error: %s', result['message'])
+        log.info('Error: {0}'.format(result['message']))
     return

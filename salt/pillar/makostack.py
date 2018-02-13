@@ -374,16 +374,14 @@ You can also select a custom merging strategy using a ``__`` object in a list:
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-import functools
+from __future__ import absolute_import
 import os
 import logging
+from functools import partial
+import yaml
 
 # Import Salt libs
-import salt.utils.yaml
-
-# Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 try:
     from mako.lookup import TemplateLookup
@@ -409,13 +407,13 @@ def __virtual__():
 
 
 def ext_pillar(minion_id, pillar, *args, **kwargs):
-    import salt.utils.data
+    import salt.utils
     stack = {}
     stack_config_files = list(args)
     traverse = {
-        'pillar': functools.partial(salt.utils.data.traverse_dict_and_list, pillar),
-        'grains': functools.partial(salt.utils.data.traverse_dict_and_list, __grains__),
-        'opts': functools.partial(salt.utils.data.traverse_dict_and_list, __opts__),
+        'pillar': partial(salt.utils.traverse_dict_and_list, pillar),
+        'grains': partial(salt.utils.traverse_dict_and_list, __grains__),
+        'opts': partial(salt.utils.traverse_dict_and_list, __opts__),
         }
     for matcher, matchs in six.iteritems(kwargs):
         t, matcher = matcher.split(':', 1)
@@ -432,7 +430,8 @@ def ext_pillar(minion_id, pillar, *args, **kwargs):
         else:
             namespace = None
         if not os.path.isfile(cfg):
-            log.warning('Ignoring Stack cfg "%s": file does not exist', cfg)
+            log.warning('Ignoring Stack cfg "{0}": '
+                        'file does not exist'.format(cfg))
             continue
         stack = _process_stack_cfg(cfg, stack, minion_id, pillar, namespace)
     return stack
@@ -457,24 +456,22 @@ def _process_stack_cfg(cfg, stack, minion_id, pillar, namespace):
                                                  __grains__=__grains__,
                                                  minion_id=minion_id,
                                                  pillar=pillar, stack=stack)
-            obj = salt.utils.yaml.safe_load(p)
+            obj = yaml.safe_load(p)
             if not isinstance(obj, dict):
-                log.info(
-                    'Ignoring Stack template "%s": Can\'t parse as a valid '
-                    'yaml dictionary', path
-                )
+                log.info('Ignoring Stack template "{0}": Can\'t parse '
+                         'as a valid yaml dictionary'.format(path))
                 continue
             if namespace:
                 for sub in namespace.split(':')[::-1]:
                     obj = {sub: obj}
             stack = _merge_dict(stack, obj)
-            log.info('Stack template "%s" parsed', path)
+            log.info('Stack template "{0}" parsed'.format(path))
         except exceptions.TopLevelLookupException as e:
-            log.info('Stack template "%s" not found.', path)
+            log.info('Stack template "{0}" not found.'.format(path))
             continue
         except Exception as e:
-            log.info('Ignoring Stack template "%s":', path)
-            log.info('%s', exceptions.text_error_template().render())
+            log.info('Ignoring Stack template "{0}":'.format(path))
+            log.info('{0}'.format(exceptions.text_error_template().render()))
             continue
     return stack
 
@@ -511,10 +508,8 @@ def _merge_dict(stack, obj):
                     stack[k] = _cleanup(v)
                     v = stack_k
                 if type(stack[k]) != type(v):
-                    log.debug(
-                        'Force overwrite, types differ: \'%s\' != \'%s\'',
-                        stack[k], v
-                    )
+                    log.debug('Force overwrite, types differ: '
+                              '\'{0}\' != \'{1}\''.format(stack[k], v))
                     stack[k] = _cleanup(v)
                 elif isinstance(v, dict):
                     stack[k] = _merge_dict(stack[k], v)
@@ -546,11 +541,9 @@ def _merge_list(stack, obj):
 
 
 def _parse_top_cfg(content):
-    '''
-    Allow top_cfg to be YAML
-    '''
+    """Allow top_cfg to be YAML"""
     try:
-        obj = salt.utils.yaml.safe_load(content)
+        obj = yaml.safe_load(content)
         if isinstance(obj, list):
             return obj
     except Exception as e:

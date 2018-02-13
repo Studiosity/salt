@@ -2,15 +2,14 @@
 '''
 Module for viewing and modifying sysctl parameters
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import os
 
 # Import salt libs
-import salt.utils.files
+import salt.utils
 from salt.exceptions import CommandExecutionError
-from salt.ext import six
 
 # Define the module's virtual name
 __virtualname__ = 'sysctl'
@@ -151,20 +150,19 @@ def persist(name, value, config='/etc/sysctl.conf', apply_change=False):
     '''
     nlines = []
     edited = False
-    value = six.text_type(value)
+    value = str(value)
 
     # If the sysctl.conf is not present, add it
     if not os.path.isfile(config):
         try:
-            with salt.utils.files.fopen(config, 'w+') as _fh:
+            with salt.utils.fopen(config, 'w+') as _fh:
                 _fh.write('#\n# Kernel sysctl configuration\n#\n')
         except (IOError, OSError):
             msg = 'Could not write to file: {0}'
             raise CommandExecutionError(msg.format(config))
 
-    with salt.utils.files.fopen(config, 'r') as ifile:
+    with salt.utils.fopen(config, 'r') as ifile:
         for line in ifile:
-            line = salt.utils.stringutils.to_unicode(line).rstrip('\n')
             if not line.startswith('{0}='.format(name)):
                 nlines.append(line)
                 continue
@@ -186,8 +184,7 @@ def persist(name, value, config='/etc/sysctl.conf', apply_change=False):
     if not edited:
         nlines.append('{0}={1}'.format(name, value))
         nlines.append('\n')
-    nlines = [salt.utils.stringutils.to_str(_l) for _l in nlines]
-    with salt.utils.files.fopen(config, 'w+') as ofile:
+    with salt.utils.fopen(config, 'w+') as ofile:
         ofile.writelines(nlines)
     # If apply_change=True, apply edits to system
     if apply_change is True:

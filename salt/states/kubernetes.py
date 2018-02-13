@@ -80,10 +80,6 @@ from __future__ import absolute_import
 
 import copy
 import logging
-
-# Import 3rd-party libs
-from salt.ext import six
-
 log = logging.getLogger(__name__)
 
 
@@ -406,7 +402,7 @@ def namespace_absent(name, **kwargs):
     if (
             res['code'] == 200 or
             (
-                isinstance(res['status'], six.string_types) and
+                isinstance(res['status'], str) and
                 'Terminating' in res['status']
             ) or
             (
@@ -432,7 +428,7 @@ def namespace_present(name, **kwargs):
     Ensures that the named namespace is present.
 
     name
-        The name of the namespace.
+        The name of the deployment.
 
     '''
     ret = {'name': name,
@@ -449,7 +445,6 @@ def namespace_present(name, **kwargs):
             return ret
 
         res = __salt__['kubernetes.create_namespace'](name, **kwargs)
-        ret['result'] = True
         ret['changes']['namespace'] = {
             'old': {},
             'new': res}
@@ -505,8 +500,8 @@ def secret_present(
         name,
         namespace='default',
         data=None,
-        source=None,
-        template=None,
+        source='',
+        template='',
         **kwargs):
     '''
     Ensures that the named secret is present inside of the specified namespace
@@ -563,7 +558,6 @@ def secret_present(
     else:
         if __opts__['test']:
             ret['result'] = None
-            ret['comment'] = 'The secret is going to be replaced'
             return ret
 
         # TODO: improve checks  # pylint: disable=fixme
@@ -581,7 +575,7 @@ def secret_present(
     ret['changes'] = {
         # Omit values from the return. They are unencrypted
         # and can contain sensitive data.
-        'data': list(res['data'])
+        'data': res['data'].keys()
     }
     ret['result'] = True
 
@@ -596,8 +590,7 @@ def configmap_absent(name, namespace='default', **kwargs):
         The name of the configmap
 
     namespace
-        The namespace holding the configmap. The 'default' one is going to be
-        used unless a different one is specified.
+        The name of the namespace
     '''
 
     ret = {'name': name,
@@ -634,8 +627,8 @@ def configmap_present(
         name,
         namespace='default',
         data=None,
-        source=None,
-        template=None,
+        source='',
+        template='',
         **kwargs):
     '''
     Ensures that the named configmap is present inside of the specified namespace
@@ -668,8 +661,6 @@ def configmap_present(
             ret,
             '\'source\' cannot be used in combination with \'data\''
         )
-    elif data is None:
-        data = {}
 
     configmap = __salt__['kubernetes.show_configmap'](name, namespace, **kwargs)
 
@@ -691,7 +682,6 @@ def configmap_present(
     else:
         if __opts__['test']:
             ret['result'] = None
-            ret['comment'] = 'The configmap is going to be replaced'
             return ret
 
         # TODO: improve checks  # pylint: disable=fixme
@@ -933,10 +923,7 @@ def node_label_folder_absent(name, node, **kwargs):
     ret['result'] = True
     ret['changes'] = {
         'kubernetes.node_label_folder_absent': {
-            'old': list(labels),
-            'new': new_labels,
-        }
-    }
+            'new': new_labels, 'old': labels.keys()}}
     ret['comment'] = 'Label folder removed from node'
 
     return ret
@@ -984,7 +971,6 @@ def node_label_present(
     else:
         if __opts__['test']:
             ret['result'] = None
-            ret['comment'] = 'The label is going to be updated'
             return ret
 
         ret['comment'] = 'The label is already set, changing the value'

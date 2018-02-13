@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 r'''
+===========================
 Manage the Windows registry
 ===========================
-
 Many python developers think of registry keys as if they were python keys in a
 dictionary which is not the case. The windows registry is broken down into the
 following components:
@@ -55,11 +55,11 @@ Value:
     - There are 3 value names: `RTHDVCPL`, `NvBackend`, and `BTMTrayAgent`
     - Each value name has a corresponding value
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
-import salt.utils.stringutils
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -187,14 +187,14 @@ def present(name,
                                              use_32bit_registry=use_32bit_registry)
 
     if vdata == reg_current['vdata'] and reg_current['success']:
-        ret['comment'] = '{0} in {1} is already configured' \
-                         ''.format(salt.utils.stringutils.to_unicode(vname, 'utf-8') if vname else '(Default)',
-                                   salt.utils.stringutils.to_unicode(name, 'utf-8'))
+        ret['comment'] = u'{0} in {1} is already configured' \
+                         ''.format(salt.utils.to_unicode(vname, 'utf-8') if vname else u'(Default)',
+                                   salt.utils.to_unicode(name, 'utf-8'))
         return ret
 
     add_change = {'Key': r'{0}\{1}'.format(hive, key),
-                  'Entry': '{0}'.format(salt.utils.stringutils.to_unicode(vname, 'utf-8') if vname else '(Default)'),
-                  'Value': salt.utils.stringutils.to_unicode(vdata, 'utf-8')}
+                  'Entry': u'{0}'.format(salt.utils.to_unicode(vname, 'utf-8') if vname else u'(Default)'),
+                  'Value': salt.utils.to_unicode(vdata, 'utf-8')}
 
     # Check for test option
     if __opts__['test']:

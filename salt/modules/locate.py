@@ -2,13 +2,13 @@
 '''
 Module for using the locate utilities
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
 
 # Import salt libs
-import salt.utils.platform
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -17,12 +17,8 @@ def __virtual__():
     '''
     Only work on POSIX-like systems
     '''
-    if salt.utils.platform.is_windows():
-        return (
-            False,
-            'The locate execution module cannot be loaded: only available on '
-            'non-Windows systems.'
-        )
+    if salt.utils.is_windows():
+        return (False, 'The locate execution module cannot be loaded: only available on non-Windows systems.')
     return True
 
 

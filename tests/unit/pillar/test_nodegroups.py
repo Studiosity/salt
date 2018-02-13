@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -27,10 +27,8 @@ fake_pillar_name = 'fake_pillar_name'
 
 def side_effect(group_sel, t):
     if group_sel.find(fake_minion_id) != -1:
-        return {'minions': [fake_minion_id, ],
-                'missing': []}
-    return {'minions': ['another_minion_id', ],
-            'missing': []}
+        return [fake_minion_id, ]
+    return ['another_minion_id', ]
 
 
 class NodegroupsPillarTestCase(TestCase, LoaderModuleMockMixin):

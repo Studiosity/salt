@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 '''
 Tests to try out salt key.RaetKey Potentially ephemeral
+
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+
+from __future__ import print_function
+
+from __future__ import absolute_import
+# pylint: skip-file
+# pylint: disable=C0103
 import sys
-from salt.ext.six.moves import map
-# pylint: disable=blacklisted-import
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-# pylint: enable=blacklisted-import
 
 import os
 import stat
@@ -19,27 +22,27 @@ import tempfile
 import shutil
 
 from ioflo.aid.odicting import odict
-from ioflo.aid.timing import StoreTimer
+from ioflo.aid.timing import Timer, StoreTimer
 from ioflo.base import storing
 from ioflo.base.consoling import getConsole
 console = getConsole()
 
 from raet import raeting, nacling
-from raet.road import estating, stacking
+from raet.road import estating, keeping, stacking
 
+from salt.key import RaetKey
 from salt.daemons import salting
-import salt.utils.kinds as kinds
-
+from salt import daemons
+from salt.utils import kinds
 
 def setUpModule():
     console.reinit(verbosity=console.Wordage.concise)
 
-
 def tearDownModule():
     pass
 
-
-class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
+class BasicTestCase(unittest.TestCase):
+    """"""
 
     def setUp(self):
         self.store = storing.Store(stamp=0.0)
@@ -65,7 +68,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
         '''
         pkiDirpath = os.path.join(dirpath, 'pki', role, 'raet')
         if not os.path.exists(pkiDirpath):
-            os.makedirs(pkiDirpath)
+                os.makedirs(pkiDirpath)
 
         acceptedDirpath = os.path.join(pkiDirpath, 'accepted')
         if not os.path.exists(acceptedDirpath):
@@ -100,7 +103,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                      )
         return opts
 
-    def createRoadData(self, role, kind=kinds.APPL_KIND_NAMES[kinds.applKinds.master], cachedirpath=''):
+    def createRoadData(self, role, kind=kinds.APPL_KIND_NAMES[kinds.applKinds.master],  cachedirpath=''):
         '''
         Creates odict and populates with data to setup road stack
         {
@@ -113,9 +116,9 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
         }
         '''
         data = odict()
-        data['name'] = "{0}_{1}".format(role, kind)
+        data['name'] = "{0}_{1}".format(role, kind )
         data['role'] = role
-        data['kind'] = kinds.APPL_KINDS[kind]  # convert to integer from kind name
+        data['kind'] = kinds.APPL_KINDS[kind] # convert to integer from kind name
         data['basedirpath'] = os.path.join(cachedirpath, 'raet')
         signer = nacling.Signer()
         data['sighex'] = signer.keyhex
@@ -124,9 +127,10 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
         data['prihex'] = privateer.keyhex
         data['pubhex'] = privateer.pubhex
 
+
         return data
 
-    def createRoadStack(self, data, keep, uid=None, main=None, ha=None, mutable=None):
+    def createRoadStack(self, data, keep,  uid=None, main=None, ha=None, mutable=None):
         '''
         Creates stack and local estate from data with
         local estate.uid = uid
@@ -140,6 +144,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
         returns stack
 
         '''
+
         stack = stacking.RoadStack(store=self.store,
                                    name=data['name'],
                                    keep=keep,
@@ -161,8 +166,8 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
         console.terse("\nJoin Transaction **************\n")
         if not initiator.remotes:
             remote = initiator.addRemote(estating.RemoteEstate(stack=initiator,
-                                                      fuid=0,  # vacuous join
-                                                      sid=0,  # always 0 for join
+                                                      fuid=0, # vacuous join
+                                                      sid=0, # always 0 for join
                                                       ha=correspondent.local.ha))
             deid = remote.uid
         initiator.join(uid=deid)
@@ -176,7 +181,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
         other.allow()
         self.service(main, other, duration=duration)
 
-    def message(self, main, other, mains, others, duration=2.0):
+    def message(self, main,  other, mains, others, duration=2.0):
         '''
         Utility to send messages both ways
         '''
@@ -213,7 +218,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=False)
         mainData = self.createRoadData(cachedirpath=opts['cachedir'],
                                        role=opts['id'],
-                                       kind=opts['__role'])
+                                       kind=opts['__role'] )
         mainKeep = salting.SaltKeep(opts=opts,
                                     basedirpath=mainData['basedirpath'],
                                     stackname=mainData['name'])
@@ -223,7 +228,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -336,7 +341,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=False)
         otherData = self.createRoadData(role=opts['id'],
                                         kind=opts['__role'],
-                                        cachedirpath=opts['cachedir'])
+                                        cachedirpath=opts['cachedir'] )
         otherKeep = salting.SaltKeep(opts=opts,
                                       basedirpath=otherData['basedirpath'],
                                       stackname=otherData['name'])
@@ -463,7 +468,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -574,7 +579,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         otherData = self.createRoadData(role='other',
                                         kind=opts['__role'],
-                                        cachedirpath=opts['cachedir'])
+                                        cachedirpath=opts['cachedir'] )
         otherKeep = salting.SaltKeep(opts=opts,
                                       basedirpath=otherData['basedirpath'],
                                       stackname=otherData['name'])
@@ -591,7 +596,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                 other.name, other.keep.dirpath))
         self.assertTrue(other.keep.dirpath.endswith(os.path.join('other', 'raet', 'other_minion')))
         self.assertEqual(other.ha, ("0.0.0.0", raeting.RAET_TEST_PORT))
-        self.assertIs(other.keep.auto, raeting.AutoMode.always.value)
+        self.assertIs(other.keep.auto,raeting.AutoMode.always.value)
 
         self.assertDictEqual(other.keep.loadLocalData(),
                             {
@@ -691,7 +696,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         mainData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         mainKeep = salting.SaltKeep(opts=opts,
                                     basedirpath=mainData['basedirpath'],
                                     stackname=mainData['name'])
@@ -701,14 +706,14 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
                 main.name, main.keep.dirpath))
         self.assertTrue(main.keep.dirpath.endswith(os.path.join('main', 'raet', 'main_master')))
         self.assertTrue(main.ha, ("0.0.0.0", raeting.RAET_PORT))
-        self.assertIs(main.keep.auto, raeting.AutoMode.once.value)
+        self.assertIs(main.keep.auto,  raeting.AutoMode.once.value)
         self.assertDictEqual(main.keep.loadLocalData(), {
                                                          'name': mainData['name'],
                                                          'uid': 1,
@@ -814,7 +819,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         otherData = self.createRoadData(role='other',
                                         kind=kinds.APPL_KIND_NAMES[kinds.applKinds.minion],
-                                        cachedirpath=opts['cachedir'])
+                                        cachedirpath=opts['cachedir'] )
         otherKeep = salting.SaltKeep(opts=opts,
                                       basedirpath=otherData['basedirpath'],
                                       stackname=otherData['name'])
@@ -942,7 +947,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -977,7 +982,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                              role=data1['role'],
                                              verkey=data1['verhex'],
                                              pubkey=data1['pubhex'],
-                                             ))
+                                             ) )
 
         data2 = self.createRoadData(role='primary',
                                     kind=kinds.APPL_KIND_NAMES[kinds.applKinds.caller],
@@ -990,7 +995,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                              role=data2['role'],
                                              verkey=data2['verhex'],
                                              pubkey=data2['pubhex'],
-                                             ))
+                                             ) )
 
         main.dumpRemotes()
 
@@ -1090,7 +1095,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -1124,7 +1129,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                              ha=('127.0.0.1', 7532),
                                              role=data1['role'],
                                              verkey=data1['verhex'],
-                                             pubkey=data1['pubhex'],))
+                                             pubkey=data1['pubhex'],) )
 
         data2 = self.createRoadData(role='primary',
                                     kind='syndic',
@@ -1135,9 +1140,9 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                              ha=('127.0.0.1', 7533),
                                              role=data2['role'],
                                              verkey=data2['verhex'],
-                                             pubkey=data2['pubhex'],))
+                                             pubkey=data2['pubhex'],) )
 
-        main.dumpRemotes()  # second one keys will clobber first one keys
+        main.dumpRemotes() # second one keys will clobber first one keys
 
         self.assertDictEqual(main.keep.loadAllRemoteData(),
             {
@@ -1234,7 +1239,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -1270,7 +1275,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                              role=data1['role'],
                                              verkey=data1['verhex'],
                                              pubkey=data1['pubhex'],
-                                             ))
+                                             ) )
 
         data2 = self.createRoadData(role='primary',
                                     kind='syndic',
@@ -1283,7 +1288,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                              role=data2['role'],
                                              verkey=data2['verhex'],
                                              pubkey=data2['pubhex'],
-                                             ))
+                                             ) )
 
         main.dumpRemotes()
 
@@ -1360,6 +1365,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
             self.assertEqual(remote.pubber.keyhex, data1['pubhex'])
             self.assertEqual(remote.verfer.keyhex, data1['verhex'])
 
+
         main.server.close()
 
     def testBootstrapNever(self):
@@ -1375,7 +1381,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=False)
         mainData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         mainKeep = salting.SaltKeep(opts=opts,
                                     basedirpath=mainData['basedirpath'],
                                     stackname=mainData['name'])
@@ -1385,7 +1391,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -1416,7 +1422,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         otherData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         otherKeep = salting.SaltKeep(opts=opts,
                                       basedirpath=otherData['basedirpath'],
                                       stackname=otherData['name'])
@@ -1433,7 +1439,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                 other.name, other.keep.dirpath))
         self.assertTrue(other.keep.dirpath.endswith(os.path.join('other', 'raet', 'other_minion')))
         self.assertEqual(other.ha, ("0.0.0.0", raeting.RAET_TEST_PORT))
-        self.assertIs(other.keep.auto, raeting.AutoMode.once.value)
+        self.assertIs(other.keep.auto,  raeting.AutoMode.once.value)
         self.assertDictEqual(other.keep.loadLocalData(),
                             {
                                 'name': otherData['name'],
@@ -1452,7 +1458,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                             })
 
         self.join(other, main)
-        self.assertEqual(len(main.transactions), 1)  # pending
+        self.assertEqual(len(main.transactions), 1) # pending
         main.keep.acceptRemote(main.nameRemotes[other.local.name])
         self.service(main, other, duration=1.0)
 
@@ -1475,6 +1481,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
             path = os.path.join(main.keep.remotedirpath,
                     "{0}.{1}.{2}".format(main.keep.prefix, remote.name, main.keep.ext))
             self.assertTrue(os.path.exists(path))
+
 
         # now delete a key and see if road keep file is also deleted
         main.keep.saltRaetKey.delete_key(match=other.local.role)
@@ -1500,7 +1507,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         mainData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         mainKeep = salting.SaltKeep(opts=opts,
                                     basedirpath=mainData['basedirpath'],
                                     stackname=mainData['name'])
@@ -1510,7 +1517,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -1541,7 +1548,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         otherData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         otherKeep = salting.SaltKeep(opts=opts,
                                       basedirpath=otherData['basedirpath'],
                                       stackname=otherData['name'])
@@ -1597,6 +1604,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                     "{0}.{1}.{2}".format(main.keep.prefix, remote.name, main.keep.ext))
             self.assertTrue(os.path.exists(path))
 
+
         # now delete a key and see if road keep file is also deleted
         main.keep.saltRaetKey.delete_key(match=other.local.role)
         remote = main.remotes[2]
@@ -1621,7 +1629,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         mainData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         mainKeep = salting.SaltKeep(opts=opts,
                                     basedirpath=mainData['basedirpath'],
                                     stackname=mainData['name'])
@@ -1631,7 +1639,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -1662,7 +1670,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         otherData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         otherKeep = salting.SaltKeep(opts=opts,
                                       basedirpath=otherData['basedirpath'],
                                       stackname=otherData['name'])
@@ -1718,6 +1726,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                     "{0}.{1}.{2}".format(main.keep.prefix, remote.name, main.keep.ext))
             self.assertTrue(os.path.exists(path))
 
+
         # now delete a key and see if road keep file is also deleted
         main.keep.saltRaetKey.delete_key(match=other.local.role)
         remote = main.remotes[2]
@@ -1742,7 +1751,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=False)
         mainData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         mainKeep = salting.SaltKeep(opts=opts,
                                     basedirpath=mainData['basedirpath'],
                                     stackname=mainData['name'])
@@ -1752,7 +1761,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -1783,7 +1792,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         other1Data = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         other1Keep = salting.SaltKeep(opts=opts,
                                       basedirpath=other1Data['basedirpath'],
                                       stackname=other1Data['name'])
@@ -1819,7 +1828,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                             })
 
         self.join(other1, main)
-        self.assertEqual(len(main.transactions), 1)  # pending
+        self.assertEqual(len(main.transactions), 1) # pending
         main.keep.acceptRemote(main.nameRemotes[other1.local.name])
         self.service(main, other1, duration=1.0)
 
@@ -1851,7 +1860,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         other2Data = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         other2Keep = salting.SaltKeep(opts=opts,
                                       basedirpath=other2Data['basedirpath'],
                                       stackname=other2Data['name'])
@@ -1888,7 +1897,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         # should not join since role same but keys different
         self.join(other2, main)
-        self.assertEqual(len(main.transactions), 0)  # rejected since not same keys
+        self.assertEqual(len(main.transactions), 0) # rejected since not same keys
         self.assertEqual(len(other2.remotes), 0)
         self.assertEqual(len(main.remotes), 1)
         #main.removeRemote(main.nameRemotes[other2.local.name], clear=True)
@@ -1909,7 +1918,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         other2Data = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         other2Data['sighex'] = other1Data['sighex']
         other2Data['prihex'] = other1Data['prihex']
         other2Keep = salting.SaltKeep(opts=opts,
@@ -1997,7 +2006,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         mainData = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         mainKeep = salting.SaltKeep(opts=opts,
                                     basedirpath=mainData['basedirpath'],
                                     stackname=mainData['name'])
@@ -2007,7 +2016,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
 
         main = self.createRoadStack(data=mainData,
                                      main=True,
-                                     ha=None,  # default ha is ("", raeting.RAET_PORT)
+                                     ha=None, #default ha is ("", raeting.RAET_PORT)
                                      keep=mainKeep)
 
         console.terse("{0}\nkeep dirpath = {1}\n".format(
@@ -2038,7 +2047,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         other1Data = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         other1Keep = salting.SaltKeep(opts=opts,
                                       basedirpath=other1Data['basedirpath'],
                                       stackname=other1Data['name'])
@@ -2102,7 +2111,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                                autoAccept=True)
         other2Data = self.createRoadData(role=opts['id'],
                                        kind=opts['__role'],
-                                       cachedirpath=opts['cachedir'])
+                                       cachedirpath=opts['cachedir'] )
         other2Data['sighex'] = other1Data['sighex']
         other2Data['prihex'] = other1Data['prihex']
 
@@ -2163,6 +2172,7 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
                     "{0}.{1}.{2}".format(main.keep.prefix, remote.name, main.keep.ext))
             self.assertTrue(os.path.exists(path))
 
+
         # now delete a key and see if both road keep file are also deleted
         main.keep.saltRaetKey.delete_key(match=other1.local.role)
         remote = main.remotes[2]
@@ -2178,7 +2188,6 @@ class BasicTestCase(unittest.TestCase):  # pylint: disable=moved-test-case-class
             stack.server.close()
             stack.clearAllKeeps()
 
-
 def runOne(test):
     '''
     Unittest Runner
@@ -2187,12 +2196,11 @@ def runOne(test):
     suite = unittest.TestSuite([test])
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-
 def runSome():
     '''
     Unittest runner
     '''
-    tests = []
+    tests =  []
     names = ['testBasic',
              'testBasicOpen',
              'testBasicAuto',
@@ -2206,11 +2214,10 @@ def runSome():
              'testBootstrapRoleAuto',
              ]
 
-    tests.extend(list(map(BasicTestCase, names)))
+    tests.extend(map(BasicTestCase, names))
 
     suite = unittest.TestSuite(tests)
     unittest.TextTestRunner(verbosity=2).run(suite)
-
 
 def runAll():
     '''
@@ -2225,8 +2232,8 @@ if __name__ == '__main__' and __package__ is None:
 
     #console.reinit(verbosity=console.Wordage.concise)
 
-    #runAll()  # run all unittests
+    #runAll() #run all unittests
 
-    runSome()  # only run some
+    runSome()#only run some
 
     #runOne('testBootstrapRoleAuto')

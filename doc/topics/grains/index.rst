@@ -104,17 +104,44 @@ the following configuration:
 
 .. code-block:: yaml
 
-    'roles:webserver':
+    'node_type:webserver':
       - match: grain
-      - state0
+      - webserver
 
-    'roles:memcache':
+    'node_type:postgres':
       - match: grain
-      - state1
-      - state2
+      - postgres
+
+    'node_type:redis':
+      - match: grain
+      - redis
+
+    'node_type:lb':
+      - match: grain
+      - lb
 
 For this example to work, you would need to have defined the grain
-``role`` for the minions you wish to match.
+``node_type`` for the minions you wish to match. This simple example is nice,
+but too much of the code is similar. To go one step further, Jinja templating
+can be used to simplify the :term:`top file`.
+
+.. code-block:: yaml
+
+    {% set the_node_type = salt['grains.get']('node_type', '') %}
+
+    {% if the_node_type %}
+      'node_type:{{ the_node_type }}':
+        - match: grain
+        - {{ the_node_type }}
+    {% endif %}
+
+Using Jinja templating, only one match entry needs to be defined.
+
+.. note::
+
+    The example above uses the :mod:`grains.get <salt.modules.grains.get>`
+    function to account for minions which do not have the ``node_type`` grain
+    set.
 
 .. _writing-grains:
 

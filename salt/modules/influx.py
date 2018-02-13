@@ -27,7 +27,7 @@ version 0.9+)
     would override ``user`` and ``password`` while still using the defaults for
     ``host`` and ``port``.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 try:
     import influxdb
@@ -36,11 +36,8 @@ except ImportError:
     HAS_INFLUXDB = False
 
 import collections
+import json
 import logging
-
-# Import salt libs
-import salt.utils.json
-from salt.state import STATE_INTERNAL_KEYWORDS as _STATE_INTERNAL_KEYWORDS
 
 log = logging.getLogger(__name__)
 
@@ -67,14 +64,10 @@ def _client(user=None, password=None, host=None, port=None, **client_args):
         host = __salt__['config.option']('influxdb.host', 'localhost')
     if not port:
         port = __salt__['config.option']('influxdb.port', 8086)
-    for ignore in _STATE_INTERNAL_KEYWORDS:
-        if ignore in client_args:
-            del client_args[ignore]
     return influxdb.InfluxDBClient(host=host,
                                    port=port,
                                    username=user,
-                                   password=password,
-                                   **client_args)
+                                   password=password)
 
 
 def list_dbs(**client_args):
@@ -125,7 +118,7 @@ def create_db(name, **client_args):
         salt '*' influxdb.create_db <name>
     '''
     if db_exists(name, **client_args):
-        log.info('DB \'%s\' already exists', name)
+        log.info('DB \'{0}\' already exists'.format(name))
         return False
 
     client = _client(**client_args)
@@ -148,7 +141,7 @@ def drop_db(name, **client_args):
         salt '*' influxdb.drop_db <name>
     '''
     if not db_exists(name, **client_args):
-        log.info('DB \'%s\' does not exist', name)
+        log.info('DB \'{0}\' does not exist'.format(name))
         return False
 
     client = _client(**client_args)
@@ -235,7 +228,7 @@ def create_user(name, password, admin=False, **client_args):
         salt '*' influxdb.create_user <name> <password> admin=True
     '''
     if user_exists(name, **client_args):
-        log.info("User '%s' already exists", name)
+        log.info("User '{0}' already exists".format(name))
         return False
 
     client = _client(**client_args)
@@ -261,7 +254,7 @@ def set_user_password(name, password, **client_args):
         salt '*' influxdb.set_user_password <name> <password>
     '''
     if not user_exists(name, **client_args):
-        log.info('User \'%s\' does not exist', name)
+        log.info('User \'{0}\' does not exist'.format(name))
         return False
 
     client = _client(**client_args)
@@ -322,7 +315,7 @@ def remove_user(name, **client_args):
         salt '*' influxdb.remove_user <name>
     '''
     if not user_exists(name, **client_args):
-        log.info('User \'%s\' does not exist', name)
+        log.info('User \'{0}\' does not exist'.format(name))
         return False
 
     client = _client(**client_args)
@@ -678,7 +671,7 @@ def _pull_query_results(resultset):
     for _header, _values in resultset.items():
         _header, _group_tags = _header
         if _group_tags:
-            _results[_header][salt.utils.json.dumps(_group_tags)] = [_value for _value in _values]
+            _results[_header][json.dumps(_group_tags)] = [_value for _value in _values]
         else:
             _results[_header] = [_value for _value in _values]
     return dict(sorted(_results.items()))

@@ -18,7 +18,9 @@ In the minion configuration file, the following block is required:
 
 .. versionadded:: 2017.7.0
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 # import python std lib
 import time
@@ -327,7 +329,7 @@ def update(name,
     ret = _default_ret(name)
     endpoint_sg = endpoint[:-1]  # singular
     if not id:
-        log.error('Invalid %s ID', endpoint_sg)
+        log.error('Invalid {endpoint} ID'.format(endpoint=endpoint_sg))
         ret['comment'] = 'Please specify a valid {endpoint} ID'.format(endpoint=endpoint_sg)
         return ret
     if __opts__['test']:
@@ -393,7 +395,7 @@ def delete(name,
     ret = _default_ret(name)
     endpoint_sg = endpoint[:-1]  # singular
     if not id:
-        log.error('Invalid %s ID', endpoint_sg)
+        log.error('Invalid {endpoint} ID'.format(endpoint=endpoint_sg))
         ret['comment'] = 'Please specify a valid {endpoint} ID'.format(endpoint=endpoint_sg)
         return ret
     if __opts__['test']:
@@ -522,10 +524,10 @@ def managed(name,
     for endpoint_name, endpoint_diff in six.iteritems(complete_diff):
         endpoint_sg = endpoint_name[:-1]  # singular
         for new_endpoint in endpoint_diff.get('add'):
-            log.debug('Defining new %s %s',
-                      endpoint_sg,
-                      new_endpoint
-                      )
+            log.debug('Defining new {endpoint}: {props}'.format(
+                endpoint=endpoint_sg,
+                props=new_endpoint
+            ))
             adding = __salt__['statuspage.create'](endpoint=endpoint_name,
                                                    api_url=api_url,
                                                    page_id=page_id,
@@ -543,11 +545,11 @@ def managed(name,
             if 'id' not in update_endpoint:
                 continue
             endpoint_id = update_endpoint.pop('id')
-            log.debug('Updating %s #%s: %s',
-                      endpoint_sg,
-                      endpoint_id,
-                      update_endpoint
-                      )
+            log.debug('Updating {endpoint} #{id}: {props}'.format(
+                endpoint=endpoint_sg,
+                id=endpoint_id,
+                props=update_endpoint
+            ))
             updating = __salt__['statuspage.update'](endpoint=endpoint_name,
                                                      id=endpoint_id,
                                                      api_url=api_url,
@@ -566,10 +568,10 @@ def managed(name,
             if 'id' not in remove_endpoint:
                 continue
             endpoint_id = remove_endpoint.pop('id')
-            log.debug('Removing %s #%s',
-                      endpoint_sg,
-                      endpoint_id
-                      )
+            log.debug('Removing {endpoint} #{id}'.format(
+                endpoint=endpoint_sg,
+                id=endpoint_id
+            ))
             removing = __salt__['statuspage.delete'](endpoint=endpoint_name,
                                                      id=endpoint_id,
                                                      api_url=api_url,

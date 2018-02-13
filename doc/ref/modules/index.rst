@@ -13,7 +13,7 @@ Writing Salt execution modules is straightforward.
 
 A Salt execution module is a Python or `Cython`_ module placed in a directory
 called ``_modules/`` at the root of the Salt fileserver. When using the default
-fileserver backend (i.e. :py:mod:`roots <salt.fileserver.roots>`), unless
+fileserver backend (i.e. :py:mod:`roots <salt.fileserver.roots`), unless
 environments are otherwise defined in the :conf_master:`file_roots` config
 option, the ``_modules/`` directory would be located in ``/srv/salt/_modules``
 on most systems.
@@ -209,29 +209,6 @@ default configuration file for the minion contains the information and format
 used to pass data to the modules. :mod:`salt.modules.test`,
 :file:`conf/minion`.
 
-.. _module_init:
-
-``__init__`` Function
----------------------
-
-If you want your module to have different execution modes based on minion
-configuration, you can use the ``__init__(opts)`` function to perform initial
-module setup. The parameter ``opts`` is the complete minion configuration,
-as also available in the ``__opts__`` dict.
-
-.. code-block:: python
-
-    '''
-    Cheese module initialization example
-    '''
-    def __init__(opts):
-        '''
-        Allow foreign imports if configured to do so
-        '''
-        if opts.get('cheese.allow_foreign', False):
-            _enable_foreign_products()
-
-
 Strings and Unicode
 ===================
 
@@ -296,9 +273,8 @@ module is not loaded. ``False`` lets the module perform system checks and
 prevent loading if dependencies are not met.
 
 Since ``__virtual__`` is called before the module is loaded, ``__salt__`` will
-be unreliable as not all modules will be available at this point in time. The
-``__pillar`` and ``__grains__`` :ref:`"dunder" dictionaries <dunder-dictionaries>`
-are available however.
+be unavailable as it will not have been packed into the module at this point in
+time.
 
 .. note::
     Modules which return a string from ``__virtual__`` that is already used by
@@ -337,14 +313,10 @@ the case when the dependency is unavailable.
         else:
             return False, 'The cheese execution module cannot be loaded: enzymes unavailable.'
 
-    def slice():
-        pass
-
 .. code-block:: python
 
     '''
-    Cheese state module. Note that this works in state modules because it is
-    guaranteed that execution modules are loaded first
+    Cheese state module
     '''
 
     def __virtual__():
@@ -445,7 +417,7 @@ similar to the following:
        Confine this module to Mac OS with Homebrew.
        '''
 
-       if salt.utils.path.which('brew') and __grains__['os'] == 'MacOS':
+       if salt.utils.which('brew') and __grains__['os'] == 'MacOS':
            return __virtualname__
        return False
 
@@ -467,7 +439,7 @@ For example:
         '''
         Only load if git exists on the system
         '''
-        if salt.utils.path.which('git') is None:
+        if salt.utils.which('git') is None:
             return (False,
                     'The git execution module cannot be loaded: git unavailable.')
         else:

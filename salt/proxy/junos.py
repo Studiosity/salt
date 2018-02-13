@@ -35,8 +35,9 @@ Run the salt proxy via the following command:
 
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
+# Import python libs
 import logging
 
 # Import 3rd-party libs
@@ -46,11 +47,6 @@ try:
     import jnpr.junos.utils
     import jnpr.junos.utils.config
     import jnpr.junos.utils.sw
-    from jnpr.junos.exception import RpcTimeoutError
-    from jnpr.junos.exception import ConnectClosedError
-    from jnpr.junos.exception import RpcError
-    from jnpr.junos.exception import ConnectError
-    from ncclient.operations.errors import TimeoutExpiredError
 except ImportError:
     HAS_JUNOS = False
 
@@ -120,35 +116,6 @@ def conn():
     return thisproxy['conn']
 
 
-def alive(opts):
-    '''
-    Validate and return the connection status with the remote device.
-
-    .. versionadded:: Oxygen
-    '''
-
-    dev = conn()
-
-    # Check that the underlying netconf connection still exists.
-    if dev._conn is None:
-        return False
-
-    # call rpc only if ncclient queue is empty. If not empty that means other
-    # rpc call is going on.
-    if hasattr(dev._conn, '_session'):
-        if dev._conn._session._transport.is_active():
-            # there is no on going rpc call.
-            if dev._conn._session._q.empty():
-                thisproxy['conn'].connected = ping()
-        else:
-            # ssh connection is lost
-            dev.connected = False
-    else:
-        # other connection modes, like telnet
-        thisproxy['conn'].connected = ping()
-    return dev.connected
-
-
 def proxytype():
     '''
     Returns the name of this proxy
@@ -174,16 +141,7 @@ def ping():
     '''
     Ping?  Pong!
     '''
-
-    dev = conn()
-    try:
-        dev.rpc.file_list(path='/dev/null', dev_timeout=2)
-        return True
-    except (RpcTimeoutError, ConnectClosedError):
-        try:
-            dev.close()
-        except (RpcError, ConnectError, TimeoutExpiredError):
-            return False
+    return thisproxy['conn'].connected
 
 
 def shutdown(opts):
@@ -191,7 +149,7 @@ def shutdown(opts):
     This is called when the proxy-minion is exiting to make sure the
     connection to the device is closed cleanly.
     '''
-    log.debug('Proxy module %s shutting down!!', opts['id'])
+    log.debug('Proxy module {0} shutting down!!'.format(opts['id']))
     try:
         thisproxy['conn'].close()
 

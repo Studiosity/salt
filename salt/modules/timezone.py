@@ -2,9 +2,9 @@
 '''
 Module for managing timezone on POSIX-like systems.
 '''
+from __future__ import absolute_import
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+# Import python libs
 import filecmp
 import os
 import errno
@@ -13,12 +13,8 @@ import re
 import string
 
 # Import salt libs
-import salt.utils.files
-import salt.utils.hashutils
+import salt.utils
 import salt.utils.itertools
-import salt.utils.path
-import salt.utils.platform
-import salt.utils.stringutils
 from salt.exceptions import SaltInvocationError, CommandExecutionError
 
 log = logging.getLogger(__name__)
@@ -30,12 +26,12 @@ def __virtual__():
     '''
     Only work on POSIX-like systems
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return (False, 'The timezone execution module failed to load: '
                        'win_timezone.py should replace this module on Windows.'
                        'There was a problem loading win_timezone.py.')
 
-    if salt.utils.platform.is_darwin():
+    if salt.utils.is_darwin():
         return (False, 'The timezone execution module failed to load: '
                        'mac_timezone.py should replace this module on macOS.'
                        'There was a problem loading mac_timezone.py.')
@@ -58,9 +54,8 @@ def _timedatectl():
 
 def _get_zone_solaris():
     tzfile = '/etc/TIMEZONE'
-    with salt.utils.files.fopen(tzfile, 'r') as fp_:
+    with salt.utils.fopen(tzfile, 'r') as fp_:
         for line in fp_:
-            line = salt.utils.stringutils.to_unicode(line)
             if 'TZ=' in line:
                 zonepart = line.rstrip('\n').split('=')[-1]
                 return zonepart.strip('\'"') or 'UTC'
@@ -86,9 +81,8 @@ def _get_adjtime_timezone():
 
 def _get_zone_sysconfig():
     tzfile = '/etc/sysconfig/clock'
-    with salt.utils.files.fopen(tzfile, 'r') as fp_:
+    with salt.utils.fopen(tzfile, 'r') as fp_:
         for line in fp_:
-            line = salt.utils.stringutils.to_unicode(line)
             if re.match(r'^\s*#', line):
                 continue
             if 'ZONE' in line and '=' in line:
@@ -121,16 +115,16 @@ def _get_zone_etc_localtime():
             )
             # Regular file. Try to match the hash.
             hash_type = __opts__.get('hash_type', 'md5')
-            tzfile_hash = salt.utils.hashutils.get_hash(tzfile, hash_type)
+            tzfile_hash = salt.utils.get_hash(tzfile, hash_type)
             # Not a link, just a copy of the tzdata file
-            for root, dirs, files in salt.utils.path.os_walk(tzdir):
+            for root, dirs, files in os.walk(tzdir):
                 for filename in files:
                     full_path = os.path.join(root, filename)
                     olson_name = full_path[tzdir_len:]
                     if olson_name[0] in string.ascii_lowercase:
                         continue
                     if tzfile_hash == \
-                            salt.utils.hashutils.get_hash(full_path, hash_type):
+                            salt.utils.get_hash(full_path, hash_type):
                         return olson_name
     raise CommandExecutionError('Unable to determine timezone')
 
@@ -138,8 +132,8 @@ def _get_zone_etc_localtime():
 def _get_zone_etc_timezone():
     tzfile = '/etc/timezone'
     try:
-        with salt.utils.files.fopen(tzfile, 'r') as fp_:
-            return salt.utils.stringutils.to_unicode(fp_.read()).strip()
+        with salt.utils.fopen(tzfile, 'r') as fp_:
+            return fp_.read().strip()
     except IOError as exc:
         raise CommandExecutionError(
             'Problem reading timezone file {0}: {1}'
@@ -149,9 +143,8 @@ def _get_zone_etc_timezone():
 
 def _get_zone_aix():
     tzfile = '/etc/environment'
-    with salt.utils.files.fopen(tzfile, 'r') as fp_:
+    with salt.utils.fopen(tzfile, 'r') as fp_:
         for line in fp_:
-            line = salt.utils.stringutils.to_unicode(line)
             if 'TZ=' in line:
                 zonepart = line.rstrip('\n').split('=')[-1]
                 return zonepart.strip('\'"') or 'UTC'
@@ -175,7 +168,7 @@ def get_zone():
 
         salt '*' timezone.get_zone
     '''
-    if salt.utils.path.which('timedatectl'):
+    if salt.utils.which('timedatectl'):
         ret = _timedatectl()
 
         for line in (x.strip() for x in salt.utils.itertools.split(ret['stdout'], '\n')):
@@ -267,7 +260,7 @@ def set_zone(timezone):
         salt '*' timezone.set_zone 'CST6CDT,M3.2.0/2:00:00,M11.1.0/2:00:00'
 
     '''
-    if salt.utils.path.which('timedatectl'):
+    if salt.utils.which('timedatectl'):
         try:
             __salt__['cmd.run']('timedatectl set-timezone {0}'.format(timezone))
         except CommandExecutionError:
@@ -288,7 +281,7 @@ def set_zone(timezone):
         __salt__['file.sed'](
             '/etc/default/init', '^TZ=.*', 'TZ={0}'.format(timezone))
     elif 'AIX' in __grains__['os_family']:
-        # timezone could be Olson or Posix
+        ## timezone could be Olson or Posix
         curtzstring = get_zone()
         cmd = ['chtz', timezone]
         result = __salt__['cmd.retcode'](cmd, python_shell=False)
@@ -309,8 +302,8 @@ def set_zone(timezone):
         __salt__['file.sed'](
             '/etc/sysconfig/clock', '^TIMEZONE=.*', 'TIMEZONE="{0}"'.format(timezone))
     elif 'Debian' in __grains__['os_family'] or 'Gentoo' in __grains__['os_family']:
-        with salt.utils.files.fopen('/etc/timezone', 'w') as ofh:
-            ofh.write(salt.utils.stringutils.to_str(timezone).strip())
+        with salt.utils.fopen('/etc/timezone', 'w') as ofh:
+            ofh.write(timezone.strip())
             ofh.write('\n')
 
     return True
@@ -382,7 +375,7 @@ def get_hwclock():
 
         salt '*' timezone.get_hwclock
     '''
-    if salt.utils.path.which('timedatectl'):
+    if salt.utils.which('timedatectl'):
         ret = _timedatectl()
         for line in (x.strip() for x in ret['stdout'].splitlines()):
             if 'rtc in local tz' in line.lower():
@@ -400,16 +393,15 @@ def get_hwclock():
 
     else:
         os_family = __grains__['os_family']
-        for family in ('RedHat', 'Suse', 'NILinuxRT'):
+        for family in ('RedHat', 'Suse'):
             if family in os_family:
                 return _get_adjtime_timezone()
 
         if 'Debian' in __grains__['os_family']:
             # Original way to look up hwclock on Debian-based systems
             try:
-                with salt.utils.files.fopen('/etc/default/rcS', 'r') as fp_:
+                with salt.utils.fopen('/etc/default/rcS', 'r') as fp_:
                     for line in fp_:
-                        line = salt.utils.stringutils.to_unicode(line)
                         if re.match(r'^\s*#', line):
                             continue
                         if 'UTC=' in line:
@@ -427,9 +419,8 @@ def get_hwclock():
             if not os.path.exists('/etc/adjtime'):
                 offset_file = '/etc/conf.d/hwclock'
                 try:
-                    with salt.utils.files.fopen(offset_file, 'r') as fp_:
+                    with salt.utils.fopen(offset_file, 'r') as fp_:
                         for line in fp_:
-                            line = salt.utils.stringutils.to_unicode(line)
                             if line.startswith('clock='):
                                 line = line.rstrip('\n')
                                 line = line.split('=')[-1].strip('\'"')
@@ -451,9 +442,8 @@ def get_hwclock():
         if 'Solaris' in __grains__['os_family']:
             offset_file = '/etc/rtc_config'
             try:
-                with salt.utils.files.fopen(offset_file, 'r') as fp_:
+                with salt.utils.fopen(offset_file, 'r') as fp_:
                     for line in fp_:
-                        line = salt.utils.stringutils.to_unicode(line)
                         if line.startswith('zone_info=GMT'):
                             return 'UTC'
                     return 'localtime'
@@ -469,9 +459,8 @@ def get_hwclock():
         if 'AIX' in __grains__['os_family']:
             offset_file = '/etc/environment'
             try:
-                with salt.utils.files.fopen(offset_file, 'r') as fp_:
+                with salt.utils.fopen(offset_file, 'r') as fp_:
                     for line in fp_:
-                        line = salt.utils.stringutils.to_unicode(line)
                         if line.startswith('TZ=UTC'):
                             return 'UTC'
                     return 'localtime'
@@ -495,8 +484,7 @@ def set_hwclock(clock):
 
         salt '*' timezone.set_hwclock UTC
     '''
-    os_family = __grains__['os_family']
-    if os_family in ('AIX', 'NILinuxRT'):
+    if 'AIX' in __grains__['os_family']:
         if clock.lower() != 'utc':
             raise SaltInvocationError(
                 'UTC is the only permitted value'

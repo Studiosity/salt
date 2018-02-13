@@ -28,7 +28,7 @@ using the :ref:`saltutil execution module <salt.modules.saltutil>`.
 '''
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import hashlib
 import logging
@@ -36,9 +36,7 @@ import logging
 # Import salt libs
 from salt.key import get_key
 import salt.crypt
-import salt.utils.crypt
-import salt.utils.files
-import salt.utils.platform
+import salt.utils
 from salt.utils.sanitizers import clean
 
 
@@ -315,7 +313,7 @@ def finger_master(hash_type=None):
     if hash_type is None:
         hash_type = __opts__['hash_type']
 
-    fingerprint = salt.utils.crypt.pem_finger(
+    fingerprint = salt.utils.pem_finger(
         os.path.join(__opts__['pki_dir'], keyname), sum_type=hash_type)
     return {'local': {keyname: fingerprint}}
 
@@ -355,14 +353,14 @@ def gen(id_=None, keysize=2048):
            'pub': ''}
     priv = salt.crypt.gen_keys(__opts__['pki_dir'], id_, keysize)
     pub = '{0}.pub'.format(priv[:priv.rindex('.')])
-    with salt.utils.files.fopen(priv) as fp_:
-        ret['priv'] = salt.utils.stringutils.to_unicode(fp_.read())
-    with salt.utils.files.fopen(pub) as fp_:
-        ret['pub'] = salt.utils.stringutils.to_unicode(fp_.read())
+    with salt.utils.fopen(priv) as fp_:
+        ret['priv'] = fp_.read()
+    with salt.utils.fopen(pub) as fp_:
+        ret['pub'] = fp_.read()
 
     # The priv key is given the Read-Only attribute. The causes `os.remove` to
     # fail in Windows.
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         os.chmod(priv, 128)
 
     os.remove(priv)
@@ -415,8 +413,8 @@ def gen_accept(id_, keysize=2048, force=False):
     acc_path = os.path.join(__opts__['pki_dir'], 'minions', id_)
     if os.path.isfile(acc_path) and not force:
         return {}
-    with salt.utils.files.fopen(acc_path, 'w+') as fp_:
-        fp_.write(salt.utils.stringutils.to_str(ret['pub']))
+    with salt.utils.fopen(acc_path, 'w+') as fp_:
+        fp_.write(ret['pub'])
     return ret
 
 

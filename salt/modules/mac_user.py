@@ -10,7 +10,7 @@ Manage users on Mac OS 10.7+
 '''
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 try:
     import pwd
 except ImportError:
@@ -23,14 +23,11 @@ from salt.ext.six.moves import range, map  # pylint: disable=import-error,redefi
 from salt.ext.six import string_types
 
 # Import salt libs
-import salt.utils.args
-import salt.utils.decorators.path
+import salt.utils
 import salt.utils.files
-import salt.utils.stringutils
-import salt.utils.user
+import salt.utils.decorators as decorators
 from salt.utils.locales import sdecode as _sdecode
 from salt.exceptions import CommandExecutionError, SaltInvocationError
-from salt.ext import six
 
 log = logging.getLogger(__name__)
 
@@ -99,7 +96,7 @@ def add(name,
     if info(name):
         raise CommandExecutionError('User \'{0}\' already exists'.format(name))
 
-    if salt.utils.stringutils.contains_whitespace(name):
+    if salt.utils.contains_whitespace(name):
         raise SaltInvocationError('Username cannot contain whitespace')
 
     if uid is None:
@@ -146,7 +143,7 @@ def delete(name, remove=False, force=False):
 
         salt '*' user.delete name remove=True force=True
     '''
-    if salt.utils.stringutils.contains_whitespace(name):
+    if salt.utils.contains_whitespace(name):
         raise SaltInvocationError('Username cannot contain whitespace')
     if not info(name):
         return True
@@ -275,10 +272,10 @@ def chhome(name, home, **kwargs):
 
         salt '*' user.chhome foo /Users/foo
     '''
-    kwargs = salt.utils.args.clean_kwargs(**kwargs)
+    kwargs = salt.utils.clean_kwargs(**kwargs)
     persist = kwargs.pop('persist', False)
     if kwargs:
-        salt.utils.args.invalid_kwargs(kwargs)
+        salt.utils.invalid_kwargs(kwargs)
     if persist:
         log.info('Ignoring unsupported \'persist\' argument to user.chhome')
 
@@ -362,13 +359,13 @@ def chgroups(name, groups, append=False):
     if isinstance(groups, string_types):
         groups = groups.split(',')
 
-    bad_groups = [x for x in groups if salt.utils.stringutils.contains_whitespace(x)]
+    bad_groups = [x for x in groups if salt.utils.contains_whitespace(x)]
     if bad_groups:
         raise SaltInvocationError(
             'Invalid group name(s): {0}'.format(', '.join(bad_groups))
         )
     ugrps = set(list_groups(name))
-    desired = set(six.text_type(x) for x in groups if bool(six.text_type(x)))
+    desired = set(str(x) for x in groups if bool(str(x)))
     primary_group = __salt__['file.gid_to_group'](uinfo['gid'])
     if primary_group:
         desired.add(primary_group)
@@ -422,7 +419,7 @@ def _format_info(data):
             'fullname': data.pw_gecos}
 
 
-@salt.utils.decorators.path.which('id')
+@decorators.which('id')
 def primary_group(name):
     '''
     Return the primary group of the named user
@@ -456,7 +453,7 @@ def list_groups(name):
 
         salt '*' user.list_groups foo
     '''
-    groups = [group for group in salt.utils.user.get_group_list(name)]
+    groups = [group for group in salt.utils.get_group_list(name)]
     return groups
 
 
@@ -609,7 +606,7 @@ def enable_auto_login(name, password):
     # Create/Update the kcpassword file with an obfuscated password
     o_password = _kcpassword(password=password)
     with salt.utils.files.set_umask(0o077):
-        with salt.utils.files.fopen('/etc/kcpassword', 'w') as fd:
+        with salt.utils.fopen('/etc/kcpassword', 'w') as fd:
             fd.write(o_password)
 
     return current if isinstance(current, bool) else current.lower() == name.lower()

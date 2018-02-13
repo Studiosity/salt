@@ -16,18 +16,14 @@ description.
     This is Erik's computer, don't touch!:
       system.computer_desc: []
 '''
-from __future__ import absolute_import, unicode_literals, print_function
 
-# Import Python libs
+from __future__ import absolute_import
+
+# Import python libs
 import logging
 
-# Import Salt libs
-import salt.utils.functools
-import salt.utils.platform
-
-# Import 3rd party libs
-from salt.ext import six
-
+# Import salt libs
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +35,7 @@ def __virtual__():
     '''
     This only supports Windows
     '''
-    if salt.utils.platform.is_windows() and 'system.get_computer_desc' in __salt__:
+    if salt.utils.is_windows() and 'system.get_computer_desc' in __salt__:
         return __virtualname__
     return False
 
@@ -52,7 +48,7 @@ def computer_desc(name):
         The desired computer description
     '''
     # Just in case someone decides to enter a numeric description
-    name = six.text_type(name)
+    name = str(name)
 
     ret = {'name': name,
            'changes': {},
@@ -81,7 +77,7 @@ def computer_desc(name):
                           '\'{0}\''.format(name))
     return ret
 
-computer_description = salt.utils.functools.alias_function(computer_desc, 'computer_description')
+computer_description = salt.utils.alias_function(computer_desc, 'computer_description')
 
 
 def computer_name(name):
@@ -92,7 +88,7 @@ def computer_name(name):
         The desired computer name
     '''
     # Just in case someone decides to enter a numeric description
-    name = six.text_type(name)
+    name = str(name)
 
     ret = {'name': name,
            'changes': {},

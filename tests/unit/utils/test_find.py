@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import os
 import sys
 import shutil
@@ -13,12 +13,11 @@ from tests.support.unit import skipIf, TestCase
 from tests.support.paths import TMP
 
 # Import salt libs
-import salt.utils.files
+import salt.utils
 import salt.utils.find
 
 # Import 3rd-party libs
 from salt.ext.six.moves import range  # pylint: disable=import-error,redefined-builtin
-from salt.ext import six
 
 
 class TestFind(TestCase):
@@ -305,8 +304,8 @@ class TestGrepOption(TestCase):
 
     def test_grep_option_match_regular_file(self):
         hello_file = os.path.join(self.tmpdir, 'hello.txt')
-        with salt.utils.files.fopen(hello_file, 'w') as fp_:
-            fp_.write(salt.utils.stringutils.to_str('foo'))
+        with salt.utils.fopen(hello_file, 'w') as fp_:
+            fp_.write('foo')
         option = salt.utils.find.GrepOption('grep', 'foo')
         self.assertEqual(
             option.match(self.tmpdir, 'hello.txt', os.stat(hello_file)),
@@ -364,8 +363,8 @@ class TestPrintOption(TestCase):
 
     def test_print_option_execute(self):
         hello_file = os.path.join(self.tmpdir, 'hello.txt')
-        with salt.utils.files.fopen(hello_file, 'w') as fp_:
-            fp_.write(salt.utils.stringutils.to_str('foo'))
+        with salt.utils.fopen(hello_file, 'w') as fp_:
+            fp_.write('foo')
 
         option = salt.utils.find.PrintOption('print', '')
         self.assertEqual(option.execute('', [0] * 9), '')
@@ -445,13 +444,13 @@ class TestFinder(TestCase):
     def test_init(self):
         finder = salt.utils.find.Finder({})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(finder.criteria, [])
 
         finder = salt.utils.find.Finder({'_': None})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(finder.criteria, [])
 
@@ -463,50 +462,50 @@ class TestFinder(TestCase):
 
         finder = salt.utils.find.Finder({'name': 'test_name'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-12:-2], 'NameOption'
+            str(finder.criteria[0].__class__)[-12:-2], 'NameOption'
         )
 
         finder = salt.utils.find.Finder({'iname': 'test_name'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-13:-2], 'InameOption'
+            str(finder.criteria[0].__class__)[-13:-2], 'InameOption'
         )
 
         finder = salt.utils.find.Finder({'regex': r'.*\.txt'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-13:-2], 'RegexOption'
+            str(finder.criteria[0].__class__)[-13:-2], 'RegexOption'
         )
 
         finder = salt.utils.find.Finder({'iregex': r'.*\.txt'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-14:-2], 'IregexOption'
+            str(finder.criteria[0].__class__)[-14:-2], 'IregexOption'
         )
 
         finder = salt.utils.find.Finder({'type': 'd'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-12:-2], 'TypeOption'
+            str(finder.criteria[0].__class__)[-12:-2], 'TypeOption'
         )
 
         finder = salt.utils.find.Finder({'owner': 'root'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-13:-2], 'OwnerOption'
+            str(finder.criteria[0].__class__)[-13:-2], 'OwnerOption'
         )
 
         if sys.platform.startswith(('darwin', 'freebsd', 'openbsd')):
@@ -515,46 +514,46 @@ class TestFinder(TestCase):
             group_name = 'root'
         finder = salt.utils.find.Finder({'group': group_name})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-13:-2], 'GroupOption'
+            str(finder.criteria[0].__class__)[-13:-2], 'GroupOption'
         )
 
         finder = salt.utils.find.Finder({'size': '+1G'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-12:-2], 'SizeOption'
+            str(finder.criteria[0].__class__)[-12:-2], 'SizeOption'
         )
 
         finder = salt.utils.find.Finder({'mtime': '1d'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-13:-2], 'MtimeOption'
+            str(finder.criteria[0].__class__)[-13:-2], 'MtimeOption'
         )
 
         finder = salt.utils.find.Finder({'grep': 'foo'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(
-            six.text_type(finder.criteria[0].__class__)[-12:-2], 'GrepOption'
+            str(finder.criteria[0].__class__)[-12:-2], 'GrepOption'
         )
 
         finder = salt.utils.find.Finder({'print': 'name'})
         self.assertEqual(
-            six.text_type(finder.actions[0].__class__)[-13:-2], 'PrintOption'
+            str(finder.actions[0].__class__)[-13:-2], 'PrintOption'
         )
         self.assertEqual(finder.criteria, [])
 
     def test_find(self):
         hello_file = os.path.join(self.tmpdir, 'hello.txt')
-        with salt.utils.files.fopen(hello_file, 'w') as fp_:
-            fp_.write(salt.utils.stringutils.to_str('foo'))
+        with salt.utils.fopen(hello_file, 'w') as fp_:
+            fp_.write('foo')
 
         finder = salt.utils.find.Finder({})
         self.assertEqual(list(finder.find(self.tmpdir)), [self.tmpdir, hello_file])

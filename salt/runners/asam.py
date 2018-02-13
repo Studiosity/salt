@@ -28,17 +28,16 @@ master configuration at ``/etc/salt/master`` or ``/etc/salt/master.d/asam.conf``
     is not using the defaults. Default is ``protocol: https`` and ``port: 3451``.
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-# Import Python libs
+# Import python libs
 import logging
 
-# Import 3rd-party libs
-import salt.ext.six as six
-
+# Import third party libs
 HAS_LIBS = False
 try:
     import requests
+    import salt.ext.six as six
     from salt.ext.six.moves.html_parser import HTMLParser  # pylint: disable=E0611
     HAS_LIBS = True
 
@@ -91,8 +90,8 @@ def _get_asam_configuration(driver_url=''):
 
                 if not username or not password:
                     log.error(
-                        'Username or Password has not been specified in the '
-                        'master configuration for %s', asam_server
+                        "Username or Password has not been specified in the master "
+                        "configuration for {0}".format(asam_server)
                     )
                     return False
 
@@ -108,13 +107,15 @@ def _get_asam_configuration(driver_url=''):
                 if (not driver_url) or (driver_url == asam_server):
                     return ret
         except Exception as exc:
-            log.error('Exception encountered: %s', exc)
+            log.error(
+                "Exception encountered: {0}".format(exc)
+            )
             return False
 
         if driver_url:
             log.error(
-                'Configuration for %s has not been specified in the master '
-                'configuration', driver_url
+                "Configuration for {0} has not been specified in the master "
+                "configuration".format(driver_url)
             )
             return False
 
@@ -204,7 +205,7 @@ def remove_platform(name, server_url):
         html_content = _make_post_request(url, data, auth, verify=False)
     except Exception as exc:
         err_msg = "Failed to look up existing platforms on {0}".format(server_url)
-        log.error('%s:\n%s', err_msg, exc)
+        log.error("{0}:\n{1}".format(err_msg, exc))
         return {name: err_msg}
 
     parser = _parse_html_content(html_content)
@@ -213,14 +214,14 @@ def remove_platform(name, server_url):
     if platformset_name:
         log.debug(platformset_name)
         data['platformName'] = name
-        data['platformSetName'] = six.text_type(platformset_name)
+        data['platformSetName'] = str(platformset_name)
         data['postType'] = 'platformRemove'
         data['Submit'] = 'Yes'
         try:
             html_content = _make_post_request(url, data, auth, verify=False)
         except Exception as exc:
             err_msg = "Failed to delete platform from {1}".format(server_url)
-            log.error('%s:\n%s', err_msg, exc)
+            log.error("{0}:\n{1}".format(err_msg, exc))
             return {name: err_msg}
 
         parser = _parse_html_content(html_content)
@@ -262,7 +263,7 @@ def list_platforms(server_url):
         html_content = _make_post_request(url, data, auth, verify=False)
     except Exception as exc:
         err_msg = "Failed to look up existing platforms"
-        log.error('%s:\n%s', err_msg, exc)
+        log.error("{0}:\n{1}".format(err_msg, exc))
         return {server_url: err_msg}
 
     parser = _parse_html_content(html_content)
@@ -303,7 +304,7 @@ def list_platform_sets(server_url):
         html_content = _make_post_request(url, data, auth, verify=False)
     except Exception as exc:
         err_msg = "Failed to look up existing platform sets"
-        log.error('%s:\n%s', err_msg, exc)
+        log.error("{0}:\n{1}".format(err_msg, exc))
         return {server_url: err_msg}
 
     parser = _parse_html_content(html_content)
@@ -358,7 +359,7 @@ def add_platform(name, platform_set, server_url):
         html_content = _make_post_request(url, data, auth, verify=False)
     except Exception as exc:
         err_msg = "Failed to add platform on {0}".format(server_url)
-        log.error('%s:\n%s', err_msg, exc)
+        log.error("{0}:\n{1}".format(err_msg, exc))
         return {name: err_msg}
 
     platforms = list_platforms(server_url)

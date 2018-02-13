@@ -7,7 +7,7 @@ NAPALM YANG basic operations.
 
 .. versionadded:: 2017.7.0
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python stdlib
 import logging
@@ -69,7 +69,7 @@ def _get_root_object(models):
 # -----------------------------------------------------------------------------
 
 
-def diff(candidate, running, *models):
+def diff(candidate, running, models):
     '''
     Returns the difference between two configuration entities structured
     according to the YANG model.
@@ -119,9 +119,6 @@ def diff(candidate, running, *models):
             }
         }
     '''
-    if isinstance(models, tuple) and isinstance(models[0], list):
-        models = models[0]
-
     first = _get_root_object(models)
     first.load_dict(candidate)
     second = _get_root_object(models)
@@ -130,7 +127,7 @@ def diff(candidate, running, *models):
 
 
 @proxy_napalm_wrap
-def parse(*models, **kwargs):
+def parse(models, **kwargs):
     '''
     Parse configuration from the device.
 
@@ -343,8 +340,6 @@ def parse(*models, **kwargs):
             }
         }
     '''
-    if isinstance(models, tuple) and isinstance(models[0], list):
-        models = models[0]
     config = kwargs.pop('config', False)
     state = kwargs.pop('state', False)
     profiles = kwargs.pop('profiles', [])
@@ -365,7 +360,7 @@ def parse(*models, **kwargs):
 
 
 @proxy_napalm_wrap
-def get_config(data, *models, **kwargs):
+def get_config(data, models, **kwargs):
     '''
     Return the native config.
 
@@ -398,8 +393,6 @@ def get_config(data, *models, **kwargs):
             description Uplink2
             mtu 9000
     '''
-    if isinstance(models, tuple) and isinstance(models[0], list):
-        models = models[0]
     profiles = kwargs.pop('profiles', [])
     if not profiles and hasattr(napalm_device, 'profile'):  # pylint: disable=undefined-variable
         profiles = napalm_device.profile  # pylint: disable=undefined-variable
@@ -417,7 +410,7 @@ def get_config(data, *models, **kwargs):
 
 
 @proxy_napalm_wrap
-def load_config(data, *models, **kwargs):
+def load_config(data, models, **kwargs):
     '''
     Generate and load the config on the device using the OpenConfig or IETF
     models and device profiles.
@@ -552,9 +545,7 @@ def load_config(data, *models, **kwargs):
             result:
                 True
     '''
-    if isinstance(models, tuple) and isinstance(models[0], list):
-        models = models[0]
-    config = get_config(data, *models, **kwargs)
+    config = get_config(data, models, **kwargs)
     test = kwargs.pop('test', False)
     debug = kwargs.pop('debug', False)
     commit = kwargs.pop('commit', True)
@@ -568,7 +559,7 @@ def load_config(data, *models, **kwargs):
 
 
 @proxy_napalm_wrap
-def compliance_report(data, *models, **kwargs):
+def compliance_report(data, models, **kwargs):
     '''
     Return the compliance report using YANG objects.
 
@@ -607,8 +598,6 @@ def compliance_report(data, *models, **kwargs):
           }
         }
     '''
-    if isinstance(models, tuple) and isinstance(models[0], list):
-        models = models[0]
     filepath = kwargs.pop('filepath', '')
     root = _get_root_object(models)
     root.load_dict(data)

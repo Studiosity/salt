@@ -37,14 +37,15 @@ the above word between angle brackets (<>).
                   - FollowSymlinks
                 AllowOverride: All
 '''
-from __future__ import absolute_import, with_statement, print_function, unicode_literals
+
+from __future__ import with_statement, print_function
+from __future__ import absolute_import
 
 # Import python libs
-import os
+import os.path
 
 # Import Salt libs
-import salt.utils.files
-import salt.utils.stringutils
+import salt.utils
 
 
 def __virtual__():
@@ -60,8 +61,8 @@ def configfile(name, config):
     configs = __salt__['apache.config'](name, config, edit=False)
     current_configs = ''
     if os.path.exists(name):
-        with salt.utils.files.fopen(name) as config_file:
-            current_configs = salt.utils.stringutils.to_unicode(config_file.read())
+        with salt.utils.fopen(name) as config_file:
+            current_configs = config_file.read()
 
     if configs == current_configs.strip():
         ret['result'] = True
@@ -77,8 +78,8 @@ def configfile(name, config):
         return ret
 
     try:
-        with salt.utils.files.fopen(name, 'w') as config_file:
-            print(salt.utils.stringutils.to_str(configs), file=config_file)
+        with salt.utils.fopen(name, 'w') as config_file:
+            print(configs, file=config_file)
         ret['changes'] = {
             'old': current_configs,
             'new': configs

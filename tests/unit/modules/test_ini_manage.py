@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import os
 import tempfile
 
@@ -9,8 +9,7 @@ import tempfile
 from tests.support.unit import TestCase
 
 # Import Salt libs
-import salt.utils.files
-import salt.utils.stringutils
+import salt.utils
 import salt.modules.ini_manage as ini
 
 
@@ -47,7 +46,7 @@ class IniManageTestCase(TestCase):
 
     def setUp(self):
         self.tfile = tempfile.NamedTemporaryFile(delete=False, mode='w+b')
-        self.tfile.write(salt.utils.stringutils.to_bytes(self.TEST_FILE_CONTENT))
+        self.tfile.write(salt.utils.to_bytes(self.TEST_FILE_CONTENT))
         self.tfile.close()
 
     def tearDown(self):
@@ -120,8 +119,8 @@ class IniManageTestCase(TestCase):
         ini.set_option(self.tfile.name, {
             'SectionB': {'test3': 'new value 3B'},
         })
-        with salt.utils.files.fopen(self.tfile.name, 'r') as fp:
-            file_content = salt.utils.stringutils.to_unicode(fp.read())
+        with salt.utils.fopen(self.tfile.name, 'r') as fp:
+            file_content = fp.read()
         expected = '{0}{1}{0}'.format(os.linesep, 'empty_option = ')
         self.assertIn(expected, file_content, 'empty_option was not preserved')
 
@@ -155,8 +154,8 @@ class IniManageTestCase(TestCase):
             'empty_option = ',
             ''
         ])
-        with salt.utils.files.fopen(self.tfile.name, 'r') as fp:
-            file_content = salt.utils.stringutils.to_unicode(fp.read())
+        with salt.utils.fopen(self.tfile.name, 'r') as fp:
+            file_content = fp.read()
         self.assertEqual(expected, file_content)
 
     def test_empty_lines_preserved_after_multiple_edits(self):

@@ -30,11 +30,10 @@ this module.
         realm: authentication realm2 for digest passwords
         timeout: 600
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import 3rd-party libs
 # pylint: disable=import-error,no-name-in-module
-from salt.ext import six
 from salt.ext.six.moves.urllib.parse import urlencode as _urlencode
 from salt.ext.six.moves.urllib.request import (
         HTTPBasicAuthHandler as _HTTPBasicAuthHandler,
@@ -112,6 +111,11 @@ def _worker_ctl(worker, lbn, vwa, profile='default'):
     return _do_http(cmd, profile)['worker.result.type'] == 'OK'
 
 
+###############
+### General ###
+###############
+
+
 def version(profile='default'):
     '''
     Return the modjk version
@@ -167,6 +171,11 @@ def dump_config(profile='default'):
         'mime': 'prop',
     }
     return _do_http(cmd, profile)
+
+
+####################
+### LB Functions ###
+####################
 
 
 def list_configured_members(lbn, profile='default'):
@@ -299,6 +308,11 @@ def lb_edit(lbn, settings, profile='default'):
     return _do_http(settings, profile)['worker.result.type'] == 'OK'
 
 
+########################
+### Worker Functions ###
+########################
+
+
 def bulk_stop(workers, lbn, profile='default'):
     '''
     Stop all the given workers in the specific load balancer
@@ -316,7 +330,7 @@ def bulk_stop(workers, lbn, profile='default'):
 
     ret = {}
 
-    if isinstance(workers, six.string_types):
+    if isinstance(workers, str):
         workers = workers.split(',')
 
     for worker in workers:
@@ -345,7 +359,7 @@ def bulk_activate(workers, lbn, profile='default'):
 
     ret = {}
 
-    if isinstance(workers, six.string_types):
+    if isinstance(workers, str):
         workers = workers.split(',')
 
     for worker in workers:
@@ -374,7 +388,7 @@ def bulk_disable(workers, lbn, profile='default'):
 
     ret = {}
 
-    if isinstance(workers, six.string_types):
+    if isinstance(workers, str):
         workers = workers.split(',')
 
     for worker in workers:
@@ -403,7 +417,7 @@ def bulk_recover(workers, lbn, profile='default'):
 
     ret = {}
 
-    if isinstance(workers, six.string_types):
+    if isinstance(workers, str):
         workers = workers.split(',')
 
     for worker in workers:

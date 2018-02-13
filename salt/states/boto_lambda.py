@@ -61,17 +61,17 @@ config:
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
 import os
+import os.path
 import hashlib
+import json
 
 # Import Salt Libs
-from salt.ext import six
-import salt.utils.data
+import salt.ext.six as six
 import salt.utils.dictupdate as dictupdate
-import salt.utils.files
-import salt.utils.json
+import salt.utils
 from salt.exceptions import SaltInvocationError
 
 log = logging.getLogger(__name__)
@@ -152,7 +152,6 @@ def function_present(name, FunctionName, Runtime, Role, Handler, ZipFile=None,
         to the same VPC.  This is a dict of the form:
 
         .. code-block:: yaml
-
             VpcConfig:
                 SecurityGroupNames:
                 - mysecgroup1
@@ -207,9 +206,9 @@ def function_present(name, FunctionName, Runtime, Role, Handler, ZipFile=None,
 
     if Permissions is not None:
         if isinstance(Permissions, six.string_types):
-            Permissions = salt.utils.json.loads(Permissions)
+            Permissions = json.loads(Permissions)
         required_keys = set(('Action', 'Principal'))
-        optional_keys = set(('SourceArn', 'SourceAccount', 'Qualifier'))
+        optional_keys = set(('SourceArn', 'SourceAccount'))
         for sid, permission in six.iteritems(Permissions):
             keyset = set(permission.keys())
             if not keyset.issuperset(required_keys):
@@ -320,12 +319,9 @@ def _get_role_arn(name, region=None, key=None, keyid=None, profile=None):
 
 def _resolve_vpcconfig(conf, region=None, key=None, keyid=None, profile=None):
     if isinstance(conf, six.string_types):
-        conf = salt.utils.json.loads(conf)
+        conf = json.loads(conf)
     if not conf:
-        # if the conf is None, we should explicitly set the VpcConfig to
-        # {'SubnetIds': [], 'SecurityGroupIds': []} to take the lambda out of
-        # the VPC it was in
-        return {'SubnetIds': [], 'SecurityGroupIds': []}
+        return None
     if not isinstance(conf, dict):
         raise SaltInvocationError('VpcConfig must be a dict.')
     sns = [__salt__['boto_vpc.get_resource_id']('subnet', s, region=region, key=key,
@@ -364,7 +360,7 @@ def _function_config_present(FunctionName, Role, Handler, Description, Timeout,
     fixed_VpcConfig = _resolve_vpcconfig(VpcConfig, region, key, keyid, profile)
     if __utils__['boto3.ordered'](oldval) != __utils__['boto3.ordered'](fixed_VpcConfig):
         need_update = True
-        ret['changes'].setdefault('new', {})['VpcConfig'] = fixed_VpcConfig
+        ret['changes'].setdefault('new', {})['VpcConfig'] = VpcConfig
         ret['changes'].setdefault(
             'old', {})['VpcConfig'] = func.get('VpcConfig')
 
@@ -379,13 +375,14 @@ def _function_config_present(FunctionName, Role, Handler, Description, Timeout,
         ret['comment'] = os.linesep.join(
             [ret['comment'], 'Function config to be modified'])
         if __opts__['test']:
-            ret['comment'] = 'Function {0} set to be modified.'.format(FunctionName)
+            msg = 'Function {0} set to be modified.'.format(FunctionName)
+            ret['comment'] = msg
             ret['result'] = None
             return ret
         _r = __salt__['boto_lambda.update_function_config'](
             FunctionName=FunctionName, Role=Role, Handler=Handler,
             Description=Description, Timeout=Timeout, MemorySize=MemorySize,
-            VpcConfig=fixed_VpcConfig, Environment=Environment, region=region,
+            VpcConfig=VpcConfig, Environment=Environment, region=region,
             key=key, keyid=keyid, profile=profile, WaitForRole=True,
             RoleRetries=RoleRetries)
         if not _r.get('updated'):
@@ -407,7 +404,7 @@ def _function_code_present(FunctionName, ZipFile, S3Bucket, S3Key,
         size = os.path.getsize(ZipFile)
         if size == func['CodeSize']:
             sha = hashlib.sha256()
-            with salt.utils.files.fopen(ZipFile, 'rb') as f:
+            with salt.utils.fopen(ZipFile, 'rb') as f:
                 sha.update(f.read())
             hashed = sha.digest().encode('base64').strip()
             if hashed != func['CodeSha256']:
@@ -421,7 +418,8 @@ def _function_code_present(FunctionName, ZipFile, S3Bucket, S3Key,
         update = True
     if update:
         if __opts__['test']:
-            ret['comment'] = 'Function {0} set to be modified.'.format(FunctionName)
+            msg = 'Function {0} set to be modified.'.format(FunctionName)
+            ret['comment'] = msg
             ret['result'] = None
             return ret
         ret['changes']['old'] = {
@@ -461,12 +459,13 @@ def _function_permissions_present(FunctionName, Permissions,
     if curr_permissions is None:
         curr_permissions = {}
     need_update = False
-    diffs = salt.utils.data.compare_dicts(curr_permissions, Permissions or {})
+    diffs = salt.utils.compare_dicts(curr_permissions, Permissions or {})
     if bool(diffs):
         ret['comment'] = os.linesep.join(
             [ret['comment'], 'Function permissions to be modified'])
         if __opts__['test']:
-            ret['comment'] = 'Function {0} set to be modified.'.format(FunctionName)
+            msg = 'Function {0} set to be modified.'.format(FunctionName)
+            ret['comment'] = msg
             ret['result'] = None
             return ret
         for sid, diff in six.iteritems(diffs):
@@ -651,7 +650,8 @@ def alias_present(name, FunctionName, Name, FunctionVersion, Description='',
         ret['comment'] = os.linesep.join(
             [ret['comment'], 'Alias config to be modified'])
         if __opts__['test']:
-            ret['comment'] = 'Alias {0} set to be modified.'.format(Name)
+            msg = 'Alias {0} set to be modified.'.format(Name)
+            ret['comment'] = msg
             ret['result'] = None
             return ret
         _r = __salt__['boto_lambda.update_alias'](
@@ -869,11 +869,9 @@ def event_source_mapping_present(name, EventSourceArn, FunctionName,
         ret['comment'] = os.linesep.join(
             [ret['comment'], 'Event source mapping to be modified'])
         if __opts__['test']:
-            ret['comment'] = (
-                'Event source mapping {0} set to be modified.'.format(
-                    _describe['UUID']
-                )
-            )
+            msg = ('Event source mapping {0} set to be '
+                   'modified.'.format(_describe['UUID']))
+            ret['comment'] = msg
             ret['result'] = None
             return ret
         _r = __salt__['boto_lambda.update_event_source_mapping'](

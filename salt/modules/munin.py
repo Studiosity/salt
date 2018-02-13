@@ -2,16 +2,15 @@
 '''
 Run munin plugins/checks from salt and format the output as data.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import os
 import stat
 
 # Import salt libs
-from salt.ext import six
-import salt.utils.files
-import salt.utils.stringutils
+import salt.utils
+from salt.ext.six import string_types
 
 PLUGINDIR = '/etc/munin/plugins/'
 
@@ -26,8 +25,8 @@ def __virtual__():
 
 
 def _get_conf(fname='/etc/munin/munin-node.cfg'):
-    with salt.utils.files.fopen(fname, 'r') as fp_:
-        return salt.utils.stringutils.to_unicode(fp_.read())
+    with salt.utils.fopen(fname, 'r') as fp_:
+        return fp_.read()
 
 
 def run(plugins):
@@ -43,7 +42,7 @@ def run(plugins):
     '''
     all_plugins = list_plugins()
 
-    if isinstance(plugins, six.string_types):
+    if isinstance(plugins, string_types):
         plugins = plugins.split(',')
 
     data = {}

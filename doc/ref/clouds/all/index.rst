@@ -13,7 +13,7 @@ Full list of Salt Cloud modules
     aliyun
     azurearm
     cloudstack
-    digitalocean
+    digital_ocean
     dimensiondata
     ec2
     gce
@@ -34,8 +34,6 @@ Full list of Salt Cloud modules
     scaleway
     softlayer
     softlayer_hw
-    vagrant
     virtualbox
     vmware
     vultrpy
-    xen

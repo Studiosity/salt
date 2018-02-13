@@ -4,7 +4,7 @@
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -60,13 +60,9 @@ class UserTestCase(TestCase, LoaderModuleMockMixin):
                         self.assertDictEqual(user.present('salt'), ret)
 
                     with patch.dict(user.__opts__, {"test": False}):
-                        # pylint: disable=repr-flag-used-in-string
-                        comment = (
-                            'These values could not be changed: {0!r}'
-                            .format({'key': 'value'})
-                        )
-                        # pylint: enable=repr-flag-used-in-string
-                        ret.update({'comment': comment, 'result': False})
+                        ret.update({'comment': "These values could not be"
+                                    " changed: {'key': 'value'}",
+                                    'result': False})
                         self.assertDictEqual(user.present('salt'), ret)
 
                         with patch.dict(user.__opts__, {"test": True}):

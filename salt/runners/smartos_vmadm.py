@@ -3,7 +3,8 @@
 Runner for SmartOS minions control vmadm
 '''
 # Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+from __future__ import print_function
 
 # Import salt libs
 import salt.client
@@ -11,7 +12,7 @@ from salt.exceptions import SaltClientError
 from salt.utils.odict import OrderedDict
 
 # Import 3rd party libs
-from salt.ext import six
+import salt.ext.six as six
 
 # Function aliases
 __func_alias__ = {

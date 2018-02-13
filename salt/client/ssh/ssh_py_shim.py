@@ -7,7 +7,8 @@ This is not intended to be instantiated as a module, rather it is a
 helper script used by salt.client.ssh.Single.  It is here, in a
 separate file, for convenience of development.
 '''
-from __future__ import absolute_import, print_function
+
+from __future__ import absolute_import
 
 import hashlib
 import tarfile
@@ -29,9 +30,7 @@ EX_CANTCREAT = 73
 
 
 class OBJ(object):
-    '''
-    An empty class for holding instance attribute values.
-    '''
+    """An empty class for holding instance attribute values."""
     pass
 
 
@@ -100,10 +99,10 @@ def is_windows():
 
 
 def need_deployment():
-    '''
+    """
     Salt thin needs to be deployed - prep the target directory and emit the
     delimeter and exit code that signals a required deployment.
-    '''
+    """
     if os.path.exists(OPTIONS.saltdir):
         shutil.rmtree(OPTIONS.saltdir)
     old_umask = os.umask(0o077)
@@ -136,11 +135,9 @@ def need_deployment():
     sys.exit(EX_THIN_DEPLOY)
 
 
-# Adapted from salt.utils.hashutils.get_hash()
+# Adapted from salt.utils.get_hash()
 def get_hash(path, form='sha1', chunk_size=4096):
-    '''
-    Generate a hash digest string for a file.
-    '''
+    """Generate a hash digest string for a file."""
     try:
         hash_type = getattr(hashlib, form)
     except AttributeError:
@@ -154,9 +151,7 @@ def get_hash(path, form='sha1', chunk_size=4096):
 
 
 def unpack_thin(thin_path):
-    '''
-    Unpack the Salt thin archive.
-    '''
+    """Unpack the Salt thin archive."""
     tfile = tarfile.TarFile.gzopen(thin_path)
     old_umask = os.umask(0o077)
     tfile.extractall(path=OPTIONS.saltdir)
@@ -169,17 +164,13 @@ def unpack_thin(thin_path):
 
 
 def need_ext():
-    '''
-    Signal that external modules need to be deployed.
-    '''
+    """Signal that external modules need to be deployed."""
     sys.stdout.write("{0}\next_mods\n".format(OPTIONS.delimiter))
     sys.exit(EX_MOD_DEPLOY)
 
 
 def unpack_ext(ext_path):
-    '''
-    Unpack the external modules.
-    '''
+    """Unpack the external modules."""
     modcache = os.path.join(
             OPTIONS.saltdir,
             'running_data',
@@ -200,9 +191,7 @@ def unpack_ext(ext_path):
 
 
 def main(argv):  # pylint: disable=W0613
-    '''
-    Main program body
-    '''
+    """Main program body"""
     thin_path = os.path.join(OPTIONS.saltdir, THIN_ARCHIVE)
     if os.path.isfile(thin_path):
         if OPTIONS.checksum != get_hash(thin_path, OPTIONS.hashfunc):

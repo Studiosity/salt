@@ -2,15 +2,12 @@
 '''
 Module for managing timezone on Windows systems.
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
-# Import Python libs
+# Import python libs
+import salt.utils
 import logging
 import re
-
-# Import Salt libs
-import salt.utils.path
-import salt.utils.platform
 
 log = logging.getLogger(__name__)
 
@@ -461,7 +458,7 @@ def __virtual__():
     '''
     Only load on windows
     '''
-    if salt.utils.platform.is_windows() and salt.utils.path.which('tzutil'):
+    if salt.utils.is_windows() and salt.utils.which('tzutil'):
         return __virtualname__
     return (False, "Module win_timezone: tzutil not found or is not on Windows client")
 

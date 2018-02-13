@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 '''
-Management of APT/DNF/YUM/Zypper package repos
-==============================================
+Management of APT/YUM package repos
+===================================
 
-States for managing software package repositories on Linux distros. Supported
-package managers are APT, DNF, YUM and Zypper. Here is some example SLS:
+Package repositories for APT-based and YUM-based distros can be managed with
+these states. Here is some example SLS:
 
 .. code-block:: yaml
 
@@ -79,27 +79,23 @@ package managers are APT, DNF, YUM and Zypper. Here is some example SLS:
     ``python-pycurl`` will need to be manually installed if it is not present
     once ``python-software-properties`` is installed.
 
-    On Ubuntu & Debian systems, the ``python-apt`` package is required to be
-    installed. To check if this package is installed, run ``dpkg -l python-apt``.
-    ``python-apt`` will need to be manually installed if it is not present.
+    On Ubuntu & Debian systems, the ```python-apt`` package is required to be
+    installed.  To check if this package is installed, run ``dpkg -l
+    python-software-properties``.  ``python-apt`` will need to be manually
+    installed if it is not present.
 
 '''
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import sys
 
 # Import salt libs
 from salt.exceptions import CommandExecutionError, SaltInvocationError
 from salt.state import STATE_INTERNAL_KEYWORDS as _STATE_INTERNAL_KEYWORDS
-import salt.utils.data
-import salt.utils.files
+import salt.utils
 import salt.utils.pkg.deb
 import salt.utils.pkg.rpm
-import salt.utils.versions
-
-# Import 3rd-party libs
-from salt.ext import six
 
 
 def __virtual__():
@@ -135,7 +131,7 @@ def managed(name, ppa=None, **kwargs):
 
     disabled : False
         Included to reduce confusion due to APT's use of the ``disabled``
-        argument. If this is passed for a YUM/DNF/Zypper-based distro, then the
+        argument. If this is passed for a yum/dnf/zypper-based distro, then the
         reverse will be passed as ``enabled``. For example passing
         ``disabled=True`` will assume ``enabled=False``.
 
@@ -154,14 +150,8 @@ def managed(name, ppa=None, **kwargs):
         enabled configuration. Anything supplied for this list will be saved
         in the repo configuration with a comment marker (#) in front.
 
-    gpgautoimport
-        Only valid for Zypper package manager. If set to True, automatically
-        trust and import public GPG key for the repository. The key should be
-        specified with ``gpgkey`` parameter. See details below.
-
-    Additional configuration values seen in YUM/DNF/Zypper repo files, such as
-    ``gpgkey`` or ``gpgcheck``, will be used directly as key-value pairs.
-    For example:
+    Additional configuration values seen in yum repo files, such as ``gpgkey`` or
+    ``gpgcheck``, will be used directly as key-value pairs. For example:
 
     .. code-block:: yaml
 
@@ -227,7 +217,7 @@ def managed(name, ppa=None, **kwargs):
         and/or installing packages.
 
     enabled : True
-        Included to reduce confusion due to YUM/DNF/Zypper's use of the
+        Included to reduce confusion due to yum/dnf/zypper's use of the
         ``enabled`` argument. If this is passed for an APT-based distro, then
         the reverse will be passed as ``disabled``. For example, passing
         ``enabled=False`` will assume ``disabled=False``.
@@ -252,8 +242,8 @@ def managed(name, ppa=None, **kwargs):
        for.  (e.g. unstable). This option is rarely needed.
 
     keyid
-       The KeyID or a list of KeyIDs of the GPG key to install.
-       This option also requires the ``keyserver`` option to be set.
+       The KeyID of the GPG key to install. This option also requires
+       the ``keyserver`` option to be set.
 
     keyserver
        This is the name of the keyserver to retrieve gpg keys from.  The
@@ -267,55 +257,29 @@ def managed(name, ppa=None, **kwargs):
 
            Use either ``keyid``/``keyserver`` or ``key_url``, but not both.
 
-    key_text
-        The string representation of the GPG key to install.
+    consolidate
+       If set to true, this will consolidate all sources definitions to
+       the sources.list file, cleanup the now unused files, consolidate
+       components (e.g. main) for the same URI, type, and architecture
+       to a single line, and finally remove comments from the sources.list
+       file.  The consolidate will run every time the state is processed. The
+       option only needs to be set on one repo managed by salt to take effect.
 
-        .. versionadded:: Oxygen
-
-       .. note::
-
-           Use either ``keyid``/``keyserver``, ``key_url``, or ``key_text`` but
-           not more than one method.
-
-    consolidate : False
-       If set to ``True``, this will consolidate all sources definitions to the
-       sources.list file, cleanup the now unused files, consolidate components
-       (e.g. main) for the same URI, type, and architecture to a single line,
-       and finally remove comments from the sources.list file.  The consolidate
-       will run every time the state is processed. The option only needs to be
-       set on one repo managed by salt to take effect.
-
-    clean_file : False
-       If set to ``True``, empty the file before config repo
-
-       .. note::
-           Use with care. This can be dangerous if multiple sources are
-           configured in the same file.
+    clean_file
+       If set to true, empty file before config repo, dangerous if use
+       multiple sources in one file.
 
        .. versionadded:: 2015.8.0
 
-    refresh : True
-       If set to ``False`` this will skip refreshing the apt package database
-       on debian based systems.
-
-    refresh_db : True
-       .. deprecated:: Oxygen
-           Use ``refresh`` instead.
+    refresh_db
+       If set to false this will skip refreshing the apt package database on
+       debian based systems.
 
     require_in
        Set this to a list of pkg.installed or pkg.latest to trigger the
        running of apt-get update prior to attempting to install these
-       packages. Setting a require in the pkg state will not work for this.
+       packages. Setting a require in the pkg will not work for this.
     '''
-    if 'refresh_db' in kwargs:
-        salt.utils.versions.warn_until(
-            'Neon',
-            'The \'refresh_db\' argument to \'pkg.mod_repo\' has been '
-            'renamed to \'refresh\'. Support for using \'refresh_db\' will be '
-            'removed in the Neon release of Salt.'
-        )
-        kwargs['refresh'] = kwargs.pop('refresh_db')
-
     ret = {'name': name,
            'changes': {},
            'result': None,
@@ -330,16 +294,6 @@ def managed(name, ppa=None, **kwargs):
         ret['result'] = False
         ret['comment'] = 'You may not use both "keyid"/"keyserver" and ' \
                          '"key_url" argument.'
-
-    if 'key_text' in kwargs and ('keyid' in kwargs or 'keyserver' in kwargs):
-        ret['result'] = False
-        ret['comment'] = 'You may not use both "keyid"/"keyserver" and ' \
-                         '"key_text" argument.'
-    if 'key_text' in kwargs and ('key_url' in kwargs):
-        ret['result'] = False
-        ret['comment'] = 'You may not use both "key_url" and ' \
-                         '"key_text" argument.'
-
     if 'repo' in kwargs:
         ret['result'] = False
         ret['comment'] = ('\'repo\' is not a supported argument for this '
@@ -367,11 +321,11 @@ def managed(name, ppa=None, **kwargs):
             try:
                 repo = ':'.join(('ppa', ppa))
             except TypeError:
-                repo = ':'.join(('ppa', six.text_type(ppa)))
+                repo = ':'.join(('ppa', str(ppa)))
 
-        kwargs['disabled'] = not salt.utils.data.is_true(enabled) \
+        kwargs['disabled'] = not salt.utils.is_true(enabled) \
             if enabled is not None \
-            else salt.utils.data.is_true(disabled)
+            else salt.utils.is_true(disabled)
 
     elif os_family in ('redhat', 'suse'):
         if 'humanname' in kwargs:
@@ -380,15 +334,15 @@ def managed(name, ppa=None, **kwargs):
             # Fall back to the repo name if humanname not provided
             kwargs['name'] = repo
 
-        kwargs['enabled'] = not salt.utils.data.is_true(disabled) \
+        kwargs['enabled'] = not salt.utils.is_true(disabled) \
             if disabled is not None \
-            else salt.utils.data.is_true(enabled)
+            else salt.utils.is_true(enabled)
 
     elif os_family == 'nilinuxrt':
         # opkg is the pkg virtual
-        kwargs['enabled'] = not salt.utils.data.is_true(disabled) \
+        kwargs['enabled'] = not salt.utils.is_true(disabled) \
             if disabled is not None \
-            else salt.utils.data.is_true(enabled)
+            else salt.utils.is_true(enabled)
 
     for kwarg in _STATE_INTERNAL_KEYWORDS:
         kwargs.pop(kwarg, None)
@@ -417,9 +371,6 @@ def managed(name, ppa=None, **kwargs):
         repo = salt.utils.pkg.deb.strip_uri(repo)
 
     if pre:
-        #22412: Remove file attribute in case same repo is set up multiple times but with different files
-        pre.pop('file', None)
-        sanitizedkwargs.pop('file', None)
         for kwarg in sanitizedkwargs:
             if kwarg not in pre:
                 if kwarg == 'enabled':
@@ -428,7 +379,7 @@ def managed(name, ppa=None, **kwargs):
                     # if it's desired to be enabled and the 'enabled' key is
                     # missing from the repo definition
                     if os_family == 'redhat':
-                        if not salt.utils.data.is_true(sanitizedkwargs[kwarg]):
+                        if not salt.utils.is_true(sanitizedkwargs[kwarg]):
                             break
                     else:
                         break
@@ -463,11 +414,11 @@ def managed(name, ppa=None, **kwargs):
                         and any(isinstance(x, bool) for x in
                                 (sanitizedkwargs[kwarg], pre[kwarg])):
                     # This check disambiguates 1/0 from True/False
-                    if salt.utils.data.is_true(sanitizedkwargs[kwarg]) != \
-                            salt.utils.data.is_true(pre[kwarg]):
+                    if salt.utils.is_true(sanitizedkwargs[kwarg]) != \
+                            salt.utils.is_true(pre[kwarg]):
                         break
                 else:
-                    if six.text_type(sanitizedkwargs[kwarg]) != six.text_type(pre[kwarg]):
+                    if str(sanitizedkwargs[kwarg]) != str(pre[kwarg]):
                         break
         else:
             ret['result'] = True
@@ -486,7 +437,7 @@ def managed(name, ppa=None, **kwargs):
 
     # empty file before configure
     if kwargs.get('clean_file', False):
-        with salt.utils.files.fopen(kwargs['file'], 'w'):
+        with salt.utils.fopen(kwargs['file'], 'w'):
             pass
 
     try:

@@ -10,8 +10,6 @@ A state module to manage Gentoo package overlays via layman
     sunrise:
         layman.present
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
 
 
 def __virtual__():

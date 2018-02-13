@@ -3,7 +3,7 @@
     :codeauthor: :email:`Jayesh Kariya <jayeshk@saltstack.com>`
 '''
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -45,8 +45,8 @@ class PostgresExtensionTestCase(TestCase, LoaderModuleMockMixin):
         with patch.dict(postgres_extension.__salt__,
                         {'postgres.create_metadata': mock}):
             with patch.dict(postgres_extension.__opts__, {'test': True}):
-                comt = ('Extension {0} is already present'.format(name))
-                ret.update({'comment': comt, 'result': True})
+                comt = ('Extension {0} is set to be created'.format(name))
+                ret.update({'comment': comt, 'result': None})
                 self.assertDictEqual(postgres_extension.present(name), ret)
 
             with patch.dict(postgres_extension.__opts__, {'test': False}):

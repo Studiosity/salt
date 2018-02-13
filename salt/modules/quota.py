@@ -2,14 +2,13 @@
 '''
 Module for managing quotas on POSIX-like systems.
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import python libs
 import logging
 
 # Import salt libs
-import salt.utils.path
-import salt.utils.platform
+import salt.utils
 from salt.exceptions import CommandExecutionError, SaltInvocationError
 
 log = logging.getLogger(__name__)
@@ -25,14 +24,9 @@ def __virtual__():
     '''
     Only work on POSIX-like systems with setquota binary available
     '''
-    if not salt.utils.platform.is_windows() \
-            and salt.utils.path.which('setquota'):
+    if not salt.utils.is_windows() and salt.utils.which('setquota'):
         return 'quota'
-    return (
-        False,
-        'The quota execution module cannot be loaded: the module is only '
-        'available on POSIX-like systems with the setquota binary available.'
-    )
+    return (False, 'The quota execution module cannot be loaded: the module is only available on POSIX-like systems with the setquota binary available.')
 
 
 def report(mount):

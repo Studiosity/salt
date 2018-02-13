@@ -66,12 +66,12 @@ To just update your windows machine, add this your sls:
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import logging
 
 # Import 3rd-party libs
 # pylint: disable=import-error
-from salt.ext import six
+import salt.ext.six as six
 from salt.ext.six.moves import range  # pylint: disable=redefined-builtin
 try:
     import win32com.client
@@ -81,9 +81,8 @@ except ImportError:
     HAS_DEPENDENCIES = False
 # pylint: enable=import-error
 
-# Import Salt libs
-import salt.utils.platform
-import salt.utils.versions
+# Import salt libs
+import salt.utils
 
 log = logging.getLogger(__name__)
 
@@ -92,7 +91,7 @@ def __virtual__():
     '''
     Only works on Windows systems
     '''
-    if salt.utils.platform.is_windows() and HAS_DEPENDENCIES:
+    if salt.utils.is_windows() and HAS_DEPENDENCIES:
         return True
     return False
 
@@ -168,31 +167,30 @@ class PyWinUpdater(object):
 
     def Search(self, searchString):
         try:
-            log.debug('beginning search of the passed string: %s',
-                      searchString)
+            log.debug('beginning search of the passed string: {0}'.format(searchString))
             self.search_results = self.win_searcher.Search(searchString)
             log.debug('search completed successfully.')
         except Exception as exc:
-            log.info('search for updates failed. %s', exc)
+            log.info('search for updates failed. {0}'.format(exc))
             return exc
 
-        log.debug('parsing results. %s updates were found.',
-                  self.search_results.Updates.Count)
+        log.debug('parsing results. {0} updates were found.'.format(
+            self.search_results.Updates.Count))
         try:
             for update in self.search_results.Updates:
                 if update.InstallationBehavior.CanRequestUserInput:
-                    log.debug('Skipped update %s', update.title)
+                    log.debug(u'Skipped update {0}'.format(update.title))
                     continue
                 for category in update.Categories:
                     if self.skipDownloaded and update.IsDownloaded:
                         continue
                     if self.categories is None or category.Name in self.categories:
                         self.download_collection.Add(update)
-                        log.debug('added update %s', update.title)
+                        log.debug(u'added update {0}'.format(update.title))
             self.foundCategories = _gather_update_categories(self.download_collection)
             return True
         except Exception as exc:
-            log.info('parsing updates failed. %s', exc)
+            log.info('parsing updates failed. {0}'.format(exc))
             return exc
 
     def AutoSearch(self):
@@ -233,7 +231,7 @@ class PyWinUpdater(object):
         else:
             return False
             # if there is no type, the is nothing to search.
-        log.debug('generated search string: %s', search_string)
+        log.debug('generated search string: {0}'.format(search_string))
         return self.Search(search_string)
 
     def Download(self):
@@ -244,7 +242,7 @@ class PyWinUpdater(object):
                 log.debug('Skipped downloading, all updates were already cached.')
             return True
         except Exception as exc:
-            log.debug('failed in the downloading %s.', exc)
+            log.debug('failed in the downloading {0}.'.format(exc))
             return exc
 
     def Install(self):
@@ -254,17 +252,17 @@ class PyWinUpdater(object):
                     self.install_collection.Add(update)
             log.debug('Updates prepared. beginning installation')
         except Exception as exc:
-            log.info('Preparing install list failed: %s', exc)
+            log.info('Preparing install list failed: {0}'.format(exc))
             return exc
 
         # accept eula if not accepted
         try:
             for update in self.search_results.Updates:
                 if not update.EulaAccepted:
-                    log.debug('Accepting EULA: %s', update.Title)
+                    log.debug(u'Accepting EULA: {0}'.format(update.Title))
                     update.AcceptEula()
         except Exception as exc:
-            log.info('Accepting Eula failed: %s', exc)
+            log.info('Accepting Eula failed: {0}'.format(exc))
             return exc
 
         if self.install_collection.Count != 0:
@@ -275,14 +273,14 @@ class PyWinUpdater(object):
                 log.info('Installation of updates complete')
                 return True
             except Exception as exc:
-                log.info('Installation failed: %s', exc)
+                log.info('Installation failed: {0}'.format(exc))
                 return exc
         else:
             log.info('no new updates.')
             return True
 
     def GetInstallationResults(self):
-        log.debug('bluger has %s updates in it', self.install_collection.Count)
+        log.debug('bluger has {0} updates in it'.format(self.install_collection.Count))
         updates = []
         if self.install_collection.Count == 0:
             return {}
@@ -325,7 +323,7 @@ class PyWinUpdater(object):
                 value = i[next(six.iterkeys(i))]
                 skip = next(six.iterkeys(i))
                 self.SetSkip(skip, value)
-                log.debug('was asked to set %s to %s', skip, value)
+                log.debug('was asked to set {0} to {1}'.format(skip, value))
 
     def SetSkip(self, skip, state):
         if skip == 'UI':
@@ -344,12 +342,9 @@ class PyWinUpdater(object):
             self.skipSoftwareUpdates = state
         elif skip == 'driver':
             self.skipDriverUpdates = state
-        log.debug('new search state: \n\tUI: %s\n\tDownload: %s\n'
-                  '\tInstalled: %s\n\treboot :%s\n\tPresent: %s\n'
-                  '\thidden: %s\n\tsoftware: %s\n\tdriver: %s',
-                  self.skipUI, self.skipDownloaded, self.skipInstalled,
-                  self.skipReboot, self.skipPresent, self.skipHidden,
-                  self.skipSoftwareUpdates, self.skipDriverUpdates)
+        log.debug('new search state: \n\tUI: {0}\n\tDownload: {1}\n\tInstalled: {2}\n\treboot :{3}\n\tPresent: {4}\n\thidden: {5}\n\tsoftware: {6}\n\tdriver: {7}'.format(
+            self.skipUI, self.skipDownloaded, self.skipInstalled, self.skipReboot,
+            self.skipPresent, self.skipHidden, self.skipSoftwareUpdates, self.skipDriverUpdates))
 
 
 def _search(win_updater, retries=5):
@@ -357,9 +352,9 @@ def _search(win_updater, retries=5):
     clean = True
     comment = ''
     while not passed:
-        log.debug('Searching. tries left: %s', retries)
+        log.debug('Searching. tries left: {0}'.format(retries))
         passed = win_updater.AutoSearch()
-        log.debug('Done searching: %s', passed)
+        log.debug('Done searching: {0}'.format(passed))
         if isinstance(passed, Exception):
             clean = False
             comment += 'Failed in the seeking/parsing process:\n\t\t{0}\n'.format(passed)
@@ -381,9 +376,9 @@ def _download(win_updater, retries=5):
     clean = True
     comment = ''
     while not passed:
-        log.debug('Downloading. tries left: %s', retries)
+        log.debug('Downloading. tries left: {0}'.format(retries))
         passed = win_updater.Download()
-        log.debug('Done downloading: %s', passed)
+        log.debug('Done downloading: {0}'.format(passed))
         if isinstance(passed, Exception):
             clean = False
             comment += 'Failed while trying to download updates:\n\t\t{0}\n'.format(passed)
@@ -404,11 +399,10 @@ def _install(win_updater, retries=5):
     clean = True
     comment = ''
     while not passed:
-        log.debug('download_collection is this long: %s',
-                  win_updater.install_collection.Count)
-        log.debug('Installing. tries left: %s', retries)
+        log.debug('download_collection is this long: {0}'.format(win_updater.install_collection.Count))
+        log.debug('Installing. tries left: {0}'.format(retries))
         passed = win_updater.Install()
-        log.info('Done installing: %s', passed)
+        log.info('Done installing: {0}'.format(passed))
         if isinstance(passed, Exception):
             clean = False
             comment += 'Failed while trying to install the updates.\n\t\t{0}\n'.format(passed)
@@ -471,11 +465,11 @@ def installed(name, categories=None, skips=None, retries=10):
     deprecation_msg = 'The \'win_update\' module is deprecated, and will be ' \
                       'removed in Salt Fluorine. Please use the \'win_wua\' ' \
                       'module instead.'
-    salt.utils.versions.warn_until('Fluorine', deprecation_msg)
+    salt.utils.warn_until('Fluorine', deprecation_msg)
     ret.setdefault('warnings', []).append(deprecation_msg)
     if not categories:
         categories = [name]
-    log.debug('categories to search for are: %s', categories)
+    log.debug('categories to search for are: {0}'.format(categories))
     win_updater = PyWinUpdater()
     win_updater.SetCategories(categories)
     win_updater.SetSkips(skips)
@@ -555,12 +549,12 @@ def downloaded(name, categories=None, skips=None, retries=10):
     deprecation_msg = 'The \'win_update\' module is deprecated, and will be ' \
                       'removed in Salt Fluorine. Please use the \'win_wua\' ' \
                       'module instead.'
-    salt.utils.versions.warn_until('Fluorine', deprecation_msg)
+    salt.utils.warn_until('Fluorine', deprecation_msg)
     ret.setdefault('warnings', []).append(deprecation_msg)
 
     if not categories:
         categories = [name]
-    log.debug('categories to search for are: %s', categories)
+    log.debug('categories to search for are: {0}'.format(categories))
     win_updater = PyWinUpdater()
     win_updater.SetCategories(categories)
     win_updater.SetSkips(skips)

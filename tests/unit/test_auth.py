@@ -4,7 +4,7 @@
 '''
 
 # Import pytohn libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.unit import TestCase, skipIf
@@ -14,7 +14,7 @@ from tests.support.mock import patch, call, NO_MOCK, NO_MOCK_REASON, MagicMock
 import salt.master
 from tests.support.case import ModuleCase
 from salt import auth
-import salt.utils.platform
+import salt.utils
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
@@ -23,10 +23,7 @@ class LoadAuthTestCase(TestCase):
     def setUp(self):  # pylint: disable=W0221
         patches = (
             ('salt.payload.Serial', None),
-            ('salt.loader.auth', dict(return_value={'pam.auth': 'fake_func_str', 'pam.groups': 'fake_groups_function_str'})),
-            ('salt.loader.eauth_tokens', dict(return_value={'localfs.mk_token': 'fake_func_mktok',
-                                                            'localfs.get_token': 'fake_func_gettok',
-                                                            'localfs.rm_roken': 'fake_func_rmtok'}))
+            ('salt.loader.auth', dict(return_value={'pam.auth': 'fake_func_str', 'pam.groups': 'fake_groups_function_str'}))
         )
         for mod, mock in patches:
             if mock:
@@ -50,8 +47,7 @@ class LoadAuthTestCase(TestCase):
         self.assertEqual(ret, '', "Did not bail when the auth loader didn't have the auth type.")
 
         # Test a case with valid params
-        with patch('salt.utils.args.arg_lookup',
-                   MagicMock(return_value={'args': ['username', 'password']})) as format_call_mock:
+        with patch('salt.utils.arg_lookup', MagicMock(return_value={'args': ['username', 'password']})) as format_call_mock:
             expected_ret = call('fake_func_str')
             ret = self.lauth.load_name(valid_eauth_load)
             format_call_mock.assert_has_calls((expected_ret,), any_order=True)
@@ -62,7 +58,7 @@ class LoadAuthTestCase(TestCase):
                             'show_timeout': False,
                             'test_password': '',
                             'eauth': 'pam'}
-        with patch('salt.utils.args.format_call') as format_call_mock:
+        with patch('salt.utils.format_call') as format_call_mock:
             expected_ret = call('fake_groups_function_str', {
                 'username': 'test_user',
                 'test_password': '',
@@ -151,14 +147,13 @@ class MasterACLTestCase(ModuleCase):
                                 }
         self.addCleanup(delattr, self, 'valid_clear_load')
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_master_publish_name(self):
         '''
         Test to ensure a simple name can auth against a given function.
         This tests to ensure test_user can access test.ping but *not* sys.doc
         '''
-        _check_minions_return = {'minions': ['some_minions'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='some_minions')):
             # Can we access test.ping?
             self.clear.publish(self.valid_clear_load)
             self.assertEqual(self.fire_event_mock.call_args[0][0]['fun'], 'test.ping')
@@ -173,8 +168,7 @@ class MasterACLTestCase(ModuleCase):
         '''
         Tests to ensure test_group can access test.echo but *not* sys.doc
         '''
-        _check_minions_return = {'minions': ['some_minions'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='some_minions')):
             self.valid_clear_load['kwargs']['user'] = 'new_user'
             self.valid_clear_load['fun'] = 'test.echo'
             self.valid_clear_load['arg'] = 'hello'
@@ -222,7 +216,7 @@ class MasterACLTestCase(ModuleCase):
         self.clear.publish(self.valid_clear_load)
         self.assertEqual(self.fire_event_mock.mock_calls, [])
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_master_minion_glob(self):
         '''
         Test to ensure we can allow access to a given
@@ -241,8 +235,7 @@ class MasterACLTestCase(ModuleCase):
         requested_tgt = 'minion_glob1'
         self.valid_clear_load['tgt'] = requested_tgt
         self.valid_clear_load['fun'] = requested_function
-        _check_minions_return = {'minions': ['minion_glob1'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):  # Assume that there is a listening minion match
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=['minion_glob1'])):  # Assume that there is a listening minion match
             self.clear.publish(self.valid_clear_load)
         self.assertTrue(self.fire_event_mock.called, 'Did not fire {0} for minion tgt {1}'.format(requested_function, requested_tgt))
         self.assertEqual(self.fire_event_mock.call_args[0][0]['fun'], requested_function, 'Did not fire {0} for minion glob'.format(requested_function))
@@ -260,7 +253,7 @@ class MasterACLTestCase(ModuleCase):
         # Unimplemented
         pass
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_args_empty_spec(self):
         '''
         Test simple arg restriction allowed.
@@ -269,8 +262,7 @@ class MasterACLTestCase(ModuleCase):
             minion1:
                 - test.empty:
         '''
-        _check_minions_return = {'minions': ['minion1'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='minion1')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             self.valid_clear_load.update({'user': 'test_user_func',
                                           'tgt': 'minion1',
@@ -279,7 +271,7 @@ class MasterACLTestCase(ModuleCase):
             self.clear.publish(self.valid_clear_load)
             self.assertEqual(self.fire_event_mock.call_args[0][0]['fun'], 'test.empty')
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_args_simple_match(self):
         '''
         Test simple arg restriction allowed.
@@ -291,8 +283,7 @@ class MasterACLTestCase(ModuleCase):
                         - 'TEST'
                         - 'TEST.*'
         '''
-        _check_minions_return = {'minions': ['minion1'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='minion1')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             self.valid_clear_load.update({'user': 'test_user_func',
                                           'tgt': 'minion1',
@@ -301,7 +292,7 @@ class MasterACLTestCase(ModuleCase):
             self.clear.publish(self.valid_clear_load)
             self.assertEqual(self.fire_event_mock.call_args[0][0]['fun'], 'test.echo')
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_args_more_args(self):
         '''
         Test simple arg restriction allowed to pass unlisted args.
@@ -313,8 +304,7 @@ class MasterACLTestCase(ModuleCase):
                         - 'TEST'
                         - 'TEST.*'
         '''
-        _check_minions_return = {'minions': ['minion1'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='minion1')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             self.valid_clear_load.update({'user': 'test_user_func',
                                           'tgt': 'minion1',
@@ -339,8 +329,7 @@ class MasterACLTestCase(ModuleCase):
                         - 'TEST'
                         - 'TEST.*'
         '''
-        _check_minions_return = {'minions': ['minion1'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='minion1')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             # Wrong last arg
             self.valid_clear_load.update({'user': 'test_user_func',
@@ -362,7 +351,7 @@ class MasterACLTestCase(ModuleCase):
             self.clear.publish(self.valid_clear_load)
             self.assertEqual(self.fire_event_mock.mock_calls, [])
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_args_kwargs_match(self):
         '''
         Test simple kwargs restriction allowed.
@@ -373,8 +362,7 @@ class MasterACLTestCase(ModuleCase):
                     kwargs:
                         text: 'KWMSG:.*'
         '''
-        _check_minions_return = {'minions': ['some_minions'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='some_minions')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             self.valid_clear_load.update({'user': 'test_user_func',
                                           'tgt': '*',
@@ -396,8 +384,7 @@ class MasterACLTestCase(ModuleCase):
                     kwargs:
                         text: 'KWMSG:.*'
         '''
-        _check_minions_return = {'minions': ['some_minions'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='some_minions')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             self.valid_clear_load.update({'user': 'test_user_func',
                                           'tgt': '*',
@@ -436,7 +423,7 @@ class MasterACLTestCase(ModuleCase):
             self.clear.publish(self.valid_clear_load)
             self.assertEqual(self.fire_event_mock.mock_calls, [])
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_args_mixed_match(self):
         '''
         Test mixed args and kwargs restriction allowed.
@@ -451,8 +438,7 @@ class MasterACLTestCase(ModuleCase):
                         'kwa': 'kwa.*'
                         'kwb': 'kwb'
         '''
-        _check_minions_return = {'minions': ['some_minions'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='some_minions')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             self.valid_clear_load.update({'user': 'test_user_func',
                                           'tgt': '*',
@@ -482,8 +468,7 @@ class MasterACLTestCase(ModuleCase):
                         'kwa': 'kwa.*'
                         'kwb': 'kwb'
         '''
-        _check_minions_return = {'minions': ['some_minions'], 'missing': []}
-        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_check_minions_return)):
+        with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value='some_minions')):
             self.valid_clear_load['kwargs'].update({'username': 'test_user_func'})
             self.valid_clear_load.update({'user': 'test_user_func',
                                           'tgt': '*',
@@ -582,7 +567,7 @@ class AuthACLTestCase(ModuleCase):
                                  }
         self.addCleanup(delattr, self, 'valid_clear_load')
 
-    @skipIf(salt.utils.platform.is_windows(), 'PAM eauth not available on Windows')
+    @skipIf(salt.utils.is_windows(), 'PAM eauth not available on Windows')
     def test_acl_simple_allow(self):
         self.clear.publish(self.valid_clear_load)
         self.assertEqual(self.auth_check_mock.call_args[0][0],

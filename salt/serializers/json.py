@@ -8,19 +8,15 @@
     It's just a wrapper around json (or simplejson if available).
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 try:
-    import simplejson as _json
+    import simplejson as json
 except ImportError:
-    import json as _json  # pylint: disable=blacklisted-import
+    import json
 
-# Import Salt libs
-import salt.utils.json
+from salt.ext.six import string_types
 from salt.serializers import DeserializationError, SerializationError
-
-# Import 3rd-party libs
-from salt.ext import six
 
 __all__ = ['deserialize', 'serialize', 'available']
 
@@ -36,14 +32,13 @@ def deserialize(stream_or_string, **options):
     '''
 
     try:
-        if not isinstance(stream_or_string, (bytes, six.string_types)):
-            return salt.utils.json.load(
-                stream_or_string, _json_module=_json, **options)
+        if not isinstance(stream_or_string, (bytes, string_types)):
+            return json.load(stream_or_string, **options)
 
         if isinstance(stream_or_string, bytes):
             stream_or_string = stream_or_string.decode('utf-8')
 
-        return salt.utils.json.loads(stream_or_string, _json_module=_json)
+        return json.loads(stream_or_string)
     except Exception as error:
         raise DeserializationError(error)
 
@@ -58,8 +53,8 @@ def serialize(obj, **options):
 
     try:
         if 'fp' in options:
-            return salt.utils.json.dump(obj, _json_module=_json, **options)
+            return json.dump(obj, **options)
         else:
-            return salt.utils.json.dumps(obj, _json_module=_json, **options)
+            return json.dumps(obj, **options)
     except Exception as error:
         raise SerializationError(error)

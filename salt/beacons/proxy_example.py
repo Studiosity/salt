@@ -10,12 +10,11 @@ Example beacon to use with salt-proxy
 '''
 
 # Import Python libs
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 import logging
 
 # Import salt libs
 import salt.utils.http
-from salt.ext.six.moves import map
 
 # Important: If used with salt-proxy
 # this is required for the beacon to load!!!
@@ -34,12 +33,12 @@ def __virtual__():
     return True
 
 
-def validate(config):
+def __validate__(config):
     '''
     Validate the beacon configuration
     '''
-    if not isinstance(config, list):
-        return False, ('Configuration for proxy_example beacon must be a list.')
+    if not isinstance(config, dict):
+        return False, ('Configuration for rest_example beacon must be a dictionary.')
     return True, 'Valid beacon configuration'
 
 
@@ -52,7 +51,7 @@ def beacon(config):
 
         beacons:
           proxy_example:
-            - endpoint: beacon
+            endpoint: beacon
     '''
     # Important!!!
     # Although this toy example makes an HTTP call
@@ -60,11 +59,8 @@ def beacon(config):
     # please be advised that doing CPU or IO intensive
     # operations in this method will cause the beacon loop
     # to block.
-    _config = {}
-    list(map(_config.update, config))
-
     beacon_url = '{0}{1}'.format(__opts__['proxy']['url'],
-                                 _config['endpoint'])
+                                 config['endpoint'])
     ret = salt.utils.http.query(beacon_url,
                                 decode_type='json',
                                 decode=True)

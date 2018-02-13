@@ -8,10 +8,10 @@ Manage groups on Windows
     *'group.info' is not available*), see :ref:`here
     <module-provider-override>`.
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
-# Import Salt libs
-import salt.utils.platform
+# Import salt libs
+import salt.utils
 import salt.utils.win_functions
 
 
@@ -31,7 +31,7 @@ def __virtual__():
     '''
     Set the group module if the kernel is Windows
     '''
-    if salt.utils.platform.is_windows() and HAS_DEPENDENCIES:
+    if salt.utils.is_windows() and HAS_DEPENDENCIES:
         return __virtualname__
     return (False, "Module win_groupadd: module only works on Windows systems")
 

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 '''
-Hjson_ renderer for Salt
-
-.. _Hjson: http://laktak.github.io/hjson/
+Hjson Renderer for Salt
+http://laktak.github.io/hjson/
 '''
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import 3rd party libs
 try:
@@ -15,7 +14,7 @@ except ImportError:
     HAS_LIBS = False
 
 # Import salt libs
-from salt.ext import six
+from salt.ext.six import string_types
 
 
 def render(hjson_data, saltenv='base', sls='', **kws):
@@ -25,7 +24,7 @@ def render(hjson_data, saltenv='base', sls='', **kws):
 
     :rtype: A Python data structure
     '''
-    if not isinstance(hjson_data, six.string_types):
+    if not isinstance(hjson_data, string_types):
         hjson_data = hjson_data.read()
 
     if hjson_data.startswith('#!'):

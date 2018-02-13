@@ -2,7 +2,9 @@
 '''
 Test behaviors used by test plans
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+# pylint: skip-file
+# pylint: disable=C0103
+
 import os
 import stat
 import time
@@ -22,12 +24,11 @@ from raet.road.estating import RemoteEstate
 from raet.road.stacking import RoadStack
 from raet.stacking import Stack
 
-import salt.utils.stringutils
 from salt.daemons import salting
 from salt.utils.event import tagify
 
 
-class DeedTestWrapper(object):
+class DeedTestWrapper():
     def assertTrue(self, condition):
         if not condition:
             self.failure.value = 'Fail'
@@ -44,7 +45,7 @@ class TestOptsSetup(ioflo.base.deeding.Deed):
     '''
     Setup opts share
     '''
-    Ioinits = {'opts': salt.utils.stringutils.to_str('.salt.opts')}
+    Ioinits = {'opts': '.salt.opts'}
 
     def action(self):
         '''
@@ -93,7 +94,7 @@ class TestOptsSetup(ioflo.base.deeding.Deed):
             raet_port=self.raet_port,
             transport='raet',
             client_acl=dict(),
-            publisher_acl=dict(),
+            publisher_acl = dict(),
             pki_dir=pkiDirpath,
             sock_dir=sockDirpath,
             cachedir=cacheDirpath,
@@ -166,17 +167,16 @@ class PresenterTestSetup(ioflo.base.deeding.Deed):
     '''
     Setup shares for presence tests
     '''
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'lane_stack': salt.utils.stringutils.to_str('.salt.lane.manor.stack'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'alloweds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.alloweds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'lane_stack': '.salt.lane.manor.stack',
+               'event_stack': '.salt.test.lane.stack',
+               'alloweds': {'ipath': '.salt.var.presence.alloweds',
                             'ival': odict()},
-               'aliveds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.aliveds'),
+               'aliveds': {'ipath': '.salt.var.presence.aliveds',
                            'ival': odict()},
-               'reapeds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.reapeds'),
+               'reapeds': {'ipath': '.salt.var.presence.reapeds',
                            'ival': odict()},
-               'availables': {'ipath': salt.utils.stringutils.to_str(
-                                            '.salt.var.presence.availables'),
+               'availables': {'ipath': '.salt.var.presence.availables',
                               'ival': set()}}
 
     def action(self):
@@ -215,15 +215,14 @@ class PresenterTestCleanup(ioflo.base.deeding.Deed):
     '''
     Clean up after a test
     '''
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'alloweds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.alloweds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'alloweds': {'ipath': '.salt.var.presence.alloweds',
                             'ival': odict()},
-               'aliveds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.aliveds'),
+               'aliveds': {'ipath': '.salt.var.presence.aliveds',
                            'ival': odict()},
-               'reapeds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.reapeds'),
+               'reapeds': {'ipath': '.salt.var.presence.reapeds',
                            'ival': odict()},
-               'availables': {'ipath': salt.utils.stringutils.to_str(
-                                    '.salt.var.presence.availables'),
+               'availables': {'ipath': '.salt.var.presence.availables',
                               'ival': set()}}
 
     def action(self):
@@ -236,18 +235,17 @@ class PresenterTestCleanup(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAvailable(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'aliveds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.aliveds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'aliveds': {'ipath': '.salt.var.presence.aliveds',
                            'ival': odict()},
-               'availables': {'ipath': salt.utils.stringutils.to_str(
-                                    '.salt.var.presence.availables'),
+               'availables': {'ipath': '.salt.var.presence.availables',
                               'ival': set()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'available' request (A1, B*)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -282,8 +280,8 @@ class TestPresenceAvailable(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAvailableCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -302,15 +300,15 @@ class TestPresenceAvailableCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
 
 
 class TestPresenceJoined(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'alloweds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.alloweds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'alloweds': {'ipath': '.salt.var.presence.alloweds',
                             'ival': odict()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'joined' request (A2)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -327,8 +325,8 @@ class TestPresenceJoined(ioflo.base.deeding.Deed):
 
 
 class TestPresenceJoinedCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -346,15 +344,15 @@ class TestPresenceJoinedCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
 
 
 class TestPresenceAllowed(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'alloweds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.alloweds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'alloweds': {'ipath': '.salt.var.presence.alloweds',
                             'ival': odict()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'allowed' request (A3)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -371,8 +369,8 @@ class TestPresenceAllowed(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAllowedCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -390,15 +388,15 @@ class TestPresenceAllowedCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
 
 
 class TestPresenceAlived(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'aliveds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.aliveds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'aliveds': {'ipath': '.salt.var.presence.aliveds',
                             'ival': odict()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'alived' request (A4)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -415,8 +413,8 @@ class TestPresenceAlived(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAlivedCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -434,15 +432,15 @@ class TestPresenceAlivedCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
 
 
 class TestPresenceReaped(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'reapeds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.reapeds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'reapeds': {'ipath': '.salt.var.presence.reapeds',
                            'ival': odict()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'reaped' request (A5)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -459,8 +457,8 @@ class TestPresenceReaped(ioflo.base.deeding.Deed):
 
 
 class TestPresenceReapedCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -481,15 +479,18 @@ class TestPresenceNoRequest(ioflo.base.deeding.Deed):
     Ioinits = {}
 
     def action(self):
-        '''
+        """
         Test Presenter with no requests (C1)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
+
+        # Prepare
+        pass # do nothing
 
 
 class TestPresenceNoRequestCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -499,14 +500,14 @@ class TestPresenceNoRequestCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
 
 
 class TestPresenceUnknownSrc(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
-        '''
+        """
         Test Presenter handles request from unknown (disconnected) source (C2)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -521,8 +522,8 @@ class TestPresenceUnknownSrc(ioflo.base.deeding.Deed, DeedTestWrapper):
 
 
 class TestPresenceUnknownSrcCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -532,13 +533,13 @@ class TestPresenceUnknownSrcCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
 
 
 class TestPresenceAvailableNoMinions(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack')}
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack'}
 
     def action(self):
-        '''
+        """
         Test Presenter 'available' request with no minions in the state (D1)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -552,8 +553,8 @@ class TestPresenceAvailableNoMinions(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAvailableNoMinionsCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -571,18 +572,17 @@ class TestPresenceAvailableNoMinionsCheck(ioflo.base.deeding.Deed, DeedTestWrapp
 
 
 class TestPresenceAvailableOneMinion(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'aliveds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.aliveds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'aliveds': {'ipath': '.salt.var.presence.aliveds',
                            'ival': odict()},
-               'availables': {'ipath': salt.utils.stringutils.to_str(
-                                    '.salt.var.presence.availables'),
+               'availables': {'ipath': '.salt.var.presence.availables',
                               'ival': set()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'available' request with one minions in the state (D2)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -599,8 +599,8 @@ class TestPresenceAvailableOneMinion(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAvailableOneMinionCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -618,18 +618,17 @@ class TestPresenceAvailableOneMinionCheck(ioflo.base.deeding.Deed, DeedTestWrapp
 
 
 class TestPresenceAvailableUnknownIp(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'aliveds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.aliveds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'aliveds': {'ipath': '.salt.var.presence.aliveds',
                            'ival': odict()},
-               'availables': {'ipath': salt.utils.stringutils.to_str(
-                                    '.salt.var.presence.availables'),
+               'availables': {'ipath': '.salt.var.presence.availables',
                               'ival': set()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'available' request with one minions in the state (D3)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -649,8 +648,8 @@ class TestPresenceAvailableUnknownIp(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAvailableUnknownIpCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -670,13 +669,13 @@ class TestPresenceAvailableUnknownIpCheck(ioflo.base.deeding.Deed, DeedTestWrapp
 
 
 class TestPresenceAllowedNoMinions(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack')}
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack'}
 
     def action(self):
-        '''
+        """
         Test Presenter 'allowed' request with no minions in the state (D4)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -690,8 +689,8 @@ class TestPresenceAllowedNoMinions(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAllowedNoMinionsCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -708,15 +707,15 @@ class TestPresenceAllowedNoMinionsCheck(ioflo.base.deeding.Deed, DeedTestWrapper
 
 
 class TestPresenceAllowedOneMinion(ioflo.base.deeding.Deed):
-    Ioinits = {'presence_req': salt.utils.stringutils.to_str('.salt.presence.event_req'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'alloweds': {'ipath': salt.utils.stringutils.to_str('.salt.var.presence.alloweds'),
+    Ioinits = {'presence_req': '.salt.presence.event_req',
+               'event_stack': '.salt.test.lane.stack',
+               'alloweds': {'ipath': '.salt.var.presence.alloweds',
                             'ival': odict()}}
 
     def action(self):
-        '''
+        """
         Test Presenter 'allowed' request with one minion in the state (D5)
-        '''
+        """
         console.terse("{0}\n".format(self.action.__doc__))
 
         # Prepare
@@ -732,8 +731,8 @@ class TestPresenceAllowedOneMinion(ioflo.base.deeding.Deed):
 
 
 class TestPresenceAllowedOneMinionCheck(ioflo.base.deeding.Deed, DeedTestWrapper):
-    Ioinits = {'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack'),
-               'failure': salt.utils.stringutils.to_str('.meta.failure')}
+    Ioinits = {'event_stack': '.salt.test.lane.stack',
+               'failure': '.meta.failure'}
 
     def action(self):
         testStack = self.event_stack.value
@@ -746,17 +745,17 @@ class TestPresenceAllowedOneMinionCheck(ioflo.base.deeding.Deed, DeedTestWrapper
         self.assertTrue(msg == {'route': {'src': [None, 'manor', None],
                                           'dst': [None, None, 'event_fire']},
                                 'tag': tag,
-                                'data': {'allowed': {'alpha': '1.1.1.1'}}})
+                                'data': {'allowed': {'alpha':'1.1.1.1'}}})
 
 
 class StatsMasterTestSetup(ioflo.base.deeding.Deed):
     '''
     Setup shares for stats tests
     '''
-    Ioinits = {'stats_req': salt.utils.stringutils.to_str('.salt.stats.event_req'),
-               'lane_stack': salt.utils.stringutils.to_str('.salt.lane.manor.stack'),
-               'road_stack': salt.utils.stringutils.to_str('.salt.road.manor.stack'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.lane.stack')}
+    Ioinits = {'stats_req': '.salt.stats.event_req',
+               'lane_stack': '.salt.lane.manor.stack',
+               'road_stack': '.salt.road.manor.stack',
+               'event_stack': '.salt.test.lane.stack'}
 
     def action(self):
 
@@ -790,10 +789,10 @@ class StatsMinionTestSetup(ioflo.base.deeding.Deed):
     '''
     Setup shares for stats tests
     '''
-    Ioinits = {'stats_req': salt.utils.stringutils.to_str('.salt.stats.event_req'),
-               'lane_stack': salt.utils.stringutils.to_str('.salt.lane.manor.stack'),
-               'road_stack': salt.utils.stringutils.to_str('.salt.road.manor.stack'),
-               'event_stack': salt.utils.stringutils.to_str('.salt.test.road.stack')}
+    Ioinits = {'stats_req': '.salt.stats.event_req',
+               'lane_stack': '.salt.lane.manor.stack',
+               'road_stack': '.salt.road.manor.stack',
+               'event_stack': '.salt.test.road.stack'}
 
     def action(self):
 

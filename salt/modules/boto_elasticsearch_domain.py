@@ -75,16 +75,17 @@ Connection module for Amazon Elasticsearch Service
 #pylint: disable=E0602
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 import logging
+import json
 
 # Import Salt libs
-from salt.ext import six
+import salt.ext.six as six
 import salt.utils.boto3
 import salt.utils.compat
-import salt.utils.json
-import salt.utils.versions
+import salt.utils
 from salt.exceptions import SaltInvocationError
+from salt.utils.versions import LooseVersion as _LooseVersion
 
 log = logging.getLogger(__name__)
 
@@ -110,13 +111,22 @@ def __virtual__():
     Only load if boto libraries exist and if boto libraries are greater than
     a given version.
     '''
+    required_boto_version = '2.8.0'
+    required_boto3_version = '1.4.0'
     # the boto_lambda execution module relies on the connect_to_region() method
     # which was added in boto 2.8.0
     # https://github.com/boto/boto/commit/33ac26b416fbb48a60602542b4ce15dcc7029f12
-    return salt.utils.versions.check_boto_reqs(
-        boto_ver='2.8.0',
-        boto3_ver='1.4.0'
-    )
+    if not HAS_BOTO:
+        return (False, 'The boto_lambda module could not be loaded: '
+                'boto libraries not found')
+    elif _LooseVersion(boto.__version__) < _LooseVersion(required_boto_version):
+        return (False, 'The boto_lambda module could not be loaded: '
+                'boto version {0} or later must be installed.'.format(required_boto_version))
+    elif _LooseVersion(boto3.__version__) < _LooseVersion(required_boto3_version):
+        return (False, 'The boto_lambda module could not be loaded: '
+                'boto version {0} or later must be installed.'.format(required_boto3_version))
+    else:
+        return True
 
 
 def __init__(opts):
@@ -247,14 +257,14 @@ def create(DomainName, ElasticsearchClusterConfig=None, EBSOptions=None,
                 val = locals()[k]
                 if isinstance(val, six.string_types):
                     try:
-                        val = salt.utils.json.loads(val)
+                        val = json.loads(val)
                     except ValueError as e:
                         return {'updated': False, 'error': 'Error parsing {0}: {1}'.format(k, e.message)}
                 kwargs[k] = val
         if 'AccessPolicies' in kwargs:
-            kwargs['AccessPolicies'] = salt.utils.json.dumps(kwargs['AccessPolicies'])
+            kwargs['AccessPolicies'] = json.dumps(kwargs['AccessPolicies'])
         if 'ElasticsearchVersion' in kwargs:
-            kwargs['ElasticsearchVersion'] = six.text_type(kwargs['ElasticsearchVersion'])
+            kwargs['ElasticsearchVersion'] = str(kwargs['ElasticsearchVersion'])
         domain = conn.create_elasticsearch_domain(DomainName=DomainName, **kwargs)
         if domain and 'DomainStatus' in domain:
             return {'created': True}
@@ -321,12 +331,12 @@ def update(DomainName, ElasticsearchClusterConfig=None, EBSOptions=None,
             val = locals()[k]
             if isinstance(val, six.string_types):
                 try:
-                    val = salt.utils.json.loads(val)
+                    val = json.loads(val)
                 except ValueError as e:
                     return {'updated': False, 'error': 'Error parsing {0}: {1}'.format(k, e.message)}
             call_args[k] = val
     if 'AccessPolicies' in call_args:
-        call_args['AccessPolicies'] = salt.utils.json.dumps(call_args['AccessPolicies'])
+        call_args['AccessPolicies'] = json.dumps(call_args['AccessPolicies'])
     try:
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         domain = conn.update_elasticsearch_domain_config(DomainName=DomainName, **call_args)
@@ -358,9 +368,9 @@ def add_tags(DomainName=None, ARN=None,
         conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
         tagslist = []
         for k, v in six.iteritems(kwargs):
-            if six.text_type(k).startswith('__'):
+            if str(k).startswith('__'):
                 continue
-            tagslist.append({'Key': six.text_type(k), 'Value': six.text_type(v)})
+            tagslist.append({'Key': str(k), 'Value': str(v)})
         if ARN is None:
             if DomainName is None:
                 raise SaltInvocationError('One (but not both) of ARN or '

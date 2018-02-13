@@ -28,9 +28,12 @@ To use the sms returner, append '--return sms' to the salt command.
     salt '*' test.ping --return sms
 
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+
+
 import logging
 
+import salt.utils
 import salt.returners
 
 log = logging.getLogger(__name__)
@@ -96,10 +99,8 @@ def returner(ret):
                 ret['id'], ret['fun'], ret['success'], ret['jid']
             ), to=receiver, from_=sender)
     except TwilioRestException as e:
-        log.error(
-            'Twilio [https://www.twilio.com/docs/errors/%s]',
-            e.code
-        )
+        log.error('Twilio [https://www.twilio.com/docs/errors/{0}]'.format(
+            e.code))
         return False
 
     return True

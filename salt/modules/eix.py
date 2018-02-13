@@ -2,17 +2,17 @@
 '''
 Support for Eix
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 
 
 def __virtual__():
     '''
-    Only works on Gentoo systems with eix installed
+    Only work on Gentoo systems with eix installed
     '''
-    if __grains__['os'] == 'Gentoo' and salt.utils.path.which('eix'):
+    if __grains__['os'] == 'Gentoo' and salt.utils.which('eix'):
         return 'eix'
     return (False, 'The eix execution module cannot be loaded: either the system is not Gentoo or the eix binary is not in the path.')
 
@@ -30,7 +30,7 @@ def sync():
     cmd = 'eix-sync -q -C "--ask" -C "n"'
     if 'makeconf.features_contains'in __salt__ and __salt__['makeconf.features_contains']('webrsync-gpg'):
         # GPG sign verify is supported only for "webrsync"
-        if salt.utils.path.which('emerge-delta-webrsync'):  # We prefer 'delta-webrsync' to 'webrsync'
+        if salt.utils.which('emerge-delta-webrsync'):  # We prefer 'delta-webrsync' to 'webrsync'
             cmd += ' -W'
         else:
             cmd += ' -w'
@@ -39,7 +39,7 @@ def sync():
         if __salt__['cmd.retcode'](cmd) == 0:
             return True
         # We fall back to "webrsync" if "rsync" fails for some reason
-        if salt.utils.path.which('emerge-delta-webrsync'):  # We prefer 'delta-webrsync' to 'webrsync'
+        if salt.utils.which('emerge-delta-webrsync'):  # We prefer 'delta-webrsync' to 'webrsync'
             cmd += ' -W'
         else:
             cmd += ' -w'

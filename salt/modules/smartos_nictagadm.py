@@ -9,14 +9,13 @@ Module for running nictagadm command on SmartOS
 ..versionadded:: 2016.11.0
 
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import Python libs
 import logging
 
 # Import Salt libs
-import salt.utils.path
-import salt.utils.platform
+import salt.utils
 import salt.utils.decorators as decorators
 
 log = logging.getLogger(__name__)
@@ -35,22 +34,21 @@ def _check_nictagadm():
     '''
     Looks to see if nictagadm is present on the system
     '''
-    return salt.utils.path.which('nictagadm')
+    return salt.utils.which('nictagadm')
 
 
 def _check_dladm():
     '''
     Looks to see if dladm is present on the system
     '''
-    return salt.utils.path.which('dladm')
+    return salt.utils.which('dladm')
 
 
 def __virtual__():
     '''
     Provides nictagadm on SmartOS
     '''
-    if salt.utils.platform.is_smartos_globalzone() \
-            and _check_nictagadm() and _check_dladm():
+    if salt.utils.is_smartos_globalzone() and _check_nictagadm() and _check_dladm():
         return __virtualname__
     return (
         False,

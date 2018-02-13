@@ -6,11 +6,7 @@ Module for getting information about network addresses.
 
 :depends: netaddr
 '''
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
-
-# Import Salt libs
-from salt.ext import six
+from __future__ import absolute_import
 
 __virtualname__ = 'netaddress'
 
@@ -41,7 +37,7 @@ def list_cidr_ips(cidr):
         salt myminion netaddress.list_cidr_ips 192.168.0.0/20
     '''
     ips = netaddr.IPNetwork(cidr)
-    return [six.text_type(ip) for ip in list(ips)]
+    return [str(ip) for ip in list(ips)]
 
 
 def list_cidr_ips_ipv6(cidr):
@@ -53,7 +49,7 @@ def list_cidr_ips_ipv6(cidr):
         salt myminion netaddress.list_cidr_ips_ipv6 192.168.0.0/20
     '''
     ips = netaddr.IPNetwork(cidr)
-    return [six.text_type(ip.ipv6()) for ip in list(ips)]
+    return [str(ip.ipv6()) for ip in list(ips)]
 
 
 def cidr_netmask(cidr):
@@ -65,7 +61,7 @@ def cidr_netmask(cidr):
         salt myminion netaddress.cidr_netmask 192.168.0.0/20
     '''
     ips = netaddr.IPNetwork(cidr)
-    return six.text_type(ips.netmask)
+    return str(ips.netmask)
 
 
 def cidr_broadcast(cidr):
@@ -77,4 +73,4 @@ def cidr_broadcast(cidr):
         salt myminion netaddress.cidr_netmask 192.168.0.0/20
     '''
     ips = netaddr.IPNetwork(cidr)
-    return six.text_type(ips.broadcast)
+    return str(ips.broadcast)

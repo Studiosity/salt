@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 # Import Salt Testing libs
 from tests.support.case import ModuleCase
@@ -22,9 +22,8 @@ class DecoratorTest(ModuleCase):
         self.assertTrue(isinstance(ret['time'], float))
 
     def test_missing_depends(self):
-        self.assertEqual(
-                {'runtests_decorators.missing_depends_will_fallback': '\n    CLI Example:\n\n    ',
-                 'runtests_decorators.missing_depends': "'runtests_decorators.missing_depends' is not available."},
+        self.assertIn(
+                'is not available',
                 self.run_function('runtests_decorators.missing_depends'
                     )
                 )

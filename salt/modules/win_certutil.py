@@ -9,12 +9,12 @@ manager.
 '''
 
 # Import Python Libs
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import re
 import logging
 
 # Import Salt Libs
-import salt.utils.platform
+import salt.utils
 
 log = logging.getLogger(__name__)
 __virtualname__ = "certutil"
@@ -24,7 +24,7 @@ def __virtual__():
     '''
     Only work on Windows
     '''
-    if salt.utils.platform.is_windows():
+    if salt.utils.is_windows():
         return __virtualname__
     return False
 

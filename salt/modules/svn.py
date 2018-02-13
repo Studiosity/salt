@@ -2,16 +2,14 @@
 '''
 Subversion SCM
 '''
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 
 # Import python libs
 import re
 
 # Import salt libs
-import salt.utils.args
-import salt.utils.path
-from salt.exceptions import CommandExecutionError
-from salt.ext import six
+import salt.utils
+from salt import utils, exceptions
 
 _INI_RE = re.compile(r"^([^:]+):\s+(\S.*)$", re.M)
 
@@ -20,7 +18,7 @@ def __virtual__():
     '''
     Only load if svn is installed
     '''
-    if salt.utils.path.which('svn') is None:
+    if utils.which('svn') is None:
         return (False,
                 'The svn execution module cannot be loaded: svn unavailable.')
     else:
@@ -70,7 +68,7 @@ def _run_svn(cmd, cwd, user, username, password, opts, **kwargs):
 
     if retcode == 0:
         return result['stdout']
-    raise CommandExecutionError(result['stderr'] + '\n\n' + ' '.join(cmd))
+    raise exceptions.CommandExecutionError(result['stderr'] + '\n\n' + ' '.join(cmd))
 
 
 def info(cwd,
@@ -114,7 +112,7 @@ def info(cwd,
     if fmt == 'xml':
         opts.append('--xml')
     if targets:
-        opts += salt.utils.args.shlex_split(targets)
+        opts += salt.utils.shlex_split(targets)
     infos = _run_svn('info', cwd, user, username, password, opts)
 
     if fmt in ('str', 'xml'):
@@ -243,7 +241,7 @@ def update(cwd, targets=None, user=None, username=None, password=None, *opts):
         salt '*' svn.update /path/to/repo
     '''
     if targets:
-        opts += tuple(salt.utils.args.shlex_split(targets))
+        opts += tuple(salt.utils.shlex_split(targets))
     return _run_svn('update', cwd, user, username, password, opts)
 
 
@@ -277,7 +275,7 @@ def diff(cwd, targets=None, user=None, username=None, password=None, *opts):
         salt '*' svn.diff /path/to/repo
     '''
     if targets:
-        opts += tuple(salt.utils.args.shlex_split(targets))
+        opts += tuple(salt.utils.shlex_split(targets))
     return _run_svn('diff', cwd, user, username, password, opts)
 
 
@@ -322,7 +320,7 @@ def commit(cwd,
     if msg:
         opts += ('-m', msg)
     if targets:
-        opts += tuple(salt.utils.args.shlex_split(targets))
+        opts += tuple(salt.utils.shlex_split(targets))
     return _run_svn('commit', cwd, user, username, password, opts)
 
 
@@ -354,7 +352,7 @@ def add(cwd, targets, user=None, username=None, password=None, *opts):
         salt '*' svn.add /path/to/repo /path/to/new/file
     '''
     if targets:
-        opts += tuple(salt.utils.args.shlex_split(targets))
+        opts += tuple(salt.utils.shlex_split(targets))
     return _run_svn('add', cwd, user, username, password, opts)
 
 
@@ -397,7 +395,7 @@ def remove(cwd,
     if msg:
         opts += ('-m', msg)
     if targets:
-        opts += tuple(salt.utils.args.shlex_split(targets))
+        opts += tuple(salt.utils.shlex_split(targets))
     return _run_svn('remove', cwd, user, username, password, opts)
 
 
@@ -431,18 +429,18 @@ def status(cwd, targets=None, user=None, username=None, password=None, *opts):
         salt '*' svn.status /path/to/repo
     '''
     if targets:
-        opts += tuple(salt.utils.args.shlex_split(targets))
+        opts += tuple(salt.utils.shlex_split(targets))
     return _run_svn('status', cwd, user, username, password, opts)
 
 
 def export(cwd,
-           remote,
-           target=None,
-           user=None,
-           username=None,
-           password=None,
-           revision='HEAD',
-           *opts):
+             remote,
+             target=None,
+             user=None,
+             username=None,
+             password=None,
+             revision='HEAD',
+             *opts):
     '''
     Create an unversioned copy of a tree.
 
@@ -477,5 +475,5 @@ def export(cwd,
     if target:
         opts += (target,)
     revision_args = '-r'
-    opts += (revision_args, six.text_type(revision),)
+    opts += (revision_args, str(revision),)
     return _run_svn('export', cwd, user, username, password, opts)

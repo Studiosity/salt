@@ -6,15 +6,12 @@ Currently this only works when run through a proxy minion.
 
 .. versionadded:: 2015.8.2
 '''
+from __future__ import absolute_import
 
-# Import Python libs
-from __future__ import absolute_import, print_function, unicode_literals
+import json
 import logging
-
-# Import Salt libs
+import salt.utils
 import salt.utils.http
-import salt.utils.json
-import salt.utils.platform
 from salt.exceptions import get_error_message
 
 
@@ -24,13 +21,9 @@ log = logging.getLogger(__file__)
 
 def __virtual__():
     # only valid in proxy minions for now
-    if salt.utils.platform.is_proxy() and 'proxy' in __opts__:
+    if salt.utils.is_proxy() and 'proxy' in __opts__:
         return True
-    return (
-        False,
-        'The marathon execution module cannot be loaded: this only works on '
-        'proxy minions.'
-    )
+    return (False, 'The marathon execution module cannot be loaded: this only works in proxy minions.')
 
 
 def _base_url():
@@ -117,7 +110,7 @@ def update_app(id, config):
     # mirror marathon-ui handling for uris deprecation (see
     # mesosphere/marathon-ui#594 for more details)
     config.pop('fetch', None)
-    data = salt.utils.json.dumps(config)
+    data = json.dumps(config)
     try:
         response = salt.utils.http.query(
             "{0}/v2/apps/{1}?force=true".format(_base_url(), id),

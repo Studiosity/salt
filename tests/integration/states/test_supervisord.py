@@ -5,7 +5,7 @@ Tests for the supervisord state
 '''
 
 # Import python lins
-from __future__ import absolute_import, unicode_literals, print_function
+from __future__ import absolute_import
 import os
 import time
 import subprocess
@@ -17,16 +17,16 @@ from tests.support.paths import TMP
 from tests.support.mixins import SaltReturnAssertsMixin
 
 # Import salt libs
-import salt.utils.path
+import salt.utils
 from salt.modules.virtualenv_mod import KNOWN_BINARY_NAMES
 
 # Import 3rd-party libs
-from salt.ext import six
+import salt.ext.six as six
 
 
 @skipIf(six.PY3, 'supervisor does not work under python 3')
-@skipIf(salt.utils.path.which_bin(KNOWN_BINARY_NAMES) is None, 'virtualenv not installed')
-@skipIf(salt.utils.path.which('supervisorctl') is None, 'supervisord not installed')
+@skipIf(salt.utils.which_bin(KNOWN_BINARY_NAMES) is None, 'virtualenv not installed')
+@skipIf(salt.utils.which('supervisorctl') is None, 'supervisord not installed')
 class SupervisordTest(ModuleCase, SaltReturnAssertsMixin):
     '''
     Validate the supervisord states.

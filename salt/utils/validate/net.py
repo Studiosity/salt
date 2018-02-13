@@ -2,18 +2,18 @@
 '''
 Various network validation utilities
 '''
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
-# Import Python libs
+# Import python libs
 import re
 import socket
 
-# Import Salt libs
-import salt.utils.platform
-
-# Import 3rd-party libs
+# Import salt libs
 from salt.ext.six import string_types
-if salt.utils.platform.is_windows():
+import salt.utils
+
+# Import third party libs
+if salt.utils.is_windows():
     from salt.ext import win_inet_pton  # pylint: disable=unused-import
 
 
