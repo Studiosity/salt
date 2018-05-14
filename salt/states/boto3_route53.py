@@ -656,7 +656,7 @@ def rr_present(name, HostedZoneId=None, DomainName=None, PrivateZone=False, Name
     if '*' in Name:
         UnicodedName = Name.replace('*',r'\052')
     recordsets = __salt__['boto3_route53.get_resource_records'](HostedZoneId=HostedZoneId,
-            StartRecordName=Name, StartRecordType=Type, region=region, key=key, keyid=keyid,
+            StartRecordName=UnicodedName, StartRecordType=Type, region=region, key=key, keyid=keyid,
             profile=profile)
 
     if SetIdentifier and recordsets:
