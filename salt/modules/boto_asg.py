@@ -143,7 +143,7 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
     retries = 30
     while True:
         try:
-            asg = conn.get_all_groups(names=[name])
+            asg = [g for g in conn.get_all_groups(names=[name]) if g.name]
             if asg:
                 asg = asg[0]
             else:
@@ -783,7 +783,7 @@ def get_all_groups(region=None, key=None, keyid=None, profile=None):
             asgs = []
             while next_token is not None:
                 ret = conn.get_all_groups(next_token=next_token)
-                asgs += [a for a in ret]
+                asgs += [a for a in ret if a.name]
                 next_token = ret.next_token
             return asgs
         except boto.exception.BotoServerError as e:
