@@ -521,7 +521,7 @@ def present(
                     ret['changes']['launch_config'] = {}
                 ret['changes']['launch_config'] = lc_ret['changes']
 
-    asg = __salt__['boto_asg.get_config'](name, region, key, keyid, profile)
+    asg = __salt__['boto3_asg.get_config'](name, region, key, keyid, profile)
     termination_policies = _determine_termination_policies(
         termination_policies,
         termination_policies_from_pillar
@@ -565,7 +565,7 @@ def present(
                                               key, keyid, profile)
         if created:
             ret['changes']['old'] = None
-            asg = __salt__['boto_asg.get_config'](name, region, key, keyid,
+            asg = __salt__['boto3_asg.get_config'](name, region, key, keyid,
                                                   profile)
             ret['changes']['new'] = asg
         else:
@@ -687,7 +687,7 @@ def present(
                     ret['changes']['launch_config']['deleted'] = asg['launch_config_name']
             if updated:
                 ret['changes']['old'] = asg
-                asg = __salt__['boto_asg.get_config'](name, region, key, keyid,
+                asg = __salt__['boto3_asg.get_config'](name, region, key, keyid,
                                                       profile)
                 ret['changes']['new'] = asg
                 ret['comment'] = 'Updated autoscale group.'
@@ -852,7 +852,7 @@ def absent(
         that contains a dict with region, key and keyid.
     '''
     ret = {'name': name, 'result': True, 'comment': '', 'changes': {}}
-    asg = __salt__['boto_asg.get_config'](name, region, key, keyid, profile)
+    asg = __salt__['boto3_asg.get_config'](name, region, key, keyid, profile)
     if asg is None:
         ret['result'] = False
         ret['comment'] = 'Failed to check autoscale group existence.'
