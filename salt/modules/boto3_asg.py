@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
 NB: This module is a copy of `boto_asg.py`, which has then been lightly modified to migrate from `boto` to `boto3` as
-required.
+required (read: we haven't expunged `boto` here, but it creates a place in which we can migrate in an ad-hoc fashion).
 Connection module for Amazon Autoscale Groups
 
 .. versionadded:: 2014.7.0
