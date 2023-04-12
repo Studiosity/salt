@@ -152,6 +152,8 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
     # boto3 client
     client = boto3.client("autoscaling")
 
+    # This lookup table allows us to map the (boto-inspired) key names expected by callers of this function, to the
+    # actual key names returned by boto3.
     attr_key_lookup = {
         "name": "AutoScalingGroupName",
         "availability_zones": "AvailabilityZones",
@@ -163,6 +165,7 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
         "load_balancers": "LoadBalancerNames",
         "max_size": "MaxSize",
         "min_size": "MinSize",
+        # boto3 doesn't seem to return a "placement group"-like key in its response, so this key is omitted.
         # "placement_group": None,
         "vpc_zone_identifier": "VPCZoneIdentifier",
         "tags": "Tags",
@@ -185,8 +188,6 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                 return {}
             ret = odict.OrderedDict()
             for attr, keyname in attr_key_lookup.items():
-                # Tags are objects, so we need to turn them into dicts.
-                # FIXME: Check this logic
                 if attr == "tags":
                     _tags = []
                     for tag in asg[keyname]:
@@ -203,8 +204,7 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                     ret[attr] = asg[keyname].split(",")
                 # convert SuspendedProcess objects to names
                 elif attr == "suspended_processes":
-                    suspended_processes = asg[keyname]
-                    ret[attr] = sorted([p["ProcessName"] for p in suspended_processes])
+                    ret[attr] = sorted([p["ProcessName"] for p in asg[keyname]])
                 elif attr == "placement_group":
                     # Note that boto3 doesn't return a placement group, so skip it.
                     continue
@@ -250,60 +250,6 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                 continue
             log.error(e)
             return {}
-            """
-            ### I had commented porting these other sections to boto3, but perhaps it's not required?
-            # scaling policies
-            policy_paginator = client.get_paginator("describe_policies")
-            policies = policy_paginator.paginate(
-                AutoScalingGroupName=name
-            ).build_full_result()["ScalingPolicies"]
-
-            # policies = conn.get_all_policies(as_group=name)
-            ret["scaling_policies"] = []
-            #  [ 'AutoScalingGroupName',
-            #    'PolicyName',
-            #    'PolicyARN',
-            #    'PolicyType',
-            #    'AdjustmentType',
-            #    'ScalingAdjustment',
-            #    'Cooldown',
-            #    'StepAdjustments',
-            #    'Alarms',
-            #    'Enabled' ]
-            for policy in policies:
-                ret["scaling_policies"].append({
-                    "name", policy["PolicyName"],
-                    "adjustment_type", policy["AdjustmentType"],
-                    "scaling_adjustment", policy["ScalingAdjustment"],
-                    "min_adjustment_step", policy.min_adjustment_step),
-                    "cooldown", policy["Cooldown"],
-                })
-            # scheduled actions
-            actions = conn.get_all_scheduled_actions(as_group=name)
-            ret['scheduled_actions'] = {}
-            for action in actions:
-                end_time = None
-                if action.end_time:
-                    end_time = action.end_time.isoformat()
-                ret['scheduled_actions'][action.name] = dict([
-                  ("min_size", action.min_size),
-                  ("max_size", action.max_size),
-                  # AWS bug
-                  ("desired_capacity", int(action.desired_capacity)),
-                  ("start_time", action.start_time.isoformat()),
-                  ("end_time", end_time),
-                  ("recurrence", action.recurrence)
-                ])
-            return ret
-        except boto.exception.BotoServerError as e:
-            if retries and e.code == 'Throttling':
-                log.debug('Throttled by AWS API, retrying in 5 seconds...')
-                time.sleep(5)
-                retries -= 1
-                continue
-            log.error(e)
-            return {}
-            """
 
 
 def create(name, launch_config_name, availability_zones, min_size, max_size,
