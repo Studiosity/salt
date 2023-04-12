@@ -140,15 +140,8 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
 
         salt myminion boto_asg.get_config myasg region=us-east-1
     '''
-    # conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
-    conn = None
+    conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
 
-    ###
-    import os
-    if not os.getenv("DEVMODE"):
-        raise Exception("You must remove DEVMODE!")
-    boto3.setup_default_session(profile_name="studiosity")
-    ###
     # boto3 client
     client = boto3.client("autoscaling")
 
@@ -210,7 +203,6 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                     continue
                 else:
                     ret[attr] = asg[keyname]
-###
 
             # scaling policies
             policies = conn.get_all_policies(as_group=name)
