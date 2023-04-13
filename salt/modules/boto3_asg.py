@@ -62,6 +62,7 @@ DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 # from salt.ext import six
 try:
     import boto
+    from botocore.exceptions import ClientError
     import boto.ec2
     import boto.ec2.instance
     logging.getLogger('boto').setLevel(logging.CRITICAL)
@@ -86,8 +87,6 @@ def __virtual__():
     has_boto_reqs = salt.utils.versions.check_boto_reqs()
     if has_boto_reqs is True:
         __utils__['boto.assign_funcs'](__name__, 'asg', module='ec2.autoscale', pack=__salt__)
-        setattr(sys.modules[__name__], '_get_ec2_conn',
-                __utils__['boto.get_connection_func']('ec2'))
     return has_boto_reqs
 
 
@@ -95,8 +94,10 @@ def __init__(opts):
     salt.utils.compat.pack_dunder(__name__)
     if HAS_BOTO:
         __utils__['boto3.assign_funcs'](
-            __name__, 'autoscaling',
-            get_conn_funcname='_get_conn_autoscaling_boto3')
+            __name__,
+            'autoscaling',
+            get_conn_funcname='_get_conn_autoscaling_boto3'
+        )
 
 
 def get_config(name, region=None, key=None, keyid=None, profile=None):
@@ -109,10 +110,8 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
 
-    # Obtain the boto3 client: note that this is a non-idiomatic way to obtain the client (in salt-land).
-    # I believe we should be using _get_conn (or similar) somehow, but in the interests of moving quickly,
-    # this should get us back up and running.
-    client = boto3.client("autoscaling")
+    # Obtain a handle to the boto3 client
+    conn3 = _get_conn_autoscaling_boto3(region=region, key=key, keyid=keyid, profile=profile)
 
     # This lookup table allows us to map the (boto-inspired) key names expected by callers of this function, to the
     # actual key names returned by boto3.
@@ -138,7 +137,7 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
     retries = 30
     while True:
         try:
-            asg_paginator = client.get_paginator("describe_auto_scaling_groups")
+            asg_paginator = conn3.get_paginator("describe_auto_scaling_groups")
             # Obtain the first ASG, defaulting to None if no ASGs were returned
             asg = next(
                 iter(
@@ -203,8 +202,19 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                   ("recurrence", action.recurrence)
                 ])
             return ret
+        # This catch block handles "boto" errors
         except boto.exception.BotoServerError as e:
             if retries and e.code == 'Throttling':
+                log.debug('Throttled by AWS API, retrying in 5 seconds...')
+                time.sleep(5)
+                retries -= 1
+                continue
+            log.error(e)
+            return {}
+        # This catch block handles "boto3" errors
+        except ClientError as e:
+            # See https://docs.aws.amazon.com/autoscaling/ec2/APIReference/CommonErrors.html
+            if retries and e.response["Error"]["Code"] == "ThrottlingException":
                 log.debug('Throttled by AWS API, retrying in 5 seconds...')
                 time.sleep(5)
                 retries -= 1
