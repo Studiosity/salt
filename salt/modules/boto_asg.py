@@ -141,7 +141,7 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
     retries = 30
     while True:
         try:
-            asg = [g for g in conn.get_all_groups(names=[name]) if all([g.name, g.vpc_zone_identifier])]
+            asg = conn.get_all_groups(names=[name])
             if asg:
                 asg = asg[0]
             else:
@@ -164,7 +164,6 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                         _tag['propagate_at_launch'] = tag.propagate_at_launch
                         _tags.append(_tag)
                     ret['tags'] = _tags
-                # IT-101: This comment is misleading. We sometimes see a `None` returned.
                 # Boto accepts a string or list as input for vpc_zone_identifier,
                 # but always returns a comma separated list. We require lists in
                 # states.
@@ -782,7 +781,7 @@ def get_all_groups(region=None, key=None, keyid=None, profile=None):
             asgs = []
             while next_token is not None:
                 ret = conn.get_all_groups(next_token=next_token)
-                asgs += [a for a in ret if a.name]
+                asgs += [a for a in ret]
                 next_token = ret.next_token
             return asgs
         except boto.exception.BotoServerError as e:
