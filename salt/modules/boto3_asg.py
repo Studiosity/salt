@@ -115,10 +115,8 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
 
-    # Obtain the boto3 client: note that this is a non-idiomatic way to obtain the client (in salt-land).
-    # I believe we should be using _get_conn (or similar) somehow, but in the interests of moving quickly,
-    # this should get us back up and running.
-    client = boto3.client("autoscaling")
+    # Obtain a handle to the boto3 client
+    conn3 = _get_conn_autoscaling_boto3(region=region, key=key, keyid=keyid, profile=profile)
 
     # This lookup table allows us to map the (boto-inspired) key names expected by callers of this function, to the
     # actual key names returned by boto3.
@@ -144,7 +142,7 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
     retries = 30
     while True:
         try:
-            asg_paginator = client.get_paginator("describe_auto_scaling_groups")
+            asg_paginator = conn3.get_paginator("describe_auto_scaling_groups")
             # Obtain the first ASG, defaulting to None if no ASGs were returned
             asg = next(
                 iter(
