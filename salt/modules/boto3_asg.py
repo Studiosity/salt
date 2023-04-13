@@ -62,6 +62,7 @@ DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 # from salt.ext import six
 try:
     import boto
+    from botocore.exceptions import ClientError
     import boto.ec2
     import boto.ec2.instance
     logging.getLogger('boto').setLevel(logging.CRITICAL)
@@ -203,8 +204,19 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                   ("recurrence", action.recurrence)
                 ])
             return ret
+        # This catch block handles "boto" errors
         except boto.exception.BotoServerError as e:
             if retries and e.code == 'Throttling':
+                log.debug('Throttled by AWS API, retrying in 5 seconds...')
+                time.sleep(5)
+                retries -= 1
+                continue
+            log.error(e)
+            return {}
+        # This catch block handles "boto3" errors
+        except ClientError as e:
+            # See https://docs.aws.amazon.com/autoscaling/ec2/APIReference/CommonErrors.html
+            if retries and e.response["Error"]["Code"] == "ThrottlingException":
                 log.debug('Throttled by AWS API, retrying in 5 seconds...')
                 time.sleep(5)
                 retries -= 1
