@@ -86,11 +86,7 @@ def __virtual__():
     '''
     has_boto_reqs = salt.utils.versions.check_boto_reqs()
     if has_boto_reqs is True:
-        # FIXME: I believe this can be removed, as we're removing usages of this module
-        # __utils__['boto.assign_funcs'](__name__, 'asg', module='ec2.autoscale', pack=__salt__)
-
-        # FIXME: I believe this could stay (as it seems to just wire-up the calls to ec2), we don't seem
-        # to be using it, so I'll comment it out.
+        __utils__['boto.assign_funcs'](__name__, 'asg', module='ec2.autoscale', pack=__salt__)
         setattr(sys.modules[__name__], '_get_ec2_conn', __utils__['boto.get_connection_func']('ec2'))
     return has_boto_reqs
 
