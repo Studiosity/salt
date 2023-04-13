@@ -64,7 +64,6 @@ try:
     import boto
     import boto.ec2
     import boto.ec2.instance
-    import boto3
     logging.getLogger('boto').setLevel(logging.CRITICAL)
     import boto3  # pylint: disable=unused-import
     logging.getLogger('boto3').setLevel(logging.CRITICAL)
