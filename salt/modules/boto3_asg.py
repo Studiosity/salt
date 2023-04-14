@@ -126,8 +126,7 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
         "load_balancers": "LoadBalancerNames",
         "max_size": "MaxSize",
         "min_size": "MinSize",
-        # boto3 doesn't seem to return a "placement group"-like key in its response, so this key is omitted.
-        # "placement_group": None,
+        "placement_group": "PlacementGroup",
         "vpc_zone_identifier": "VPCZoneIdentifier",
         "tags": "Tags",
         "termination_policies": "TerminationPolicies",
@@ -166,9 +165,12 @@ def get_config(name, region=None, key=None, keyid=None, profile=None):
                 # convert SuspendedProcess objects to names
                 elif attr == "suspended_processes":
                     ret[attr] = sorted([p["ProcessName"] for p in asg[keyname]])
-                # Note that boto3 doesn't return a placement group, we so skip it.
+                # boto3 seems to omit the "PlacementGroup" in its response if one isn't in use
                 elif attr == "placement_group":
-                    continue
+                    placement_group = asg.get(keyname)
+                    if not placement_group:
+                        continue
+                    ret[attr] = placement_group
                 else:
                     ret[attr] = asg[keyname]
 
